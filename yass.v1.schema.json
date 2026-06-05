@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://textla.dev/yass/v1.schema.json",
+  "title": "yass v1 document",
+  "description": "Per-document schema for a yass v1 .yass.yaml stream. Each YAML document validates as either a preamble or a spec. Stream-level rules (exactly one preamble first, name uniqueness, ref resolution) are out of scope and remain in `yass validate`.",
+  "oneOf": [
+    { "$ref": "#/$defs/preamble" },
+    { "$ref": "#/$defs/spec" }
+  ],
+
+  "$defs": {
+    "preamble": {
+      "title": "Preamble",
+      "type": "object",
+      "not": { "required": ["spec"] },
+      "required": ["description", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "description": { "type": "string" },
+        "version": { "const": "v1" },
+        "related": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+
+    "spec": {
+      "title": "Spec",
+      "type": "object",
+      "required": ["spec"],
+      "additionalProperties": false,
+      "properties": {
+        "spec": { "type": "string", "pattern": "^[A-Za-z0-9._-]+$" },
+        "INPUT": { "$ref": "#/$defs/slot" },
+        "RETURN": { "$ref": "#/$defs/slot" },
+        "ERROR": { "$ref": "#/$defs/slot" },
+        "SIDE-EFFECT": { "$ref": "#/$defs/slot" },
+        "INVARIANT": { "$ref": "#/$defs/slot" }
+      }
+    },
+
+    "slot": {
+      "title": "Slot",
+      "type": "array",
+      "items": { "$ref": "#/$defs/obligation" }
+    },
+
+    "refTarget": {
+      "title": "RefTarget",
+      "type": "string",
+      "pattern": "^(\\.\\.?/[^@]*@)?[A-Za-z0-9._-]+(::[A-Z][A-Z-]*)?$"
+    },
+
+    "obligation": {
+      "title": "Obligation",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "MUST": { "type": "string" },
+        "MUST-NOT": { "type": "string" },
+        "SHOULD": { "type": "string" },
+        "SHOULD-NOT": { "type": "string" },
+        "MAY": { "type": "string" },
+        "SHALL": { "type": "string" },
+        "SHALL-NOT": { "type": "string" },
+        "REQUIRED": { "type": "string" },
+        "RECOMMENDED": { "type": "string" },
+        "OPTIONAL": { "type": "string" },
+        "WHEN": { "type": "string" },
+        "CONFORMS": { "$ref": "#/$defs/refTarget" },
+        "USES": { "$ref": "#/$defs/refTarget" },
+        "SEE": { "$ref": "#/$defs/refTarget" }
+      },
+      "oneOf": [
+        {
+          "title": "normative obligation (exactly one normativity keyword)",
+          "oneOf": [
+            { "required": ["MUST"] },
+            { "required": ["MUST-NOT"] },
+            { "required": ["SHOULD"] },
+            { "required": ["SHOULD-NOT"] },
+            { "required": ["MAY"] },
+            { "required": ["SHALL"] },
+            { "required": ["SHALL-NOT"] },
+            { "required": ["REQUIRED"] },
+            { "required": ["RECOMMENDED"] },
+            { "required": ["OPTIONAL"] }
+          ]
+        },
+        {
+          "title": "reference-only obligation (no normativity, no WHEN, at least one relation)",
+          "not": {
+            "anyOf": [
+              { "required": ["MUST"] },
+              { "required": ["MUST-NOT"] },
+              { "required": ["SHOULD"] },
+              { "required": ["SHOULD-NOT"] },
+              { "required": ["MAY"] },
+              { "required": ["SHALL"] },
+              { "required": ["SHALL-NOT"] },
+              { "required": ["REQUIRED"] },
+              { "required": ["RECOMMENDED"] },
+              { "required": ["OPTIONAL"] },
+              { "required": ["WHEN"] }
+            ]
+          },
+          "anyOf": [
+            { "required": ["CONFORMS"] },
+            { "required": ["USES"] },
+            { "required": ["SEE"] }
+          ]
+        }
+      ]
+    }
+  }
+}

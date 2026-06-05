@@ -1,0 +1,199 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  yass — Yet Another Spec Syntax — defining itself. Each spec below is one construct of
+  the language; its obligations are that construct's well-formedness rules, and USES
+  refs link a construct to the constructs it contains.
+version: v1
+related:
+- https://www.rfc-editor.org/rfc/rfc2119
+- https://www.rfc-editor.org/rfc/rfc8174
+- https://yaml.org/spec/1.2.2/
+---
+spec: Document
+INPUT:
+- MUST: be encoded as UTF-8
+- MUST: "be a YAML stream of one or more documents separated by `---`"
+RETURN:
+- MUST: begin with a single Preamble as its first document
+  USES: Preamble
+- MUST: treat every other document as a Spec
+  USES: Spec
+ERROR:
+- MUST: be rejected when the stream is not well-formed YAML
+INVARIANT:
+- MUST: preserve document order, since Preamble validity depends on position
+---
+spec: Preamble
+INPUT:
+- MUST: "be a YAML mapping that has no `spec` key"
+- MUST: be present as the first document of every file
+- MUST: provide a description of the file
+- MUST: provide a version
+- MUST: set the version to v1 for this revision of yass
+- MAY: provide a related list of external resource locations
+RETURN:
+- MUST: declare the yass version of the spec file
+ERROR:
+- MUST: be rejected when no Preamble is present
+- MUST: be rejected when it appears at any position other than first
+- MUST: be rejected when more than one is present in a file
+- MUST: be rejected when it omits its description or version
+- MUST: be rejected when its version is not recognized
+INVARIANT:
+- MUST-NOT: have its related entries resolved or fetched by tooling
+---
+spec: Spec
+INPUT:
+- MUST: "be a YAML mapping with a `spec` key naming the spec"
+- MAY: use a namespaced name such as `pkg.Symbol`
+- MUST: "limit its name to the characters `A-Z`, `a-z`, `0-9`, `.`, `_`, and `-`"
+RETURN:
+- MUST: carry zero or more Slots
+  USES: Slot
+ERROR:
+- MUST: be rejected when it has no spec name
+- MUST: be rejected when a key other than spec is not a valid Slot key
+  USES: Slot
+INVARIANT:
+- MUST-NOT: depend on its position within the file
+- MUST-NOT: share its name with another Spec in the same file
+---
+spec: Slot
+INPUT:
+- MUST: be one of INPUT, RETURN, ERROR, SIDE-EFFECT, or INVARIANT
+- MUST: hold a list of Obligations
+  USES: Obligation
+RETURN:
+- MUST: group obligations that describe the same facet of what the spec describes
+ERROR:
+- MUST: be rejected when its key is outside the recognized set
+INVARIANT:
+- CONFORMS: Keyword
+- MUST-NOT: carry meaning in the order of its obligations
+---
+spec: Slot.INPUT
+RETURN:
+- MUST: state what the spec accepts, and which parts are required or optional
+- MUST: state the validation or preconditions applied to those inputs
+---
+spec: Slot.RETURN
+RETURN:
+- MUST: state what the spec yields on success
+- MUST: state the postconditions that hold of the result
+---
+spec: Slot.ERROR
+RETURN:
+- MUST: state the failure conditions and how the spec rejects them
+---
+spec: Slot.SIDE-EFFECT
+RETURN:
+- MUST: state observable effects beyond the returned value
+---
+spec: Slot.INVARIANT
+RETURN:
+- MUST: state constraints that always hold, independent of any single call
+INVARIANT:
+- SHOULD: be used only when no other slot is suitable
+---
+spec: Obligation
+INPUT:
+- MUST: be a YAML mapping
+- MUST: carry exactly one Normativity keyword unless it is reference-only
+  USES: Normativity
+- MAY: carry one Guard
+  USES: Guard
+- MAY: carry one or more References
+  USES: Reference
+RETURN:
+- WHEN: it carries a Normativity keyword
+  MUST: express a single requirement on what the spec describes
+- WHEN: it is reference-only
+  MUST: add no obligation of its own, leaving its references to resolve per their relation
+  USES: Reference
+ERROR:
+- MUST: "be rejected when prose containing `: ` is left unquoted"
+- MUST: be rejected when it carries neither a Normativity keyword nor a Reference
+- MUST: be rejected when it carries a Guard but no Normativity keyword
+  USES: Guard
+INVARIANT:
+- MUST-NOT: carry the same Reference relation key more than once
+---
+spec: Normativity
+INPUT:
+- MUST: be used as the obligation mapping key
+- MUST: "be one of MUST, MUST-NOT, SHOULD, SHOULD-NOT, MAY, SHALL, SHALL-NOT, REQUIRED, RECOMMENDED, or OPTIONAL"
+- MUST: spell negatives with a hyphen so they remain clean YAML keys
+- MUST: take a value that is the obligation prose
+RETURN:
+- MUST: convey the binding strength defined by RFC 2119 and RFC 8174
+ERROR:
+- MUST: be rejected when the keyword is outside the recognized set
+INVARIANT:
+- CONFORMS: Keyword
+- MUST-NOT: appear more than once in a single Obligation
+---
+spec: Guard
+INPUT:
+- MUST: be expressed with the WHEN key
+- MUST: take a value stating the condition prose
+RETURN:
+- MUST: express a sufficient condition under which the obligation applies
+ERROR:
+- MUST: be rejected when it stands alone with no Normativity keyword
+  USES: Normativity
+INVARIANT:
+- CONFORMS: Keyword
+- MUST-NOT: express a necessary condition
+---
+spec: Reference
+INPUT:
+- MUST: be one of the relation keys CONFORMS, USES, or SEE
+- MUST: take a single RefTarget string as its value
+  USES: RefTarget
+RETURN:
+- WHEN: the relation is CONFORMS
+  MUST: mean the obligation must match the referenced spec or slot
+- WHEN: the relation is USES
+  MUST: mean the obligation's behavior depends on or draws on the referenced spec or slot
+- WHEN: the relation is SEE
+  MUST: mean the referenced spec is related context the obligation does not depend on
+ERROR:
+- MUST: be rejected when its target does not resolve to an existing spec or slot
+  USES: RefTarget
+SIDE-EFFECT:
+- WHEN: the relation is CONFORMS
+  MUST: be inlined into the referencing spec when resolved
+- WHEN: the relation is USES
+  MAY: be inlined when the referencing spec is resolved
+- WHEN: the relation is SEE
+  MUST-NOT: be inlined
+- MUST: carry provenance as a comment naming the source ref when inlined
+INVARIANT:
+- CONFORMS: Keyword
+---
+spec: RefTarget
+INPUT:
+- MUST: "name a spec, bare for the same file or as `path@SpecName` for another file"
+- MAY: "address a slot by appending `::SLOT`"
+RETURN:
+- MUST: address the whole spec when no slot is given
+- WHEN: a slot is given
+  MUST: address that slot of the spec
+  USES: Slot
+- WHEN: "the path begins with `./` or `../`"
+  MUST: resolve relative to the referencing file
+- WHEN: the path has no leading dot
+  MUST: resolve from the project root
+ERROR:
+- MUST: "be rejected when it is not well-formed per the `path@SpecName::SLOT` grammar"
+- MUST: be rejected when the slot is outside the recognized set
+  USES: Slot
+INVARIANT:
+- MUST-NOT: include the spec file extension in the path
+- MUST-NOT: address anything finer than a slot, such as a single obligation
+- MUST-NOT: use line numbers as anchors
+---
+spec: Keyword
+INVARIANT:
+- MUST: be written UPPERCASE to distinguish yass vocabulary from prose
