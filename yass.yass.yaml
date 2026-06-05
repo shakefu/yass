@@ -122,7 +122,7 @@ INVARIANT:
 spec: Normativity
 INPUT:
 - MUST: be used as the obligation mapping key
-- MUST: "be one of MUST, MUST-NOT, SHOULD, SHOULD-NOT, MAY, SHALL, SHALL-NOT, REQUIRED, RECOMMENDED, or OPTIONAL"
+- MUST: "be one of MUST, MUST-NOT, SHOULD, SHOULD-NOT, or MAY"
 - MUST: spell negatives with a hyphen so they remain clean YAML keys
 - MUST: take a value that is the obligation prose
 RETURN:
