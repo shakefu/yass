@@ -173,12 +173,8 @@ than restating it.
   excluded.
 - Necessary-condition guards (`ONLY WHEN` / `UNLESS`) are deferred; `WHEN` is sufficient
   only.
-- `SEE` is unused by the self-definition (a grammar is all concrete dependencies). It is
-  kept for non-dependency "see also" links in domain specs; if real authoring leaves it
-  unused, drop it in v2.
 - Extension: `.yass.yaml` (alias `.yass.yml`), chosen over bare `.spec` after a collision
   review. Bare `.spec` is owned by RPM spec files / PyInstaller / Vim+Neovim filetype /
   GitHub Linguist / freedesktop MIME, and — decisively — a bare `.spec` never gets the
   `yaml` language id, so it earns neither free YAML highlighting nor JSON-Schema
   association. A trailing `.yaml` fixes that; the `.yass` infix namespaces it.
-- Naming: language **yass**; the existing prototype CLI is named `yiss` (rename pending).
