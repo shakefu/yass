@@ -1,0 +1,91 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  Machine-stable error code table for the yass CLI. Every ErrorLine emitted by
+  any subcommand carries one of these codes inside `[<code>]` between the
+  optional source-line prefix and the human-readable message. Codes are
+  case-sensitive and stable across releases; messages MAY be refined for
+  clarity but the codes MUST NOT change once published.
+version: v1
+---
+spec: cli.errors
+INPUT:
+- MUST: "name each error code under the namespace `yass.<area>.<error>` using only the characters [a-z0-9.]"
+- MUST: "be cited by every cli.ErrorLine emission via the `[<code>]` field"
+  USES: ./cli@cli.ErrorLine
+RETURN:
+- MUST: "yass.exit.success means the run completed without error; exit 0"
+- MUST: "yass.exit.processing means a validation or processing rule was violated; exit 1"
+- MUST: "yass.exit.usage means an argv-parse or file-input failure; exit 2"
+- MUST: "yass.exit.sigint means the process received SIGINT; exit 130"
+- MUST: "yass.exit.sigterm means the process received SIGTERM; exit 143"
+- MUST: "yass.argv.unknown_subcommand means the first positional did not match a known subcommand; message `unknown subcommand: <arg>`; exit 2"
+- MUST: "yass.argv.no_subcommand means no subcommand and no global flag were given; message `no subcommand given`; exit 2"
+- MUST: "yass.argv.unknown_flag means a flag other than --help or --version was given; message `unknown flag: <flag>`; exit 2"
+- MUST: "yass.argv.empty_argument means a positional argument was the empty string; message `empty argument`; exit 2"
+- MUST: "yass.argv.short_flag means a short-form flag was given; message `short-form flags are not supported in v1: <flag>`; exit 2"
+- MUST: "yass.argv.case_mismatch means a subcommand or flag was given in a non-canonical case; message `subcommand or flag case mismatch: <token>`; exit 2"
+- MUST: "yass.argv.abbreviation means a subcommand or flag was given as an abbreviation; message `abbreviations are not supported: <token>`; exit 2"
+- MUST: "yass.argv.missing_positional means a required positional argument was missing; message `missing required argument: <name>`; exit 2"
+- MUST: "yass.argv.stdin_dash means the bare token `-` was given as a positional; message `stdin marker `-` is not supported; pass a file path`; exit 2"
+- MUST: "yass.path.not_found means a provided file or directory path does not exist; message `path does not exist: <path>`; exit 2"
+- MUST: "yass.path.bad_extension means a provided file path does not end with the .yass.yaml suffix; message `expected a .yass.yaml file: <path>`; exit 2"
+- MUST: "yass.path.unreadable means a file or directory cannot be accessed; message `cannot read path: <path>`; exit 2"
+- MUST: "yass.path.invalid_type means a path resolved to a filesystem entry that is neither a regular file nor a directory; message `path is neither a file nor a directory: <path>`; exit 2"
+- MUST: "yass.path.colon_in_path means a path argument contains a literal colon; message `path contains an unsupported colon character: <path>`; exit 2"
+- MUST: "yass.glob.no_match means a glob pattern matched zero files; message `no files matched pattern: <pattern>`; exit 2"
+- MUST: "yass.discover.no_files means no .yass.yaml files were found after argument expansion and discovery; message `no .yass.yaml files found`; exit 2"
+- MUST: "yass.discover.dir_unreadable means a directory could not be listed during recursive discovery; message `cannot read directory: <path>`; non-fatal during recursion"
+- MUST: "yass.findroot.no_marker means FindProjectRoot reached the filesystem root without finding a .git or .yass.yaml marker; message `no project root marker found`; exit 2"
+- MUST: "yass.yaml.not_utf8 means a file is not valid UTF-8; message `file is not valid UTF-8`; exit 1"
+- MUST: "yass.yaml.has_bom means a file begins with a UTF-8 BOM; message `file begins with a UTF-8 BOM`; exit 1"
+- MUST: "yass.yaml.malformed means a file is not well-formed YAML 1.2; message `YAML well-formedness error`; exit 1"
+- MUST: "yass.yaml.empty_file means a file is zero bytes; message `empty file`; exit 1"
+- MUST: "yass.yaml.duplicate_key means a YAML mapping contains duplicate keys; message `duplicate mapping key: <key>`; exit 1"
+- MUST: "yass.yaml.anchor_or_alias means a YAML anchor, alias, or explicit tag was used; message `YAML anchors, aliases, and explicit tags are not allowed`; exit 1"
+- MUST: "yass.yaml.empty_stream means the parsed YAML stream contains zero documents; message `YAML stream contains no documents`; exit 1"
+- MUST: "yass.preamble.has_spec_key means the first document carries a spec key; message `first document must be a Preamble, not a Spec`; exit 1"
+- MUST: "yass.preamble.missing means no Preamble is present as the first document; message `missing Preamble`; exit 1"
+- MUST: "yass.preamble.misplaced means a Preamble appears at a non-first position; message `Preamble must be the first document`; exit 1"
+- MUST: "yass.preamble.duplicate means more than one Preamble is present in a single file; message `more than one Preamble in file`; exit 1"
+- MUST: "yass.preamble.missing_description means the Preamble omits description; message `Preamble missing description`; exit 1"
+- MUST: "yass.preamble.missing_version means the Preamble omits version; message `Preamble missing version`; exit 1"
+- MUST: "yass.preamble.unknown_version means the Preamble version is not the exact string v1; message `unsupported Preamble version: <version>`; exit 1"
+- MUST: "yass.preamble.bad_related means the Preamble related key is not a sequence of strings; message `Preamble related must be a sequence of strings`; exit 1"
+- MUST: "yass.spec.no_name means a non-first document lacks a top-level spec key; message `spec document missing spec key`; exit 1"
+- MUST: "yass.spec.name_not_string means the spec name value is not a string; message `spec name must be a string`; exit 1"
+- MUST: "yass.spec.name_empty means the spec name is empty; message `spec name is empty`; exit 1"
+- MUST: "yass.spec.name_bad_chars means the spec name contains characters outside the allowed set; message `spec name contains disallowed characters: <name>`; exit 1"
+- MUST: "yass.spec.name_bad_form means the spec name violates the composition regex; message `spec name is malformed: <name>`; exit 1"
+- MUST: "yass.spec.name_reserved means the spec name case-insensitively matches a Slot or Normativity keyword; message `spec name collides with a reserved keyword: <name>`; exit 1"
+- MUST: "yass.spec.unknown_key means a key other than spec is not a valid Slot key; message `unknown spec key: <key>`; exit 1"
+- MUST: "yass.spec.duplicate_name means two or more specs share a name in one file; message `duplicate spec name in file: <name>`; exit 1"
+- MUST: "yass.slot.value_not_list means a Slot key has a value that is not a list; message `slot value must be a list: <slot>`; exit 1"
+- MUST: "yass.obligation.bad_value_shape means an obligation value at a scalar position is a mapping, sequence, or null; message `obligation value must be a quoted scalar`; exit 1"
+- MUST: "yass.obligation.missing_normativity_or_ref means an obligation carries neither a Normativity keyword nor a Reference; message `obligation must carry a Normativity keyword or a Reference`; exit 1"
+- MUST: "yass.obligation.guard_without_normativity means a WHEN guard is present without a Normativity keyword; message `WHEN guard requires a Normativity keyword`; exit 1"
+- MUST: "yass.obligation.duplicate_reference means an obligation carries the same Reference relation more than once; message `duplicate Reference relation in obligation: <relation>`; exit 1"
+- MUST: "yass.obligation.duplicate_normativity means an obligation carries more than one Normativity keyword; message `duplicate Normativity keyword in obligation`; exit 1"
+- MUST: "yass.normativity.unknown means a Normativity keyword is outside the recognized set; message `unknown Normativity keyword: <keyword>`; exit 1"
+- MUST: "yass.reference.unknown_relation means a Reference relation key is outside the recognized set; message `unknown Reference relation: <relation>`; exit 1"
+- MUST: "yass.ref.malformed means a ref target is not well-formed per the ref-target grammar; message `malformed ref target: <target>`; exit 1"
+- MUST: "yass.ref.unknown_slot means a ref target names a slot outside the recognized set; message `unknown slot in ref target: <slot>`; exit 1"
+- MUST: "yass.ref.slot_not_declared means a ref target names a slot the referenced spec does not declare; message `referenced spec does not declare slot: <target>`; exit 1"
+- MUST: "yass.ref.spec_not_found_same_file means a same-file ref target spec does not exist; message `spec not found in file: <target>`; exit 1"
+- MUST: "yass.ref.file_not_found means a cross-file ref target file does not exist; message `referenced file not found: <target>`; exit 1"
+- MUST: "yass.ref.file_not_parseable means a cross-file ref target file cannot be parsed as YAML; message `referenced file not parseable: <target>`; exit 1"
+- MUST: "yass.ref.spec_not_found_other_file means a cross-file ref target spec does not exist in the referenced file; message `spec not found in referenced file: <target>`; exit 1"
+- MUST: "yass.query.name_missing means no spec name was given to query; message `missing spec name`; exit 2"
+- MUST: "yass.query.name_blank means the query spec name is empty or contains internal whitespace; message `spec name is blank or contains whitespace`; exit 2"
+- MUST: "yass.query.no_match means no spec matches the given name in scope; message `no spec matches: <name>`; exit 1"
+- MUST: "yass.query.conforms_unresolved means a CONFORMS ref could not be resolved during inlining; message `unresolvable CONFORMS ref: <target>`; exit 1"
+- MUST: "yass.query.conforms_no_slot means a CONFORMS ref target lacks a slot suffix in the form double-colon SLOT; message `CONFORMS ref must address a slot in v1: <target>`; exit 1"
+- MUST: "yass.query.scope_not_found means the provided scope path does not exist; message `scope path does not exist: <path>`; exit 2"
+- MUST: "yass.query.scope_empty means the provided scope contains zero .yass.yaml files; message `no .yass.yaml files found in scope: <path>`; exit 2"
+- MUST: "yass.internal.uncaught means an uncaught internal error occurred in a subcommand handler; message `internal error: <message>`; exit 1"
+INVARIANT:
+- MUST: keep every code stable across releases once published
+- MUST: "name codes case-sensitively using only the characters [a-z0-9.]"
+- MUST-NOT: reuse a retired code for a new meaning
+- MUST-NOT: emit any error from any subcommand whose code is not listed in this spec
+- MUST-NOT: introduce an exit code other than 0, 1, 2, 130, or 143
