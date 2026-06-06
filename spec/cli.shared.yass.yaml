@@ -1,0 +1,99 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  Shared behaviors used across multiple CLI subcommands.
+version: v1
+---
+spec: cli.FindProjectRoot
+INPUT:
+- MAY: accept a starting directory path
+- WHEN: no starting path is provided
+  MUST: default to the current working directory
+RETURN:
+- MUST: return the absolute path of the project root
+- MUST: search upward starting from the input directory inclusive toward the filesystem root
+- MUST: inspect the starting directory itself before its parent
+- WHEN: "any ancestor up to and including the filesystem root contains a `.git` entry"
+  MUST: return the deepest such ancestor as the project root and stop
+- WHEN: "no `.git` entry exists anywhere on the upward path"
+  MUST: "restart from the input directory inclusive and search upward for a directory containing any `.yass.yaml` file, returning the deepest such ancestor"
+- MUST: be computed exactly once per invocation using the current working directory as the starting point
+- MUST-NOT: be recomputed per file
+ERROR:
+- MUST: error when no project root marker is found after reaching the filesystem root
+INVARIANT:
+- MUST-NOT: traverse horizontally across the directory tree
+- MUST-NOT: descend into child directories during the search
+- MUST-NOT: "honor `.yass.yaml` markers when any `.git` marker exists anywhere on the upward path"
+---
+spec: cli.DiscoverSpecFiles
+INPUT:
+- MAY: accept a file path to use directly
+- MAY: accept a directory path to search within
+- WHEN: no path is provided
+  MUST: search from the project root
+  USES: cli.FindProjectRoot
+- MUST: use the filesystem stat result to classify a path as a regular file or a directory
+- WHEN: a provided file-path argument is a symbolic link
+  MUST: "use the symlink path itself for `<file>` reporting and read the link target for content"
+- WHEN: a provided directory-path argument is a symbolic link
+  MUST: treat the symlink path itself as the directory for traversal purposes
+- WHEN: a symbolic link is encountered during recursive traversal
+  MUST: treat that entry as absent
+- WHEN: a path resolves to any filesystem entry that is neither a regular file nor a directory
+  MUST: treat the result as a filesystem error
+RETURN:
+- WHEN: the input is a file path
+  MUST: return that single file path
+- WHEN: the input is a directory path
+  MUST: "recursively search for all files matching the literal suffix `.yass.yaml`"
+- MUST: "emit a path as relative when the lexical absolute path begins with the lexical absolute cwd followed by `/`"
+- MUST: "emit relative paths without a leading `./`"
+- MUST: emit the basename alone when the file is directly inside the current working directory
+- WHEN: a discovered file is not under the current working directory
+  MUST: return it as an absolute path
+- MUST: sort results by Unicode code-point order on the NFC-normalized UTF-8 path string
+- MUST-NOT: use locale-aware collation
+- MUST-NOT: case-fold paths before comparison
+- MUST-NOT: resolve symbolic links before comparison or sorting
+ERROR:
+- MUST: error with code yass.path.not_found when a provided file path does not exist
+- MUST: error with code yass.path.not_found when a provided directory path does not exist
+- WHEN: the input is a file path
+  MUST: "error with code yass.path.bad_extension when the file does not have the `.yass.yaml` suffix"
+- WHEN: a top-level argument is unreadable
+  MUST: error with code yass.path.unreadable and exit 2
+- WHEN: a directory cannot be listed during recursion
+  MUST: emit one ErrorLine with code yass.discover.dir_unreadable for that directory and continue traversing siblings
+  CONFORMS: ../cli@cli.ErrorLine::RETURN
+- MUST-NOT: abort discovery on per-directory filesystem errors below a top-level argument
+INVARIANT:
+- MUST-NOT: follow symbolic links during recursive directory traversal
+- MUST-NOT: "descend into directories whose names begin with `.`"
+- MUST-NOT: "match files whose basename begins with `.`"
+- MUST: "match the literal suffix `.yass.yaml` with case-sensitive byte comparison on all platforms"
+- MUST: "require a non-empty basename before the `.yass.yaml` suffix; the bare filename `.yass.yaml` MUST NOT match"
+- MUST-NOT: "match files ending only in `.yaml` without the `.yass` prefix"
+- MUST-NOT: perform tilde or environment-variable expansion on positional arguments
+- MUST-NOT: resolve any path through realpath before reporting
+---
+spec: cli.ExpandGlob
+INPUT:
+- MUST: accept a single command-line argument string
+RETURN:
+- WHEN: the argument contains no glob metacharacters
+  MUST: return that single literal path unchanged
+- WHEN: the argument contains glob metacharacters
+  MUST: "expand it using doublestar semantics where `*` matches any sequence of characters not containing `/`, `?` matches one such character, `[...]` is a POSIX bracket expression, and `**` matches zero or more path segments and MUST appear as its own segment between `/` separators"
+- MUST: return results sorted by Unicode code-point order on the NFC-normalized UTF-8 path string
+ERROR:
+- WHEN: a glob pattern matches zero files
+  MUST: error with code yass.glob.no_match and exit 2
+INVARIANT:
+- MUST: match case-sensitively on all platforms
+- MUST-NOT: "match hidden files or descend into hidden directories whose name begins with `.`"
+- MUST-NOT: follow symbolic links
+- MUST-NOT: "perform brace expansion (`{a,b}`)"
+- MUST-NOT: perform tilde or environment-variable expansion
+- MUST-NOT: depend on prior shell expansion of the argument
+- MUST-NOT: resolve any path through realpath before returning
