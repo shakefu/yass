@@ -49,7 +49,7 @@
     "refTarget": {
       "title": "RefTarget",
       "type": "string",
-      "pattern": "^(\\.\\.?/[^@]*@)?[A-Za-z0-9._-]+(::[A-Z][A-Z-]*)?$"
+      "pattern": "^([A-Za-z0-9_./-]+@)?[A-Za-z0-9._-]+(::[A-Z][A-Z-]*)?$"
     },
 
     "obligation": {
@@ -62,11 +62,6 @@
         "SHOULD": { "type": "string" },
         "SHOULD-NOT": { "type": "string" },
         "MAY": { "type": "string" },
-        "SHALL": { "type": "string" },
-        "SHALL-NOT": { "type": "string" },
-        "REQUIRED": { "type": "string" },
-        "RECOMMENDED": { "type": "string" },
-        "OPTIONAL": { "type": "string" },
         "WHEN": { "type": "string" },
         "CONFORMS": { "$ref": "#/$defs/refTarget" },
         "USES": { "$ref": "#/$defs/refTarget" },
@@ -80,12 +75,7 @@
             { "required": ["MUST-NOT"] },
             { "required": ["SHOULD"] },
             { "required": ["SHOULD-NOT"] },
-            { "required": ["MAY"] },
-            { "required": ["SHALL"] },
-            { "required": ["SHALL-NOT"] },
-            { "required": ["REQUIRED"] },
-            { "required": ["RECOMMENDED"] },
-            { "required": ["OPTIONAL"] }
+            { "required": ["MAY"] }
           ]
         },
         {
@@ -97,11 +87,6 @@
               { "required": ["SHOULD"] },
               { "required": ["SHOULD-NOT"] },
               { "required": ["MAY"] },
-              { "required": ["SHALL"] },
-              { "required": ["SHALL-NOT"] },
-              { "required": ["REQUIRED"] },
-              { "required": ["RECOMMENDED"] },
-              { "required": ["OPTIONAL"] },
               { "required": ["WHEN"] }
             ]
           },
