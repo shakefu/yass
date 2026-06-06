@@ -66,11 +66,13 @@ pub fn validate(
             });
             continue;
         };
+        defer allocator.free(contents);
 
         // Step 1: CheckYAML
         const parse_result = checkYaml(allocator, file_path, contents, &all_errors) catch {
             continue; // YAML failed, skip remaining checks
         };
+        defer yaml.freeParseResult(allocator, parse_result);
 
         // Step 2: CheckPreamble
         checkPreamble(allocator, file_path, parse_result, &all_errors) catch {};
@@ -858,6 +860,7 @@ fn checkObligationRefs(
                     });
                     continue;
                 };
+                defer yaml.freeParseResult(allocator, cross_parse);
 
                 checked_files.put(resolved_path, .ok) catch {};
                 try checkCrossFileSpecFromParsed(allocator, file_path, target_str.line, ref_file, ref.spec_name, ref.slot, cross_parse, all_errors);
@@ -899,7 +902,9 @@ fn checkCrossFileSpec(
     all_errors: *std.ArrayList(ValidationError),
 ) !void {
     const file_contents = readFileContents(allocator, io, resolved_path) orelse return;
+    defer allocator.free(file_contents);
     const cross_parse = yaml.parseYaml(allocator, file_contents) catch return;
+    defer yaml.freeParseResult(allocator, cross_parse);
     try checkCrossFileSpecFromParsed(allocator, file_path, line, resolved_path, spec_name, slot, cross_parse, all_errors);
 }
 

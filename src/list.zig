@@ -138,6 +138,8 @@ fn processFile(
         return;
     };
 
+    defer yaml.freeParseResult(allocator, parse_result);
+
     if (parse_result.documents.len == 0) return;
 
     // Extract preamble description from first document

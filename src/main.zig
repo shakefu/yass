@@ -44,7 +44,7 @@ pub fn main(init: std.process.Init) u8 {
     installSignalHandlers();
 
     const io = init.io;
-    const allocator = init.gpa;
+    const allocator = init.arena.allocator();
     const stdout = File.stdout();
     const stderr = File.stderr();
 
