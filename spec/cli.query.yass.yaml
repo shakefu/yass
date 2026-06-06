@@ -1,0 +1,164 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  The query subcommand. Retrieves a spec by name and emits it as a YAML
+  fragment to stdout. Resolves CONFORMS refs by inlining them with
+  provenance comments. Pins multi-match dispatch, scope validation order,
+  case-sensitive matching, CONFORMS inlining semantics, and the YAML
+  emitter output profile used for query output.
+version: v1
+---
+spec: cli.query
+INPUT:
+- MUST: accept a spec name as a positional argument
+  USES: cli.query.NameLookup
+- MUST: accept an optional file path or directory to narrow the search scope
+- WHEN: no scope is provided
+  MUST: search from the project root
+  USES: ./cli.shared@cli.DiscoverSpecFiles
+- WHEN: any positional path argument (scope) contains a literal `:` character
+  MUST: "reject the invocation with error code yass.path.colon_in_path and exit 2"
+RETURN:
+- WHEN: exactly one spec matches the requested name
+  MUST: emit the matched spec as a YAML fragment to stdout via cli.query.ExtractFragment with CONFORMS inlining
+  USES: cli.query.ExtractFragment
+- WHEN: exactly one spec matches the requested name
+  MUST: resolve each CONFORMS ref by inlining the referenced obligations one level deep
+  USES: cli.query.InlineConforms
+- WHEN: exactly one spec matches the requested name
+  MUST: exit 0
+- WHEN: more than one spec matches the requested name
+  MUST: emit disambiguation rows to stdout in cli.list row format
+  USES: ./cli.list@cli.list
+- WHEN: more than one spec matches the requested name
+  MUST-NOT: truncate descriptions regardless of TTY
+- WHEN: more than one spec matches the requested name
+  MUST: "emit rows in the same order cli.list would emit them (files lex-sorted by path, specs in document order)"
+- WHEN: more than one spec matches the requested name
+  MUST-NOT: emit any YAML fragment to stdout
+- WHEN: more than one spec matches the requested name
+  MUST-NOT: write any line to stderr
+- WHEN: more than one spec matches the requested name
+  MUST: exit 0
+- WHEN: zero specs match the requested name
+  MUST-NOT: emit any output to stdout
+- WHEN: zero specs match the requested name
+  MUST: emit one ErrorLine with code yass.query.no_match to stderr and exit 1
+  CONFORMS: ./cli@cli.ErrorLine::RETURN
+- MUST-NOT: emit a host file header in the output fragment
+- CONFORMS: ./cli@cli.ExitCode::RETURN
+ERROR:
+- MUST: error with code yass.query.name_missing and exit 2 when no spec name is provided
+- MUST: validate the scope path before performing name lookup
+- WHEN: a file path or directory scope is provided
+  MUST: error with code yass.query.scope_not_found and exit 2 when the provided scope does not exist
+- WHEN: the scope exists but contains zero .yass.yaml files
+  MUST: error with code yass.query.scope_empty and exit 2
+- WHEN: both the scope is invalid and the name would not match
+  MUST: emit only the scope-invalid error
+- WHEN: any CONFORMS ref fails to resolve during inlining
+  MUST: emit one ErrorLine with code yass.query.conforms_unresolved per unresolvable ref, MUST-NOT emit any fragment to stdout, and MUST exit 1
+  CONFORMS: ./cli@cli.ErrorLine::RETURN
+- MUST-NOT: emit partial fragments on CONFORMS failure
+SIDE-EFFECT:
+- MUST-NOT: modify any spec file
+- MUST: write error messages to stderr
+  CONFORMS: ./cli@cli.ErrorLine::RETURN
+INVARIANT:
+- MUST-NOT: resolve or inline SEE refs
+- MUST: apply the scope only to cli.query.NameLookup
+- MUST: "resolve CONFORMS refs using cli.FindProjectRoot for project-root-anchored refs and the matched spec's containing directory for `./` and `../` refs, regardless of scope"
+  USES: ./cli.shared@cli.FindProjectRoot
+---
+spec: cli.query.NameLookup
+INPUT:
+- MUST: accept a spec name string
+- MUST: accept a resolved search scope as a file path or directory
+RETURN:
+- MUST: match the full spec name with case-sensitive byte comparison
+- MUST: match any dot-aligned trailing suffix of a namespaced spec name (the query equals the spec name with zero or more leading dot-separated components removed)
+- MUST-NOT: match partial substrings that are not a full trailing component
+- MUST-NOT: perform case folding
+- MUST-NOT: trim or modify the spec-name argument before matching
+- WHEN: the scope is a file path
+  MUST: search only within that file
+- WHEN: the scope is a directory
+  MUST: search all .yass.yaml files within that directory recursively
+  USES: ./cli.shared@cli.DiscoverSpecFiles
+ERROR:
+- MUST: error with code yass.query.name_blank when the spec name is empty
+- WHEN: the spec name contains any whitespace character
+  MUST: treat it as a no-match condition rather than an empty/blank error
+- MUST: error with code yass.query.no_match when no spec matches the given name in the search scope
+SIDE-EFFECT:
+- MUST-NOT: modify any file during lookup
+---
+spec: cli.query.ExtractFragment
+INPUT:
+- MUST: accept a file path and a spec name
+RETURN:
+- MUST: parse the file as a YAML multi-document stream
+- MUST: extract the spec document matching the given name
+- MUST: include all slots and obligations of the matched spec
+- MUST: "emit the fragment as a single YAML document beginning with a `---` marker"
+- MUST-NOT: "emit a trailing `...` document end marker"
+- MUST: preserve key ordering from the source file
+- MUST-NOT: include the preamble in the extracted fragment
+- MUST-NOT: include other spec documents from the same file
+ERROR:
+- MUST: error when the file cannot be parsed as YAML
+- MUST: error when the named spec does not exist in the file
+INVARIANT:
+- CONFORMS: cli.query.OutputProfile::RETURN
+---
+spec: cli.query.InlineConforms
+INPUT:
+- MUST: accept a parsed Spec with its obligations
+RETURN:
+- WHEN: a reference-only obligation carries a CONFORMS ref
+  MUST: replace it with all obligations from the referenced slot
+- WHEN: a normative obligation carries a CONFORMS ref alongside its Normativity keyword
+  MUST: keep the normative obligation and append the inlined obligations after it
+- WHEN: the carrier obligation carried a WHEN guard alongside the CONFORMS ref
+  MUST: preserve that guard on each inlined obligation
+- WHEN: an inlined obligation already carries its own WHEN guard and the carrier had a WHEN guard
+  MUST: "combine both guards by concatenating the outer prose, the literal ASCII string ` and ` (one space, lowercase and, one space), and the inner prose, with no parentheses and no case changes"
+- MUST: preserve the original Normativity keyword of each inlined obligation
+- MUST-NOT: rewrite, promote, or normalize Normativity keywords during inlining
+- MUST: keep all non-CONFORMS Reference relations on the carrier obligation
+- MUST: strip the CONFORMS Reference from the carrier obligation after inlining
+- MUST: "place a provenance comment at column zero on the line immediately above the `- ` of each inlined obligation"
+- MUST-NOT: inline USES refs
+- MUST-NOT: inline SEE refs
+- MUST: resolve exactly one level of CONFORMS refs
+ERROR:
+- WHEN: "a CONFORMS ref target lacks a `::SLOT` suffix"
+  MUST: error with code yass.query.conforms_no_slot and exit 1
+SIDE-EFFECT:
+- MUST-NOT: modify the source spec files
+INVARIANT:
+- MUST: "format each provenance comment as `# CONFORMS: <ref-target>`"
+- MUST: emit `<ref-target>` exactly as written in the source CONFORMS Reference value, byte-for-byte
+- MUST-NOT: canonicalize, resolve, or rewrite the ref target in the provenance comment
+- MUST-NOT: recursively resolve CONFORMS refs found within inlined obligations
+- MUST-NOT: place provenance comments inline at the end of an obligation line
+- CONFORMS: cli.query.OutputProfile::INVARIANT
+---
+spec: cli.query.OutputProfile
+RETURN:
+- MUST: emit UTF-8 with LF line endings
+- MUST: end the emitted fragment with exactly one trailing LF
+- MUST: use 2-space block-style indentation
+- MUST: "emit list items with the `- ` dash-space prefix aligned at the parent indent"
+- MUST: emit plain scalars as unquoted by default
+- WHEN: "a scalar contains `: ` (colon-space), a leading character in `?-*&!|>%@`, leading or trailing whitespace, or matches a YAML 1.2 core-schema type token such as true, false, null, yes, no, on, off, or any numeric literal"
+  MUST: emit the scalar double-quoted
+- MUST: preserve obligation key order Normativity-keyword, then WHEN guard, then Reference relations
+- MUST: emit each provenance comment at column zero on the line immediately above the inlined obligation
+- MUST: "combine an outer WHEN guard and an inner WHEN guard by concatenating the outer prose, the literal ASCII string ` and `, and the inner prose"
+INVARIANT:
+- MUST-NOT: preserve source comments other than provenance comments emitted by InlineConforms
+- MUST-NOT: emit a host file header in the output fragment
+- MUST-NOT: "emit a trailing `...` document-end marker"
+- MUST-NOT: "colorize, page, or alter output when stdout is a TTY"
+- MUST-NOT: wrap combined WHEN guards in parentheses or change the case of any prose
