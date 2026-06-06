@@ -2,6 +2,21 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.0.3 - 2026-06-06
+#### Bug Fixes
+- (**cli**) pin list truncation, sorting, normalization, parse-failure exit - (fd79f46) - Jacob Alheid
+- (**cli**) pin query multi-match dispatch, CONFORMS inlining, output emitter - (64a4e6d) - Jacob Alheid
+- (**cli**) pin validate ordering, counting, exhaustiveness, edge cases - (dcbadb0) - Jacob Alheid
+- (**cli**) tighten FindProjectRoot precedence, DiscoverSpecFiles; add ExpandGlob - (5386bfe) - Jacob Alheid
+- (**cli**) pin ExitCode classification, ErrorLine format, Dispatch invariants - (0b20894) - Jacob Alheid
+- (**cli**) add machine-stable error-code table - (0ab05b0) - Jacob Alheid
+- (**meta**) pin RefTarget grammar, name composition, YAML dialect - (db6fae3) - Jacob Alheid
+- (**schema**) broaden refTarget pattern to support project-root paths - (f0a18e4) - Jacob Alheid
+#### Miscellaneous Chores
+- (**gitignore**) ignore scheduled_tasks.lock - (8d62d02) - Jacob Alheid
+
+- - -
+
 ## v0.0.2 - 2026-06-05
 #### Bug Fixes
 - resolve drift across context docs against spec sources - (fd2d4dd) - Jacob Alheid
