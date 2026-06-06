@@ -6,7 +6,7 @@ consumes them to drive test (TDD) and implementation generation.
 
 ## File
 
-- A yass file uses the **`.yass.yaml`** extension (alias: `.yass.yml`) and is a **YAML
+- A yass file uses the **`.yass.yaml`** extension and is a **YAML
   multi-document stream** (`---`-separated).
 - Read as UTF-8.
 - SHOULD carry the schema modeline as its first line, so editors validate against the
@@ -72,8 +72,6 @@ An obligation is a **YAML mapping** (a list item under a slot):
 - **Normativity** — exactly one key, *unless ref-only*. RFC 2119 / RFC 8174 vocabulary,
   **negatives hyphenated**:
   `MUST`, `MUST-NOT`, `SHOULD`, `SHOULD-NOT`, `MAY`. Value = the obligation prose.
-  (RFC 2119 synonyms `SHALL`, `SHALL-NOT`, `REQUIRED`, `RECOMMENDED`, `OPTIONAL`
-  are not separate keywords — use their primary forms above.)
 - **Guard** (optional) — `WHEN`, value = condition prose. Expresses a **sufficient**
   condition. If `WHEN` is present it **MUST** be accompanied by a normativity keyword.
 - **References** (optional) — `CONFORMS` / `USES` / `SEE`, each at most once per
@@ -173,7 +171,7 @@ than restating it.
   excluded.
 - Necessary-condition guards (`ONLY WHEN` / `UNLESS`) are deferred; `WHEN` is sufficient
   only.
-- Extension: `.yass.yaml` (alias `.yass.yml`), chosen over bare `.spec` after a collision
+- Extension: `.yass.yaml`, chosen over bare `.spec` after a collision
   review. Bare `.spec` is owned by RPM spec files / PyInstaller / Vim+Neovim filetype /
   GitHub Linguist / freedesktop MIME, and — decisively — a bare `.spec` never gets the
   `yaml` language id, so it earns neither free YAML highlighting nor JSON-Schema
