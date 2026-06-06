@@ -14,11 +14,19 @@ spec: Document
 INPUT:
 - MUST: be encoded as UTF-8
 - MUST: "be a YAML stream of one or more documents separated by `---`"
+- MUST: be parsed under the YAML 1.2 core schema
+- MUST-NOT: contain a leading UTF-8 BOM
+- MUST-NOT: use YAML anchors, aliases, or explicit tags
+- MUST-NOT: contain duplicate keys within any mapping
+- MUST: "treat `yes`, `no`, `on`, and `off` as plain strings rather than booleans"
+- MAY: use CRLF or LF line endings, treated equivalently by the YAML 1.2 parser
 RETURN:
 - MUST: begin with a single Preamble as its first document
   USES: Preamble
 - MUST: treat every other document as a Spec
   USES: Spec
+- MAY: contain zero Spec documents, in which case the file is a valid Preamble-only file
+- MAY: omit a trailing newline at end-of-file, treated as well-formed either way
 ERROR:
 - MUST: be rejected when the stream is not well-formed YAML
 INVARIANT:
@@ -31,7 +39,11 @@ INPUT:
 - MUST: provide a description of the file
 - MUST: provide a version
 - MUST: set the version to v1 for this revision of yass
+- MUST: "set its version to the exact string `v1` byte-for-byte"
+- MUST-NOT: case-fold the version or accept alternative spellings such as `V1`, `v1.0`, or any semver form
 - MAY: provide a related list of external resource locations
+- WHEN: "the `related` key is present"
+  MUST: be a YAML sequence whose every element is a string
 RETURN:
 - MUST: declare the yass version of the spec file
 ERROR:
@@ -40,6 +52,7 @@ ERROR:
 - MUST: be rejected when more than one is present in a file
 - MUST: be rejected when it omits its description or version
 - MUST: be rejected when its version is not recognized
+- MUST: "be rejected when `related` is present and is not a sequence of strings"
 INVARIANT:
 - MUST-NOT: have its related entries resolved or fetched by tooling
 ---
@@ -48,6 +61,10 @@ INPUT:
 - MUST: "be a YAML mapping with a `spec` key naming the spec"
 - MAY: use a namespaced name such as `pkg.Symbol`
 - MUST: "limit its name to the characters `A-Z`, `a-z`, `0-9`, `.`, `_`, and `-`"
+- MUST: "match the regex `^[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*$` as its name"
+- MUST-NOT: "begin or end its name with `.`"
+- MUST-NOT: "contain consecutive `.` characters in its name"
+- MUST-NOT: case-insensitively match any Slot keyword or any Normativity keyword with its name
 RETURN:
 - MUST: carry zero or more Slots
   USES: Slot
@@ -55,8 +72,12 @@ ERROR:
 - MUST: be rejected when it has no spec name
 - MUST: be rejected when a key other than spec is not a valid Slot key
   USES: Slot
+- MUST: be rejected when its name does not match the composition regex
+- MUST: "be rejected when its name begins or ends with `.`"
+- MUST: "be rejected when its name contains consecutive `.` characters"
+- MUST: be rejected when its name case-insensitively matches a Slot or Normativity keyword
 INVARIANT:
-- MUST-NOT: depend on its position within the file
+- MUST-NOT: depend on its position within the file (documentation guideline; not enforced by validation tooling)
 - MUST-NOT: share its name with another Spec in the same file
 ---
 spec: Slot
@@ -116,8 +137,13 @@ ERROR:
 - MUST: be rejected when it carries neither a Normativity keyword nor a Reference
 - MUST: be rejected when it carries a Guard but no Normativity keyword
   USES: Guard
+- MUST: be rejected when its value at a scalar position is a YAML mapping, sequence, or null
+- MUST: be rejected when it carries the same Normativity keyword more than once
+  USES: Normativity
 INVARIANT:
 - MUST-NOT: carry the same Reference relation key more than once
+- MUST: be defined as reference-only iff it carries at least one Reference relation key AND carries no Normativity keyword AND carries no WHEN guard
+  USES: Reference
 ---
 spec: Normativity
 INPUT:
@@ -161,6 +187,9 @@ RETURN:
 ERROR:
 - MUST: be rejected when its target does not resolve to an existing spec or slot
   USES: RefTarget
+- WHEN: "the relation target names a slot via `::SLOT`"
+  MUST: be rejected when the referenced spec does not declare that slot in its source document
+  USES: RefTarget
 SIDE-EFFECT:
 - WHEN: the relation is CONFORMS
   MUST: be inlined into the referencing spec when resolved
@@ -185,10 +214,19 @@ RETURN:
   MUST: resolve relative to the referencing file
 - WHEN: the path has no leading dot
   MUST: resolve from the project root
+- MUST: "treat the path token as a POSIX-style relative path with `/` separators"
+- MUST: "append the literal suffix `.yass.yaml` to the path token to produce the target file path"
+- MUST: compare paths and spec names with case-sensitive byte comparison
+- MUST-NOT: search alternative basenames or extensions for the target file
+- MUST: "resolve `./cli.shared@Foo` to `<dir-of-referencing-file>/cli.shared.yass.yaml` and the spec named `Foo`"
+- MUST: "resolve `cli@Foo` to `<project-root>/cli.yass.yaml` and the spec named `Foo`"
 ERROR:
 - MUST: "be rejected when it is not well-formed per the `path@SpecName::SLOT` grammar"
 - MUST: be rejected when the slot is outside the recognized set
   USES: Slot
+- MUST: "be rejected when the path token contains a backslash or any character outside `[A-Za-z0-9._/-]`"
+- MUST: "be rejected when the spec-name token contains any character outside `[A-Za-z0-9._-]`"
+- MUST: "be rejected when the slot token contains any character outside `[A-Z-]`"
 INVARIANT:
 - MUST-NOT: include the spec file extension in the path
 - MUST-NOT: address anything finer than a slot, such as a single obligation
@@ -197,3 +235,5 @@ INVARIANT:
 spec: Keyword
 INVARIANT:
 - MUST: be written UPPERCASE to distinguish yass vocabulary from prose
+- MUST: apply only to keys at the structural positions defined by Slot, Normativity, Guard, and Reference
+- MUST-NOT: be enforced against substring occurrences within prose values
