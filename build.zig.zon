@@ -1,0 +1,12 @@
+.{
+    .name = .yass,
+    .version = "0.0.3",
+    .fingerprint = 0xb3789baee47f4c32,
+    .minimum_zig_version = "0.14.0",
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+    .dependencies = .{},
+}

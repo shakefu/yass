@@ -1,0 +1,17 @@
+---
+description: A file with references for testing.
+version: v1
+---
+spec: BaseSpec
+RETURN:
+- MUST: return a value
+---
+spec: DerivedSpec
+INPUT:
+- MUST: accept input
+  USES: BaseSpec
+RETURN:
+- CONFORMS: BaseSpec::RETURN
+ERROR:
+- MUST: error on failure
+  SEE: BaseSpec
