@@ -560,50 +560,86 @@ TEST(check_spec_bad_value_shape_norm_mapping) {
     unlink(path);
 }
 
-/* --- bad value shape: normativity with null value (manually constructed) --- */
+/* --- bad value shape: normativity with null value (parsed from YAML) --- */
 
 TEST(check_spec_bad_value_shape_norm_null) {
-    /* libyaml treats bare "MUST:" as empty scalar, not null.
-     * Construct manually to test the null value_type path. */
+    /* After the yaml_parse null-detection fix, bare "MUST:" produces
+     * value_type == 3 (null) which check_obligation catches as bad_value_shape. */
+    const char *path = write_temp_file("bvs_norm_null",
+        "---\ndescription: test\nversion: v0\n"
+        "---\nspec: foo.bar\nINPUT:\n- MUST:\n  CONFORMS: other\n");
+    ASSERT_NOT_NULL(path);
+
     yaml_parse_result_t result;
-    memset(&result, 0, sizeof(result));
+    int rc = parse_temp(path, &result);
+    ASSERT_EQ(rc, 0);
 
-    result.doc_count = 2;
-    result.docs = calloc(2, sizeof(yass_yaml_doc_t));
-
-    result.docs[0].start_line = 1;
-
-    result.docs[1].start_line = 4;
-    result.docs[1].kv_count = 2;
-    result.docs[1].kvs = calloc(2, sizeof(yass_yaml_kv_t));
-
-    result.docs[1].kvs[0].key = strdup("spec");
-    result.docs[1].kvs[0].key_line = 5;
-    result.docs[1].kvs[0].value_type = 0;
-    result.docs[1].kvs[0].scalar_value = strdup("foo.bar");
-
-    result.docs[1].kvs[1].key = strdup("INPUT");
-    result.docs[1].kvs[1].key_line = 6;
-    result.docs[1].kvs[1].value_type = 1;
-    result.docs[1].kvs[1].sequence_count = 1;
-    result.docs[1].kvs[1].sequence_values = calloc(1, sizeof(yass_yaml_node_t));
-
-    yass_yaml_node_t *obl = &result.docs[1].kvs[1].sequence_values[0];
-    obl->type = 2;  /* mapping */
-    obl->line = 7;
-    obl->mapping_count = 1;
-    obl->mapping_values = calloc(1, sizeof(yass_yaml_kv_t));
-
-    obl->mapping_values[0].key = strdup("MUST");
-    obl->mapping_values[0].key_line = 7;
-    obl->mapping_values[0].value_type = 3;  /* null */
-    obl->mapping_values[0].scalar_value = NULL;
-
-    int errors = check_spec("test.yass.yaml", &result);
-    /* MUST value is null -> bad_value_shape */
+    int errors = check_spec(path, &result);
+    /* MUST value is null (bare "MUST:") -> bad_value_shape */
     ASSERT(errors >= 1);
 
     yaml_parse_result_free(&result);
+    unlink(path);
+}
+
+/* --- bad value shape: normativity with tilde null --- */
+
+TEST(check_spec_bad_value_shape_norm_tilde_null) {
+    const char *path = write_temp_file("bvs_norm_tilde",
+        "---\ndescription: test\nversion: v0\n"
+        "---\nspec: foo.bar\nINPUT:\n- MUST: ~\n");
+    ASSERT_NOT_NULL(path);
+
+    yaml_parse_result_t result;
+    int rc = parse_temp(path, &result);
+    ASSERT_EQ(rc, 0);
+
+    int errors = check_spec(path, &result);
+    /* MUST: ~ is a YAML null -> bad_value_shape */
+    ASSERT(errors >= 1);
+
+    yaml_parse_result_free(&result);
+    unlink(path);
+}
+
+/* --- bad value shape: WHEN guard with null value --- */
+
+TEST(check_spec_bad_value_shape_when_null) {
+    const char *path = write_temp_file("bvs_when_null",
+        "---\ndescription: test\nversion: v0\n"
+        "---\nspec: foo.bar\nINPUT:\n- WHEN:\n  MUST: something\n");
+    ASSERT_NOT_NULL(path);
+
+    yaml_parse_result_t result;
+    int rc = parse_temp(path, &result);
+    ASSERT_EQ(rc, 0);
+
+    int errors = check_spec(path, &result);
+    /* WHEN: with null value -> bad_value_shape */
+    ASSERT(errors >= 1);
+
+    yaml_parse_result_free(&result);
+    unlink(path);
+}
+
+/* --- bad value shape: reference with null value --- */
+
+TEST(check_spec_bad_value_shape_ref_null) {
+    const char *path = write_temp_file("bvs_ref_null",
+        "---\ndescription: test\nversion: v0\n"
+        "---\nspec: foo.bar\nINPUT:\n- MUST: something\n  CONFORMS:\n");
+    ASSERT_NOT_NULL(path);
+
+    yaml_parse_result_t result;
+    int rc = parse_temp(path, &result);
+    ASSERT_EQ(rc, 0);
+
+    int errors = check_spec(path, &result);
+    /* CONFORMS: with null value -> bad_value_shape */
+    ASSERT(errors >= 1);
+
+    yaml_parse_result_free(&result);
+    unlink(path);
 }
 
 /* --- bad value shape: WHEN guard with mapping value --- */
@@ -844,8 +880,11 @@ void run_suite_check_spec(void) {
     /* bad value shape variants */
     RUN_TEST(check_spec_bad_value_shape_norm_mapping);
     RUN_TEST(check_spec_bad_value_shape_norm_null);
+    RUN_TEST(check_spec_bad_value_shape_norm_tilde_null);
     RUN_TEST(check_spec_bad_value_shape_when_mapping);
+    RUN_TEST(check_spec_bad_value_shape_when_null);
     RUN_TEST(check_spec_bad_value_shape_ref_sequence);
+    RUN_TEST(check_spec_bad_value_shape_ref_null);
 
     /* unknown reference relation */
     RUN_TEST(check_spec_reference_unknown);

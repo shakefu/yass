@@ -101,6 +101,25 @@ static void check_event_flags(yaml_event_t *event, bool *has_anchors_flag) {
 }
 
 /*
+ * Check if a scalar event represents a YAML null value.
+ * YAML 1.2 null representations: empty plain scalar, ~, null, Null, NULL.
+ * Quoted values (plain_implicit == 0) are never null, even if the content
+ * looks like one of these tokens.
+ */
+static bool is_null_scalar(yaml_event_t *event) {
+    if (event->type != YAML_SCALAR_EVENT) return false;
+    if (!event->data.scalar.plain_implicit) return false;
+    size_t len = event->data.scalar.length;
+    const char *val = (const char *)event->data.scalar.value;
+    if (len == 0) return true;
+    if (len == 1 && val[0] == '~') return true;
+    if (len == 4 && (strcmp(val, "null") == 0 ||
+                     strcmp(val, "Null") == 0 ||
+                     strcmp(val, "NULL") == 0)) return true;
+    return false;
+}
+
+/*
  * Parse the value portion after a key in a mapping.
  * Returns 0 on success, -1 on error.
  * The next event determines the value type.
@@ -115,8 +134,13 @@ static int parse_value(yaml_parser_t *parser, yaml_kv_t *kv,
 
     switch (event.type) {
         case YAML_SCALAR_EVENT: {
-            kv->value_type = 0; /* scalar */
-            kv->scalar_value = strdup((const char *)event.data.scalar.value);
+            if (is_null_scalar(&event)) {
+                kv->value_type = 3; /* null */
+                kv->scalar_value = NULL;
+            } else {
+                kv->value_type = 0; /* scalar */
+                kv->scalar_value = strdup((const char *)event.data.scalar.value);
+            }
             yaml_event_delete(&event);
             return 0;
         }
@@ -252,8 +276,13 @@ static int parse_sequence(yaml_parser_t *parser, yass_yaml_node_t **nodes, int *
         /* Process this event as the node value */
         switch (peek.type) {
             case YAML_SCALAR_EVENT: {
-                node->type = 0;
-                node->scalar_value = strdup((const char *)peek.data.scalar.value);
+                if (is_null_scalar(&peek)) {
+                    node->type = 3; /* null */
+                    node->scalar_value = NULL;
+                } else {
+                    node->type = 0;
+                    node->scalar_value = strdup((const char *)peek.data.scalar.value);
+                }
                 yaml_event_delete(&peek);
                 break;
             }
