@@ -90,7 +90,7 @@ RETURN:
 ERROR:
 - MUST: be rejected when its key is outside the recognized set
 INVARIANT:
-- CONFORMS: Keyword
+- CONFORMS: Keyword::INVARIANT
 - MUST-NOT: carry meaning in the order of its obligations
 ---
 spec: Slot.INPUT
@@ -156,7 +156,7 @@ RETURN:
 ERROR:
 - MUST: be rejected when the keyword is outside the recognized set
 INVARIANT:
-- CONFORMS: Keyword
+- CONFORMS: Keyword::INVARIANT
 - MUST-NOT: appear more than once in a single Obligation
 ---
 spec: Guard
@@ -169,7 +169,7 @@ ERROR:
 - MUST: be rejected when it stands alone with no Normativity keyword
   USES: Normativity
 INVARIANT:
-- CONFORMS: Keyword
+- CONFORMS: Keyword::INVARIANT
 - MUST-NOT: express a necessary condition
 ---
 spec: Reference
@@ -199,7 +199,7 @@ SIDE-EFFECT:
   MUST-NOT: be inlined
 - MUST: carry provenance as a comment naming the source ref when inlined
 INVARIANT:
-- CONFORMS: Keyword
+- CONFORMS: Keyword::INVARIANT
 ---
 spec: RefTarget
 INPUT:
