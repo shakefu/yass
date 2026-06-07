@@ -65,7 +65,7 @@ ERROR:
   MUST: error with code yass.path.unreadable and exit 2
 - WHEN: a directory cannot be listed during recursion
   MUST: emit one ErrorLine with code yass.discover.dir_unreadable for that directory and continue traversing siblings
-  CONFORMS: ../cli@cli.ErrorLine::RETURN
+  CONFORMS: ./cli@cli.ErrorLine::RETURN
 - MUST-NOT: abort discovery on per-directory filesystem errors below a top-level argument
 INVARIANT:
 - MUST-NOT: follow symbolic links during recursive directory traversal
