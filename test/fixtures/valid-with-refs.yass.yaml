@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: A spec file with references.
+version: v1
+---
+spec: RefSpec
+INPUT:
+- MUST: accept a path
+  USES: SimpleSpec
+RETURN:
+- CONFORMS: SimpleSpec::RETURN
+ERROR:
+- MUST: error when path is invalid
+  SEE: SimpleSpec
+---
+spec: SimpleSpec
+RETURN:
+- MUST: return a boolean

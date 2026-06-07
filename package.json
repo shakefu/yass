@@ -1,0 +1,26 @@
+{
+  "name": "yass",
+  "version": "0.0.3",
+  "description": "Yet Another Spec Syntax — CLI tool",
+  "module": "src/cli.ts",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "yass": "src/cli.ts"
+  },
+  "scripts": {
+    "test": "bun test",
+    "test:coverage": "bun test --coverage",
+    "build": "bun build src/cli.ts --outfile dist/yass --target bun",
+    "typecheck": "bunx tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "yaml": "^2.7.1"
+  }
+}
