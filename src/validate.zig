@@ -556,17 +556,16 @@ fn checkObligation(
 
         if (isNormativityKeyword(key)) {
             has_normativity = true;
-            // Check for duplicate normativity
-            if (seen_normativity.contains(key)) {
+            // Check for duplicate normativity: more than one normativity keyword
+            if (seen_normativity.count() > 0) {
                 try all_errors.append(allocator, .{
                     .file = file_path,
                     .line = entry.key.line,
                     .code = .obligation_duplicate_normativity,
-                    .message = try std.fmt.allocPrint(allocator, "duplicate normativity keyword \"{s}\"", .{key}),
+                    .message = try allocator.dupe(u8, "duplicate Normativity keyword in obligation"),
                 });
-            } else {
-                seen_normativity.put(key, {}) catch {};
             }
+            seen_normativity.put(key, {}) catch {};
         } else if (isReferenceRelation(key)) {
             has_reference = true;
             // Check for duplicate reference
@@ -1839,6 +1838,19 @@ test "checkRefs with slot not declared on target spec" {
     checkRefs(allocator, io, "test.yass.yaml", result, null, &errs) catch {};
     try testing.expectEqual(@as(usize, 1), errs.items.len);
     try testing.expect(errs.items[0].code == .ref_slot_not_declared);
+}
+
+test "checkSpec detects duplicate normativity keywords (different keywords)" {
+    const allocator = testing.allocator;
+    var errs = makeErrList();
+    defer freeErrList(allocator, &errs);
+
+    const input = "---\ndescription: test\nversion: v1\n---\nspec: Foo\nINPUT:\n- MUST: do x\n  SHOULD: also y\n";
+    const result = try yaml.parseYaml(allocator, input);
+    defer freeParseResult(allocator, result);
+    checkSpec(allocator, "test.yass.yaml", result, &errs) catch {};
+    try testing.expect(errs.items.len > 0);
+    try testing.expectEqual(err.ErrorCode.obligation_duplicate_normativity, errs.items[0].code);
 }
 
 test "multiple spec names are all valid" {
