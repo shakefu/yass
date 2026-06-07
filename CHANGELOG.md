@@ -2,6 +2,14 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.0.4 - 2026-06-07
+#### Bug Fixes
+- (**spec**) correct broken CONFORMS refs and add follow-up notes - (868112e) - Jacob Alheid
+#### Miscellaneous Chores
+- add script/.gitignore - (4a26d78) - Jacob Alheid
+
+- - -
+
 ## v0.0.3 - 2026-06-06
 #### Bug Fixes
 - (**cli**) pin list truncation, sorting, normalization, parse-failure exit - (fd79f46) - Jacob Alheid
