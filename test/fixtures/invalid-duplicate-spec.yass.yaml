@@ -1,0 +1,11 @@
+---
+description: Duplicate spec names.
+version: v1
+---
+spec: DupSpec
+INPUT:
+- MUST: accept input
+---
+spec: DupSpec
+RETURN:
+- MUST: return output

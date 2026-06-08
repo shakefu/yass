@@ -1,0 +1,11 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: Target file for cross-file reference tests.
+version: v1
+---
+spec: TargetSpec
+RETURN:
+- MUST: return a validated result
+- MUST-NOT: return null
+ERROR:
+- MUST: error on invalid input

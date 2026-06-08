@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: A simple test spec file.
+version: v1
+---
+spec: SimpleSpec
+INPUT:
+- MUST: accept a string
+RETURN:
+- MUST: return a boolean
+ERROR:
+- WHEN: the input is empty
+  MUST: error with invalid input

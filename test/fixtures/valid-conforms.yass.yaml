@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: A spec file for testing CONFORMS inlining.
+version: v1
+---
+spec: BaseSpec
+RETURN:
+- MUST: return a string
+- MUST-NOT: return null
+INVARIANT:
+- MUST: be idempotent
+---
+spec: DerivedSpec
+INPUT:
+- MUST: accept input
+RETURN:
+- CONFORMS: BaseSpec::RETURN
+- MUST: also return a number
+ERROR:
+- MUST: error on invalid input
