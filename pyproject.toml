@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68.0", "setuptools-scm>=8.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "yass-cli"
+dynamic = ["version"]
+description = "yass — Yet Another Spec Syntax — CLI tool"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+dependencies = [
+    "pyyaml>=6.0",
+    "wcwidth>=0.2",
+]
+
+[project.scripts]
+yass = "yass.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools_scm]
+fallback_version = "0.0.0"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+
+[tool.coverage.run]
+source = ["yass"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 80
