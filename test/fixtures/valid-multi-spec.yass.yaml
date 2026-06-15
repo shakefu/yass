@@ -1,0 +1,20 @@
+---
+description: A file with multiple specs for testing.
+version: v1
+---
+spec: FirstSpec
+INPUT:
+- MUST: accept input
+RETURN:
+- MUST: return a result
+---
+spec: SecondSpec
+INPUT:
+- MUST: accept different input
+ERROR:
+- MUST: error on bad input
+---
+spec: pkg.ThirdSpec
+INVARIANT:
+- MUST: maintain consistency
+- CONFORMS: FirstSpec::RETURN

@@ -1,0 +1,12 @@
+---
+description: A simple valid spec file for testing.
+version: v1
+---
+spec: TestSpec
+INPUT:
+- MUST: accept a test value
+RETURN:
+- MUST: return success
+ERROR:
+- WHEN: the input is invalid
+  MUST: return an error
