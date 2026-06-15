@@ -37,6 +37,31 @@ Note: the only comments yass emits are tooling-generated provenance comments
 (`# CONFORMS: ...`) on resolved fragments. Those are not an author-facing channel, and
 should not become one.
 
+## Ordering: implementation sequence
+
+Spec document fragments (`spec:` documents) within a file SHOULD be ordered in the
+sequence they should be implemented. This gives an implementing agent (or human) a
+natural top-to-bottom work order and makes dependency ordering explicit without extra
+metadata.
+
+Two levels of ordering are at play:
+
+- **Inter-file ordering** — across spec files. Enforceable today with numeric-prefix
+  naming conventions (e.g. `00-init.yass.yaml`, `01-core.yass.yaml`,
+  `02-api.yass.yaml`).
+- **Intra-file ordering** — within a single spec file. The YAML document stream is
+  ordered; spec documents earlier in the file should be implemented before later ones.
+
+Candidate phrasing (not yet a meta-rule):
+
+    WHEN: the spec defines code behavior
+    SHOULD: order spec documents in implementation sequence, both across files
+            (via naming convention) and within files (via document position)
+
+Note: this is emergent guidance from early usage — not yet formalized. A second pass on
+spec revisions may promote it to a meta-rule or refine the conventions. Captured here so
+it isn't lost.
+
 ## Open: how a skill uses the test taxonomy
 
 Moved here from TEST-TAXONOMY.md — depends on tooling (CLI commands, obligation-JSON
