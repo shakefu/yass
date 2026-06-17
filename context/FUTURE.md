@@ -1,7 +1,7 @@
 # Spec Language — Future Improvements & Open Questions
 
-Everything deliberately deferred or left undecided. Nothing here is required for v1
-(see DECISIONS.md). Grouped by area.
+Everything deliberately deferred or left undecided. Nothing here is required for v1.
+Grouped by area.
 
 ## Drift detection (content hashing)
 

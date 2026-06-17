@@ -4,7 +4,7 @@ A scored ideation backlog of **tooling / feature** ideas for yass and the `yass`
 This is distinct from FUTURE.md, which holds deferred **language-design** decisions.
 Nothing here is committed. The list was produced by an ideation pass followed by an
 adversarial dedup-and-scoring pass, and screened against everything already recorded in
-DECISIONS.md, FUTURE.md, GUIDANCE.md, and TEST-TAXONOMY.md. Ideas that merely restate a
+FUTURE.md, GUIDANCE.md, and TEST-TAXONOMY.md. Ideas that merely restate a
 decided, deferred, rejected, or built item were excluded.
 
 Effort tags are **S** / **M** / **L** (small / medium / large), reproduced from the
@@ -261,7 +261,7 @@ or does it erode the forcing function that makes yass work?
 ## Out of scope here
 
 Ideas already decided, deferred, rejected, or built were deliberately excluded from this
-backlog; they live in **DECISIONS.md** and **FUTURE.md** (and the meta-rule / authoring
+backlog; they live in **FUTURE.md** (and the meta-rule / authoring
 material in GUIDANCE.md and TEST-TAXONOMY.md). Look there before proposing anything that
 sounds like a CLI command already in scope, a drift-detection or index mechanism, or a
 language-vocabulary change.
