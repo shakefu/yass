@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: A spec file with multiple specs.
+version: v1
+---
+spec: FirstSpec
+INPUT:
+- MUST: accept input
+RETURN:
+- MUST: return output
+---
+spec: SecondSpec
+INPUT:
+- MUST: accept different input
+ERROR:
+- MUST: error on failure
+---
+spec: ThirdSpec
+INVARIANT:
+- MUST: always hold true

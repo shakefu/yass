@@ -1,0 +1,9 @@
+---
+description: Unknown slot key test.
+version: v1
+---
+spec: BadSlotSpec
+INPUT:
+- MUST: accept input
+BOGUS:
+- MUST: this is not a valid slot

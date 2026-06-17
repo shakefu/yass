@@ -1,0 +1,7 @@
+---
+description: Bad version test.
+version: v2
+---
+spec: SomeSpec
+INPUT:
+- MUST: accept input

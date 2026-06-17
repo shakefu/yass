@@ -1,0 +1,4 @@
+---
+spec: OrphanSpec
+INPUT:
+- MUST: accept something
