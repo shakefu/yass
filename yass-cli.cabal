@@ -1,0 +1,112 @@
+cabal-version: 3.0
+name:          yass-cli
+version:       0.0.3
+synopsis:      CLI tool for yass spec files
+license:       Apache-2.0
+license-file:  LICENSE
+build-type:    Simple
+
+common warnings
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates
+               -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints
+               -fhide-source-paths
+
+library
+  import:           warnings
+  hs-source-dirs:   src
+  default-language: Haskell2010
+  exposed-modules:
+    Yass.Types
+    Yass.ErrorLine
+    Yass.Parser
+    Yass.ProjectRoot
+    Yass.Discover
+    Yass.Glob
+    Yass.Validate
+    Yass.Validate.CheckYAML
+    Yass.Validate.CheckPreamble
+    Yass.Validate.CheckSpec
+    Yass.Validate.CheckUniqueness
+    Yass.Validate.CheckRefs
+    Yass.List
+    Yass.Query
+    Yass.Query.NameLookup
+    Yass.Query.ExtractFragment
+    Yass.Query.InlineConforms
+    Yass.Query.OutputProfile
+    Yass.CLI
+  build-depends:
+    , base          >= 4.18 && < 5
+    , bytestring    >= 0.11
+    , containers    >= 0.6
+    , directory     >= 1.3
+    , filepath      >= 1.4
+    , text          >= 2.0
+    , yaml          >= 0.11
+    , aeson         >= 2.0
+    , aeson-pretty  >= 0.8
+    , vector        >= 0.12
+    , unordered-containers >= 0.2
+    , scientific    >= 0.3
+    , mtl           >= 2.2
+    , transformers  >= 0.5
+    , unix          >= 2.7
+    , Glob          >= 0.10
+    , libyaml       >= 0.1
+    , conduit       >= 1.3
+    , resourcet     >= 1.2
+    , unicode-transforms >= 0.4
+    , process         >= 1.6
+
+executable yass
+  import:           warnings
+  main-is:          Main.hs
+  hs-source-dirs:   app
+  default-language: Haskell2010
+  ghc-options:      -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+    , base     >= 4.18 && < 5
+    , yass-cli
+
+test-suite yass-test
+  import:           warnings
+  type:             exitcode-stdio-1.0
+  main-is:          Main.hs
+  hs-source-dirs:   test
+  default-language: Haskell2010
+  ghc-options:      -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+    , base              >= 4.18 && < 5
+    , yass-cli
+    , hspec             >= 2.10
+    , hspec-discover    >= 2.10
+    , QuickCheck        >= 2.14
+    , temporary         >= 1.3
+    , directory         >= 1.3
+    , filepath          >= 1.4
+    , bytestring        >= 0.11
+    , text              >= 2.0
+    , containers        >= 0.6
+    , process           >= 1.6
+    , unix              >= 2.7
+  other-modules:
+    Yass.TypesSpec
+    Yass.ErrorLineSpec
+    Yass.ParserSpec
+    Yass.ProjectRootSpec
+    Yass.DiscoverSpec
+    Yass.GlobSpec
+    Yass.Validate.CheckYAMLSpec
+    Yass.Validate.CheckPreambleSpec
+    Yass.Validate.CheckSpecSpec
+    Yass.Validate.CheckUniquenessSpec
+    Yass.Validate.CheckRefsSpec
+    Yass.ValidateSpec
+    Yass.ListSpec
+    Yass.Query.NameLookupSpec
+    Yass.Query.ExtractFragmentSpec
+    Yass.Query.InlineConformsSpec
+    Yass.Query.OutputProfileSpec
+    Yass.QuerySpec
+    Yass.CLISpec
+    Yass.IntegrationSpec

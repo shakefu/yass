@@ -1,0 +1,7 @@
+dist-newstyle/
+cabal.project.local
+*.tix
+*.hi
+*.o
+*.dyn_hi
+*.dyn_o
