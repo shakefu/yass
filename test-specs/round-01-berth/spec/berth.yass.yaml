@@ -1,0 +1,79 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  The `berth` program assigns docking requests at a fictional orbital spaceport.
+  It reads assignment-request records from standard input, one per line, validates
+  each record in the order it appears, and writes either an acceptance line to
+  standard output or a single error line to standard error. The process exit code
+  reflects the worst per-record outcome.
+version: v1
+related:
+- ./berth.reference.yass.yaml
+---
+spec: berth
+INPUT:
+- MUST: read all of standard input
+- MUST: "treat each line of standard input, separated by a single newline, as one assignment-request record, in the order the lines appear"
+- MUST: "split a record into fields on runs of one or more ASCII space characters, ignoring any leading or trailing spaces"
+- MAY: accept a single trailing newline after the final record without treating it as an additional empty record
+RETURN:
+- WHEN: a record is accepted
+  MUST: "write the line `OK <ship-id> <dock-code> <window-start>-<window-end>` to standard output, substituting that record's own field values"
+- MUST: write the output for the records in the same order the records appear on standard input
+  USES: berth.validate
+ERROR:
+- WHEN: a record fails validation
+  MUST: write exactly one error line for that record to standard error
+  USES: ./berth.reference@berth.errors
+SIDE-EFFECT:
+- MUST-NOT: write an OK line to standard output for a record that fails validation
+- MUST-NOT: write an error line to standard error for a record that is accepted
+INVARIANT:
+- MUST: exit 0 when every record is accepted
+- MUST: otherwise exit with the highest exit code contributed by any single record
+  SEE: ./berth.reference@berth.errors
+- MUST: continue processing the remaining records after one record is rejected
+---
+spec: berth.parse
+INPUT:
+- MUST: accept the list of fields produced by splitting one record line
+RETURN:
+- MUST: "interpret the fields, in order, as ship-id, dock-code, mass, window-start, and window-end"
+- MUST: "treat the first field as ship-id, the second as dock-code, the third as mass, the fourth as window-start, and the fifth as window-end"
+- MUST: carry all five fields forward unchanged so they can be validated
+---
+spec: berth.validate
+INPUT:
+- MUST: accept one parsed record
+  USES: berth.parse
+RETURN:
+- WHEN: a record passes every check
+  MUST: report the record as valid so it can be assigned
+  USES: berth.assign
+ERROR:
+- MUST: apply the validation checks in the priority order given in the INVARIANT, emit the first failing check's error, and then stop checking that record
+  USES: ./berth.reference@berth.errors
+INVARIANT:
+- MUST: "check a record in this exact priority order, stopping at the first failure: (1) the record splits into exactly five fields; (2) ship-id is well-formed; (3) dock-code is well-formed; (4) mass is well-formed; (5) the window is well-formed; (6) the dock is not closed; (7) mass does not exceed the dock capacity; (8) the window does not conflict with an earlier accepted record on the same dock letter"
+- MUST: "treat ship-id as well-formed when it is 3 to 8 characters long, its first character is an ASCII letter, and every character is an ASCII letter or ASCII digit"
+- MUST: "treat dock-code as well-formed when it is exactly one uppercase letter A through F followed by exactly two ASCII digits"
+- MUST: "treat mass as well-formed when it consists only of ASCII digits, has no leading zero, and its integer value is 1 or greater"
+- MUST: "treat the window as well-formed when window-start and window-end each consist only of ASCII digits with no leading zero unless the value is the single digit `0`, each has an integer value from 0 to 47 inclusive, and window-start is strictly less than window-end"
+- MUST: "determine a dock's capacity, closed status, and operating hours from its dock letter alone; the two digits of a dock-code identify a berth and are validated for format only"
+  USES: ./berth.reference@berth.docks
+- MUST: "treat two windows as conflicting when they share any common half-hour slot, where a window covers the slots from window-start inclusive to window-end exclusive"
+---
+spec: berth.assign
+INPUT:
+- MUST: accept one record that has passed validation
+  USES: berth.validate
+RETURN:
+- WHEN: "the record's window lies entirely within the dock's operating hours, meaning window-start is at or after the dock's opening slot and window-end is at or before the dock's closing slot"
+  MUST: accept the record and record it as occupying its dock letter for the duration of its window
+  USES: ./berth.reference@berth.docks
+- MUST: produce the acceptance line for an accepted record
+  USES: berth
+ERROR:
+- WHEN: a record passes every validation check but still cannot be accepted
+  MUST: reject it with the applicable error from the error registry
+  USES: ./berth.reference@berth.errors
