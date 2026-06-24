@@ -67,6 +67,12 @@ whenever a spec rejects anything; but a foreseeable, named failure with its own
 observable outcome (a distinct error code, message, or exit status) belongs in its own
 guarded obligation, never folded into the residual.
 
+The residual discipline generalizes beyond `ERROR`: whenever a slot branches on a
+**closed set of values** — most commonly an `INPUT` that dispatches on a subcommand,
+mode, or enum — it must state the behavior for a value outside that set, or one that is
+missing. The residual is to a dispatch what the guard-less catch-all is to the error
+table.
+
 When a spec describes something that is not a function (e.g. the language defining
 itself), read the function-shaped slots structurally: `INPUT` = the form a thing takes,
 `RETURN` = what a well-formed thing denotes, `ERROR` = malformed forms that must be
@@ -115,6 +121,16 @@ An obligation is a **YAML mapping** (a list item under a slot):
   (e.g. surface once per session); `SEE` is a pure pointer, never inlined. The
   discriminator: use `USES` when the obligation's behavior depends on or draws on the
   target, `SEE` when the target is merely related context.
+
+- **Slot-targeted `USES` carries a dataflow reading.** When a `USES` target names a slot
+  — characteristically an `INPUT` that points at a producer's `RETURN`,
+  `USES <producer>::RETURN` — it means the obligation **consumes or builds on the data
+  that slot produces**: the data crossing the boundary is exactly what that slot yields,
+  so the producer's `RETURN` guarantees characterize it here. This is the structural
+  anchor for a pipeline or producer/consumer relationship. It does **not** by itself
+  decide the trust boundary — which of the producer's guarantees the consumer relies on
+  versus re-checks is the consuming spec's own obligation to state (see GUIDANCE,
+  *Composition*).
 
 - DRY is achieved by **transclusion** (inlining), not bare pointers.
 

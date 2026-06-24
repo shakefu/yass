@@ -47,5 +47,43 @@ panel results, diagnosis, fixes applied, findings delta.
   `input-segmentation-completeness`; annotated 5 cluster/MUST-NOT findings
   `probed round-01`. Open: 25. Resolved total: 2.
 
-_(Round 2 begins next: scale spec complexity or pivot to the dataflow/sequencing
-cluster.)_
+## Round 2 — composition cluster: dataflow + cross-cutting (2026-06-24)
+
+- **Plan** (`round-02/PLAN.md`): pivot to the dataflow/sequencing cluster. Target
+  `dataflow-invisible` + `cross-spec-sequencing` (universal pair) and
+  `cross-cutting-single-home`, with `default-error-policy` +
+  `input-segmentation-completeness` regression coverage.
+- **Spec** (`test-specs/round-02-apiary`): honey-apiary harvest pipeline — one CLI,
+  three subcommands `tally`→`grade`→`pack` chained by shell pipes, argv[1] selects the
+  stage. A single `honey.shared` spec owns the wire protocol (dispatch, segmentation,
+  exit policy, byte-exact error lines); the three stage specs reference it via `USES`,
+  and each downstream INPUT carries a `USES …@<prev>::RETURN` pointer to its producer.
+  Probe + reference + oracle (38 batches) committed before any agent ran.
+- **Panel (cold, isolated `/tmp`, oracle never copied in):** composer 38/38 (Go, ~70s),
+  gpt 38/38 (Python, ~125s), gemini 38/38 (Python, ~159s), opus 38/38 (Python, ~242s)
+  = **152/152, zero functional misses.** Every targeted obligation read correctly cold.
+- **Diagnosis** (`round-02/results.md`): no functional miss to classify; the actionable
+  signals were `NOTES.md` ambiguities the panel resolved by guessing alike.
+  (1) `dataflow-invisible` STRONG (4/4) — grade/pack consume tally's output but the spec
+  never states which upstream guarantees they trust vs re-validate; the `USES …::RETURN`
+  pointer carried only structural meaning. (2) `closed-set-dispatch-residual` NEW (3/4) —
+  the `{tally,grade,pack}` dispatch had no missing/unknown-argv[1] case; models diverged
+  (composer usage+exit1; gpt/opus invented E00+exit2; gemini silent). (3)
+  `cross-spec-sequencing` partial positive (4/4) — header-gate idiom expresses the
+  dataflow case; re-scoped. (4) `cross-cutting-single-home` (4/4) — single-owner pattern
+  worked but was untaught.
+- **Source-of-truth fixes:** `yass.yass.yaml` — `Reference` gives a slot-targeted `USES`
+  a dataflow reading; `Slot.INPUT` requires naming a producing slot + stating the trust
+  boundary, and stating the out-of-set/missing case for a closed-set dispatch.
+  `yass-reference.md` — References (slot-targeted USES dataflow reading) + Slots (residual
+  generalized to closed-set dispatch). `GUIDANCE.md` — new "Closed-set dispatch" and
+  "Composition: dataflow and cross-cutting concerns" sections. No schema change
+  (`::SLOT` targets already valid). Pruned `RECOMMENDATIONS.md` Part 1 §3 (cross-cutting
+  home) + Part 2 §2 (inputs/outputs name crossing data); renumbered remaining.
+- **Findings delta:** resolved `dataflow-invisible`, `cross-cutting-single-home`; added +
+  resolved `closed-set-dispatch-residual`; re-scoped `cross-spec-sequencing`; re-verified
+  `default-error-policy` + `input-segmentation-completeness`; annotated `conforms-overloaded`
+  not-exercised. Open: 23. Resolved total: 5 of 28. Convergence counter: 0/2.
+
+_(Round 3 begins next: structured-obligation cluster at larger scale, `conforms-overloaded`,
+or non-dataflow sequencing.)_

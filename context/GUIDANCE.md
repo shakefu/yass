@@ -96,6 +96,44 @@ Each of these is a case an implementer will hit and otherwise resolve by guessin
 the intended outcome as an obligation, or declare it out of scope — do not leave it to
 emerge.
 
+## Closed-set dispatch: state the out-of-set case
+
+The residual rule for the `ERROR` slot (above) is one instance of a more general
+discipline: **whenever a spec branches on a closed set of values, it MUST state what
+happens for a value outside that set, or a value that is missing.** This applies to the
+`INPUT` slot too — most often when an `INPUT` dispatches on a subcommand, a mode, or an
+enum and routes each recognized value to a different behavior.
+
+If the enumerated set is `{tally, grade, pack}`, the spec must also say what the program
+does when invoked with `harvest`, or with no subcommand at all. Without that obligation
+each implementer invents the unknown-input handling and the results diverge — observed in
+practice as different exit codes and different diagnostics for the same out-of-set input.
+A reader must never have to deduce the residual case from the enumerated ones.
+
+## Composition: dataflow and cross-cutting concerns across specs
+
+Specs describe components one at a time, but real programs are wired together. Two gaps
+recur when a reader has only the specs and no architecture note, and both are closed by
+obligations, not prose:
+
+- **Name the dataflow and the trust boundary.** When one spec's `INPUT` consumes the data
+  another spec's `RETURN` produces (a pipeline stage, a handler reading a producer's
+  output), point at the producer with a slot-targeted reference —
+  `USES <producer>::RETURN`. That pointer is not decorative: it means *the data this input
+  consumes is exactly what that slot produces*, so the producer's `RETURN` guarantees
+  characterize the data crossing the boundary. Having named it, **state explicitly which of
+  those upstream guarantees the consuming spec relies on (and therefore does NOT
+  re-validate) and which it re-checks.** A consumer that silently re-validates, or silently
+  trusts, forces every implementer to guess the boundary; they will guess differently. The
+  consuming spec owns that decision — make it in an obligation.
+
+- **Give every cross-cutting concern a single home.** When a rule spans many specs — a wire
+  format, the shape of an error line, how input is segmented, how a subcommand is
+  dispatched — write it once in one spec that owns it completely, and reference that spec
+  (`USES`/`CONFORMS`) from the others. Do not restate the rule in fragments across the
+  specs it touches. A reader should learn the whole of a concern from one place rather than
+  reconstructing it from scattered, drift-prone mentions.
+
 ## Open: how a skill uses the test taxonomy
 
 Moved here from TEST-TAXONOMY.md — depends on tooling (CLI commands, obligation-JSON

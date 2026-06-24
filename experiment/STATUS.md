@@ -1,22 +1,26 @@
 # STATUS
 
-- **Round:** 1 (COMPLETE) → Round 2 begins next.
-- **Phase:** Step 7 done — round committed. Panel graded (gpt 12/12, gemini 12/12,
-  opus 12/12, composer 10/12); `results.md` written; source-of-truth fixed; FINDINGS
-  updated; RECOMMENDATIONS pruned.
-- **Next action (Round 2):** Resume protocol — read GOAL.md → this STATUS → FINDINGS →
-  latest `## Round` of LOG. Then Step 1: plan from highest-recurrence OPEN findings.
-  Round-1 meta-finding: the structured-obligation cluster caused 0 functional misses at
-  small scale (inference-expensive, not incorrect), so Round 2 must **scale spec
-  size/interconnection** to find the breaking point, or target a different
-  high-recurrence open cluster (candidates: `dataflow-invisible` + `cross-spec-sequencing`
-  universal pair; `conforms-overloaded`). Author probe + private oracle, commit before
-  running agents.
-- **Open findings:** 25 open (see FINDINGS.md). Resolved this round: 2
-  (`default-error-policy`, `input-segmentation-completeness`).
-- **Rounds remaining to checkpoint:** 4 (halt after Round 5).
+- **Round:** 2 (COMPLETE) → Round 3 begins next.
+- **Phase:** Step 7 done — round committed. Panel graded (composer 38/38, gpt 38/38,
+  gemini 38/38, opus 38/38 = 152/152, zero functional misses); `results.md` written;
+  source-of-truth fixed; FINDINGS updated; RECOMMENDATIONS pruned.
+- **Next action (Round 3):** Resume protocol — read GOAL.md → this STATUS → FINDINGS →
+  latest `## Round` of LOG. Then Step 1: plan from highest-recurrence OPEN findings +
+  re-verify Round-2 fixes. Round-2 meta-finding: composition gaps (dataflow trust
+  boundary, closed-set dispatch residual) again caused 0 functional misses but visible
+  divergence/ambiguity at small scale — the panel keeps converging by guessing alike.
+  Candidates for Round 3: the still-open structured-obligation cluster at larger scale
+  (`error-table-structured`, `mapping-valued-obligations`, `priority-chains-prose`),
+  `conforms-overloaded` (not yet exercised), or non-dataflow `cross-spec-sequencing`
+  (REQUIRES/AFTER + USES overload). Author probe + private oracle, commit before running
+  agents.
+- **Open findings:** 23 open (see FINDINGS.md). Resolved this round: 3
+  (`dataflow-invisible`, `cross-cutting-single-home`, `closed-set-dispatch-residual`).
+  Resolved total: 5 of 28.
+- **Rounds remaining to checkpoint:** 3 (halt after Round 5).
 - **Convergence counter (rounds with no new actionable findings):** 0 / 2
-  (Round 1 produced 1 new actionable finding → counter stays 0).
+  (Round 2 produced new actionable findings — one strong corroboration resolved, one
+  cross-cutting resolved, one new finding → counter stays 0).
 
 ## Model panel
 gpt-5.5-extra-high · gemini-3.1-pro · claude-opus-4-8-thinking-high · composer-2.5

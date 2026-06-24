@@ -43,26 +43,14 @@ reinterpreted. When you can only express something as a series of internal steps
 decide which it is: a genuine ordered process (state it as an explicit ordered list)
 or implementation detail that does not belong in the spec at all.
 
-### 3. Give every cross-cutting concern a single home
-
-When a rule applies across many specs — how errors are wrapped, how paths are
-formatted, how operations are traced, what is written to standard error — write it
-once, in one spec that owns it completely, and reference that spec from the others.
-Do not restate the rule in fragments across the specs it touches.
-
-A reader should be able to learn the whole of a concern from one place rather than
-reconstructing it from scattered mentions. If a concern has several parts — naming
-something, deciding where it is recorded, and what data it carries — all of those
-parts live together in the owning spec.
-
-### 4. Handle the same failure the same way, and pin error wording
+### 3. Handle the same failure the same way, and pin error wording
 
 - When more than one spec performs the same check, they must handle failure the same
   way — or the difference must be stated as intentional, not left to emerge.
 - Where the exact wording or shape of an error is part of the contract that other
   code or tools depend on, pin it precisely rather than leaving it to paraphrase.
 
-### 5. Prove feasibility by running against the real thing
+### 4. Prove feasibility by running against the real thing
 
 A specification can be perfectly self-consistent and still be impossible to satisfy
 against the actual system it targets — a database, an operating system, a protocol.
@@ -90,17 +78,6 @@ map almost one-to-one onto both code and tests — but only when their order is
 understood as meaningful rather than incidental. This needs no new syntax: a list is
 already ordered; we simply commit to reading it that way and to letting each item be
 addressed individually.
-
-### 2. Let inputs and outputs name the data that crosses between specs
-
-Allow the input and output sections of a spec to list the named pieces of data they
-accept and produce, each with a plain-language description. The goal is that a reader
-can see exactly what one component hands to another without opening the
-implementation or a separate document.
-
-This is intentionally just naming with description — not a type system and not full
-data modeling. It should carry enough to close the gap that otherwise sends people
-looking outside the spec, and no more.
 
 ---
 
