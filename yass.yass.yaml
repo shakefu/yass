@@ -106,6 +106,10 @@ RETURN:
 spec: Slot.ERROR
 RETURN:
 - MUST: state the failure conditions and how the spec rejects them
+- WHEN: an obligation in this slot carries a Guard
+  MUST: read it as a specific, foreseeable failure that applies only under that guard
+- WHEN: an obligation in this slot carries no Guard
+  MUST: read it as the residual policy for any failure not matched by a guarded obligation in the same slot
 ---
 spec: Slot.SIDE-EFFECT
 RETURN:

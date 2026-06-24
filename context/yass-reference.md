@@ -60,6 +60,13 @@ obligation SHOULD be placed in `INVARIANT` only when none of `INPUT`, `RETURN`, 
 or `SIDE-EFFECT` is suitable. It exists so always-true constraints are not forced into
 `SIDE-EFFECT` (which means *effects*) — not as a general catch-all.
 
+In the `ERROR` slot specifically, a **guarded** obligation (with `WHEN`) names one
+specific failure mode, and a **guard-less** obligation is the **residual** — the policy
+for any failure not matched by a guarded obligation in the same slot. State a residual
+whenever a spec rejects anything; but a foreseeable, named failure with its own
+observable outcome (a distinct error code, message, or exit status) belongs in its own
+guarded obligation, never folded into the residual.
+
 When a spec describes something that is not a function (e.g. the language defining
 itself), read the function-shaped slots structurally: `INPUT` = the form a thing takes,
 `RETURN` = what a well-formed thing denotes, `ERROR` = malformed forms that must be
