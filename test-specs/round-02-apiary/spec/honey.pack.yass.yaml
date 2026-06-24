@@ -1,0 +1,42 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  honey pack: the final pipeline stage. It reads the graded records produced by
+  honey grade from standard input, accumulates net weight per grade band subject
+  to a per-band crate capacity, and writes the final pack manifest to standard
+  output.
+version: v1
+related:
+- ./honey.shared.yass.yaml
+- ./honey.grade.yass.yaml
+---
+spec: honey.pack
+INPUT:
+- MUST: run when the program's first command-line argument is pack
+- MUST: treat the first record of standard input as a stage header and every record after it as one graded record
+  USES: ./honey.shared@honey.lines
+- MUST: "interpret a well-formed graded record as exactly three fields in order: a hive id, a net weight that is a non-empty run of ASCII digits (0-9) with no leading zero unless the weight is the single digit 0, and a grade band that is exactly one of the letters A, B, or C"
+- USES: ./honey.grade@honey.grade::RETURN
+RETURN:
+- MUST: "write the line PACK/1 to standard output as the first output line, before any manifest line and exactly once, whenever the stage header is accepted"
+- MUST: "after reading every record, write one manifest line for each grade band that packed at least one record, taking the bands in the order A, then B, then C"
+- MUST: "format a manifest line as `<band> <count> <total>`, where <count> is the number of records packed into that band and <total> is the sum of their net weights"
+  USES: ./honey.shared@honey.lines
+- MUST-NOT: write a manifest line for a band that packed no records
+ERROR:
+- WHEN: the first record of standard input is not exactly GRADED/1
+  MUST: "emit `E41 bad stage header: expected GRADED/1` to standard error, write nothing to standard output, reject the entire input, and exit 2"
+- WHEN: packing a well-formed graded record would make its band's running total exceed the band's crate capacity
+  MUST: "emit `E70 crate overflow: band <band> total <would-be-total> exceeds <capacity>` to standard error, where <would-be-total> is the band's current running total plus this record's net weight and <capacity> is the band's crate capacity; this contributes exit code 1 and the record is not packed"
+- MUST: emit the residual error for any graded record this stage cannot process that matches none of the guarded errors above
+  USES: ./honey.shared@honey.errors
+INVARIANT:
+- MUST: "the crate capacity is 1000 grams for band A, 800 grams for band B, and 600 grams for band C"
+- MUST: "read records in input order, keeping a running total and a count per band; pack a record (add its net weight to its band's total and increment that band's count) only when doing so does not make the band's running total exceed its capacity"
+- MUST: keep processing the remaining graded records after a record overflows or is rejected
+- MUST: "exit 0 when the stage header is GRADED/1 and every record is packed; exit 2 when the stage header is wrong; otherwise exit 1"
+  USES: ./honey.shared@honey
+SIDE-EFFECT:
+- MUST-NOT: add a record's net weight to a band's total or count when that record overflows the band
+- MUST-NOT: write an error line to standard error for a record that is packed
+- MUST-NOT: write anything to standard output when the stage header is rejected
