@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  A tiny command-line program named "double". It reads a single base-10 integer
+  from standard input, doubles it, and writes the result to standard output.
+  Used to validate the experiment harness end to end.
+version: v1
+---
+spec: double
+INPUT:
+- MUST: read all of standard input
+- MUST: interpret the trimmed contents of standard input as a single base-10 integer
+- MUST: accept an optional leading minus sign for negative integers
+RETURN:
+- WHEN: standard input is a valid base-10 integer
+  MUST: "write the integer multiplied by two to standard output, followed by a single newline"
+- WHEN: standard input is a valid base-10 integer
+  MUST: exit 0
+ERROR:
+- WHEN: standard input is empty or contains only whitespace
+  MUST: "write the line `error: no input` to standard error and exit 2"
+- WHEN: the trimmed standard input is not a valid base-10 integer
+  MUST: "write the line `error: invalid integer` to standard error and exit 2"
+SIDE-EFFECT:
+- MUST-NOT: write anything to standard output when exiting non-zero
+- MUST-NOT: write anything to standard error when exiting zero
