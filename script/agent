@@ -1,0 +1,321 @@
+#!/usr/bin/env bash
+#
+# script/agent — run a single headless `cursor-agent` against a yass spec.
+#
+# Wraps the cursor-agent CLI invocation used by the pr-review-panel skill so a
+# chosen model can attempt to *follow* a synthetic yass spec inside an isolated
+# workspace. The model's response, stderr log, the prompt it was given, the
+# spec(s) it saw, and a run-metadata record are all captured under runs/ so
+# responses can be compared across models.
+#
+# The underlying invocation (from the pr-review-panel skill) is:
+#
+#   cursor-agent -p --trust --yolo --workspace <dir> --model <model> \
+#                --output-format text "<boot prompt>"
+#
+# --yolo grants unrestricted tool access (write + shell). That is why every run
+# is pointed at a throwaway workspace under runs/ rather than the repo itself.
+#
+# Usage:
+#   script/agent --model MODEL [--spec FILE]... \
+#                [--prompt TEXT | --prompt-file FILE] \
+#                [--workspace DIR] [--name NAME] [--output FILE] \
+#                [--output-format text|json|stream-json] [--timeout SECS] \
+#                [--dry-run] [-- EXTRA_CURSOR_AGENT_ARGS...]
+#
+# Examples:
+#   script/agent -m gpt --spec test-specs/widget.yass.yaml
+#   script/agent -m opus --spec test-specs/widget.yass.yaml --name opus-widget
+#   script/agent -m claude-4.6-sonnet-medium-thinking --prompt "..." --dry-run
+#
+# Model aliases (anything else is passed to cursor-agent verbatim, including
+# bracket-parameterized ids like 'claude-opus-4-8[effort=high]'):
+#   opus     -> claude-opus-4-8-thinking-high
+#   sonnet   -> claude-4.6-sonnet-medium-thinking
+#   gpt      -> gpt-5.5-extra-high
+#   gemini   -> gemini-3.1-pro
+#   composer -> composer-2.5
+#   grok     -> grok-4.3
+#   auto     -> auto
+#
+set -euo pipefail
+
+PROG="script/agent"
+
+die() { printf 'error: %s\n' "$*" >&2; exit 1; }
+
+usage() {
+	sed -n '3,46p' "$0" | sed 's/^# \{0,1\}//'
+	exit "${1:-0}"
+}
+
+# Resolve a friendly alias to a concrete cursor-agent model id. Unknown values
+# pass through unchanged so raw ids and bracket overrides still work.
+resolve_model() {
+	case "$1" in
+	opus)     echo "claude-opus-4-8-thinking-high" ;;
+	sonnet)   echo "claude-4.6-sonnet-medium-thinking" ;;
+	gpt)      echo "gpt-5.5-extra-high" ;;
+	gemini)   echo "gemini-3.1-pro" ;;
+	composer) echo "composer-2.5" ;;
+	grok)     echo "grok-4.3" ;;
+	*)        echo "$1" ;;
+	esac
+}
+
+# Lowercase, collapse anything that is not [a-z0-9._-] into a single '-'.
+slugify() {
+	printf '%s' "$1" \
+		| tr '[:upper:]' '[:lower:]' \
+		| sed -E 's/[^a-z0-9._-]+/-/g; s/^-+//; s/-+$//'
+}
+
+# Minimal JSON string escape (backslash, double-quote, control chars we care
+# about). Inputs here are file paths and model ids, so this is sufficient.
+json_escape() {
+	printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
+}
+
+# ---------------------------------------------------------------------------
+# Parse arguments
+# ---------------------------------------------------------------------------
+
+MODEL_ALIAS=""
+PROMPT_TEXT=""
+PROMPT_FILE=""
+WORKSPACE=""
+RUN_NAME=""
+OUTPUT_FILE=""
+OUTPUT_FORMAT="text"
+TIMEOUT="900"
+DRY_RUN=0
+SPECS=()
+EXTRA_ARGS=()
+
+while [ $# -gt 0 ]; do
+	case "$1" in
+	-h|--help) usage 0 ;;
+	-m|--model) MODEL_ALIAS="${2:-}"; shift 2 ;;
+	--spec) [ -n "${2:-}" ] || die "--spec requires a file"; SPECS+=("$2"); shift 2 ;;
+	--prompt) PROMPT_TEXT="${2:-}"; shift 2 ;;
+	--prompt-file) PROMPT_FILE="${2:-}"; shift 2 ;;
+	-w|--workspace) WORKSPACE="${2:-}"; shift 2 ;;
+	--name) RUN_NAME="${2:-}"; shift 2 ;;
+	-o|--output) OUTPUT_FILE="${2:-}"; shift 2 ;;
+	--output-format) OUTPUT_FORMAT="${2:-}"; shift 2 ;;
+	--timeout) TIMEOUT="${2:-}"; shift 2 ;;
+	--dry-run) DRY_RUN=1; shift ;;
+	--) shift; EXTRA_ARGS=("$@"); break ;;
+	-*) die "unknown option: $1 (try --help)" ;;
+	*) die "unexpected argument: $1 (try --help)" ;;
+	esac
+done
+
+[ -n "$MODEL_ALIAS" ] || die "--model is required (try --help)"
+[ -z "$PROMPT_TEXT" ] || [ -z "$PROMPT_FILE" ] || die "use only one of --prompt / --prompt-file"
+
+case "$OUTPUT_FORMAT" in
+text|json|stream-json) ;;
+*) die "--output-format must be text, json, or stream-json" ;;
+esac
+
+command -v cursor-agent >/dev/null 2>&1 || die "cursor-agent not found on PATH"
+
+MODEL="$(resolve_model "$MODEL_ALIAS")"
+
+# ---------------------------------------------------------------------------
+# Resolve paths
+# ---------------------------------------------------------------------------
+
+if REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"; then :; else
+	REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+fi
+
+# Validate + absolutize spec paths (relative to the caller's cwd).
+SPEC_ABS=()
+for s in "${SPECS[@]:-}"; do
+	[ -n "$s" ] || continue
+	[ -f "$s" ] || die "spec file not found: $s"
+	SPEC_ABS+=("$(cd "$(dirname "$s")" && pwd)/$(basename "$s")")
+done
+
+if [ -n "$PROMPT_FILE" ]; then
+	[ -f "$PROMPT_FILE" ] || die "prompt file not found: $PROMPT_FILE"
+	PROMPT_FILE="$(cd "$(dirname "$PROMPT_FILE")" && pwd)/$(basename "$PROMPT_FILE")"
+fi
+
+# A run must have *something* to do.
+if [ -z "$PROMPT_TEXT" ] && [ -z "$PROMPT_FILE" ] && [ "${#SPEC_ABS[@]}" -eq 0 ]; then
+	die "nothing to do: provide --spec, --prompt, or --prompt-file"
+fi
+
+# Derive a default run directory under runs/ when none is given.
+MODEL_SLUG="$(slugify "$MODEL")"
+if [ -z "$WORKSPACE" ]; then
+	if [ -n "$RUN_NAME" ]; then
+		WORKSPACE="$REPO_ROOT/runs/$(slugify "$RUN_NAME")"
+	elif [ "${#SPEC_ABS[@]}" -gt 0 ]; then
+		spec_base="$(basename "${SPEC_ABS[0]}")"
+		spec_slug="$(slugify "$(printf '%s' "$spec_base" | sed -E 's/\.(yass\.)?ya?ml$//')")"
+		WORKSPACE="$REPO_ROOT/runs/${spec_slug}__${MODEL_SLUG}"
+	else
+		WORKSPACE="$REPO_ROOT/runs/${MODEL_SLUG}"
+	fi
+fi
+
+[ -n "$OUTPUT_FILE" ] || OUTPUT_FILE="$WORKSPACE/output.txt"
+LOG_FILE="$WORKSPACE/agent.log"
+META_FILE="$WORKSPACE/meta.json"
+WORKSPACE_PROMPT="$WORKSPACE/PROMPT.md"
+
+# ---------------------------------------------------------------------------
+# Build the prompt text the model will follow.
+# ---------------------------------------------------------------------------
+# The prompt is written into the workspace as PROMPT.md and the model is booted
+# with a short instruction to read it (mirrors pr-review-panel; avoids ARG_MAX
+# limits and keeps the full task out of `ps`). The default below is deliberately
+# minimal and neutral so it does not pre-teach yass semantics — override it with
+# --prompt / --prompt-file once the experiment protocol is settled.
+
+build_default_prompt() {
+	{
+		echo "# Task"
+		echo
+		if [ "${#SPEC_ABS[@]}" -gt 0 ]; then
+			echo "Your workspace contains the following yass specification file(s):"
+			echo
+			for s in "${SPEC_ABS[@]}"; do
+				echo "- \`$(basename "$s")\`"
+			done
+			echo
+			echo "Implement code in this workspace that satisfies the specification(s)."
+			echo "Do not modify the spec file(s). When finished, summarize what you built"
+			echo "and how each obligation is satisfied."
+		else
+			echo "(no spec provided)"
+		fi
+	}
+}
+
+# ---------------------------------------------------------------------------
+# Dry run: report the plan without touching the filesystem or invoking the model.
+# ---------------------------------------------------------------------------
+
+BOOT="Read the file PROMPT.md in your workspace and follow its instructions."
+
+if [ "$DRY_RUN" -eq 1 ]; then
+	echo "DRY RUN — no workspace created, no model invoked"
+	echo "  model (alias):   $MODEL_ALIAS"
+	echo "  model (resolved):$MODEL"
+	echo "  workspace:       $WORKSPACE"
+	echo "  output:          $OUTPUT_FILE"
+	echo "  output-format:   $OUTPUT_FORMAT"
+	echo "  timeout:         ${TIMEOUT}s"
+	if [ "${#SPEC_ABS[@]}" -gt 0 ]; then
+		echo "  specs:"
+		for s in "${SPEC_ABS[@]}"; do echo "    - $s"; done
+	fi
+	if [ -n "$PROMPT_FILE" ]; then echo "  prompt-file:     $PROMPT_FILE"; fi
+	if [ -n "$PROMPT_TEXT" ]; then echo "  prompt:          (inline, ${#PROMPT_TEXT} chars)"; fi
+	echo "  command:"
+	printf '    cursor-agent -p --trust --yolo --workspace %q --model %q --output-format %s' \
+		"$WORKSPACE" "$MODEL" "$OUTPUT_FORMAT"
+	for a in "${EXTRA_ARGS[@]:-}"; do [ -n "$a" ] && printf ' %q' "$a"; done
+	printf ' %q\n' "$BOOT"
+	exit 0
+fi
+
+# ---------------------------------------------------------------------------
+# Materialize the workspace.
+# ---------------------------------------------------------------------------
+
+mkdir -p "$WORKSPACE"
+
+# Copy spec(s) into the workspace so the model sees them locally.
+for s in "${SPEC_ABS[@]:-}"; do
+	[ -n "$s" ] && cp "$s" "$WORKSPACE/$(basename "$s")"
+done
+
+# Write PROMPT.md from the chosen source.
+if [ -n "$PROMPT_TEXT" ]; then
+	printf '%s\n' "$PROMPT_TEXT" > "$WORKSPACE_PROMPT"
+elif [ -n "$PROMPT_FILE" ]; then
+	cp "$PROMPT_FILE" "$WORKSPACE_PROMPT"
+else
+	build_default_prompt > "$WORKSPACE_PROMPT"
+fi
+
+# ---------------------------------------------------------------------------
+# Pick a timeout wrapper if one is available (optional).
+# ---------------------------------------------------------------------------
+
+TIMEOUT_CMD=()
+if [ "${TIMEOUT}" != "0" ]; then
+	if command -v timeout >/dev/null 2>&1; then
+		TIMEOUT_CMD=(timeout "${TIMEOUT}")
+	elif command -v gtimeout >/dev/null 2>&1; then
+		TIMEOUT_CMD=(gtimeout "${TIMEOUT}")
+	else
+		echo "note: no timeout/gtimeout on PATH — running without a timeout" >&2
+	fi
+fi
+
+# ---------------------------------------------------------------------------
+# Invoke the model.
+# ---------------------------------------------------------------------------
+
+echo "Running $MODEL_ALIAS ($MODEL) in $WORKSPACE ..." >&2
+
+CURSOR_CMD=(
+	cursor-agent -p --trust --yolo
+	--workspace "$WORKSPACE"
+	--model "$MODEL"
+	--output-format "$OUTPUT_FORMAT"
+)
+for a in "${EXTRA_ARGS[@]:-}"; do [ -n "$a" ] && CURSOR_CMD+=("$a"); done
+CURSOR_CMD+=("$BOOT")
+
+SECONDS=0
+set +e
+"${TIMEOUT_CMD[@]}" "${CURSOR_CMD[@]}" 2>"$LOG_FILE" | tee "$OUTPUT_FILE"
+STATUS="${PIPESTATUS[0]}"
+set -e
+DURATION="$SECONDS"
+
+# ---------------------------------------------------------------------------
+# Record run metadata.
+# ---------------------------------------------------------------------------
+
+CURSOR_VERSION="$(cursor-agent --version 2>/dev/null | head -1 || true)"
+
+{
+	printf '{\n'
+	printf '  "model_alias": "%s",\n' "$(json_escape "$MODEL_ALIAS")"
+	printf '  "model": "%s",\n' "$(json_escape "$MODEL")"
+	printf '  "workspace": "%s",\n' "$(json_escape "$WORKSPACE")"
+	printf '  "output": "%s",\n' "$(json_escape "$OUTPUT_FILE")"
+	printf '  "output_format": "%s",\n' "$(json_escape "$OUTPUT_FORMAT")"
+	printf '  "timeout_seconds": %s,\n' "$TIMEOUT"
+	printf '  "duration_seconds": %s,\n' "$DURATION"
+	printf '  "exit_code": %s,\n' "$STATUS"
+	printf '  "cursor_agent_version": "%s",\n' "$(json_escape "$CURSOR_VERSION")"
+	printf '  "specs": ['
+	first=1
+	for s in "${SPEC_ABS[@]:-}"; do
+		[ -n "$s" ] || continue
+		[ "$first" -eq 1 ] || printf ','
+		printf '"%s"' "$(json_escape "$s")"
+		first=0
+	done
+	printf ']\n'
+	printf '}\n'
+} > "$META_FILE"
+
+echo >&2
+if [ "$STATUS" -eq 0 ]; then
+	echo "✓ done in ${DURATION}s — output: $OUTPUT_FILE" >&2
+else
+	echo "✗ exit $STATUS after ${DURATION}s — see log: $LOG_FILE" >&2
+fi
+
+exit "$STATUS"
