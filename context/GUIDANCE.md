@@ -62,6 +62,40 @@ Note: this is emergent guidance from early usage — not yet formalized. A secon
 spec revisions may promote it to a meta-rule or refine the conventions. Captured here so
 it isn't lost.
 
+## Error obligations: guarded for the foreseeable, guard-less for the residual
+
+In the `ERROR` slot, a guarded obligation (one with a `WHEN`) states a specific,
+foreseeable failure; a guard-less obligation is the **residual** — the policy for any
+failure not matched by a guarded obligation in the same slot. (This reading is fixed in
+`yass.yass.yaml` under `Slot.ERROR`.)
+
+Two rules follow:
+
+- **Always state a residual.** If a spec rejects anything, it MUST also say what happens
+  to failures it did not enumerate. Without a guard-less catch-all, each implementer
+  invents their own handling and the results diverge.
+- **Never fold a foreseeable case into the residual.** Any failure you can name in
+  advance deserves its own guarded obligation, and if it has a distinct observable
+  outcome (a specific error code, message, or exit status) that outcome MUST be stated on
+  that obligation — not left for the reader to infer from the catch-all. A reader (or
+  model) must not have to deduce a domain rule from "everything else."
+
+## Input segmentation: specify every boundary
+
+When a spec defines how input is broken into units — records, lines, fields, tokens — it
+MUST state the boundary behavior completely, not just the happy path. For each level of
+segmentation, name:
+
+- the exact separator and its character class (e.g. *one ASCII space `0x20`*, not the
+  vaguer "whitespace", which invites splitting on tabs and other Unicode spaces);
+- empty input (zero units);
+- an empty or blank unit in the interior;
+- a leading, trailing, or repeated separator.
+
+Each of these is a case an implementer will hit and otherwise resolve by guessing. State
+the intended outcome as an obligation, or declare it out of scope — do not leave it to
+emerge.
+
 ## Open: how a skill uses the test taxonomy
 
 Moved here from TEST-TAXONOMY.md — depends on tooling (CLI commands, obligation-JSON

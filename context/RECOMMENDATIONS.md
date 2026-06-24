@@ -55,14 +55,7 @@ reconstructing it from scattered mentions. If a concern has several parts — na
 something, deciding where it is recorded, and what data it carries — all of those
 parts live together in the owning spec.
 
-### 4. Specify what happens for the errors you did not enumerate
-
-Listing specific failure cases is not enough. State a default policy for every other
-failure — for example, "any other error is wrapped with the operation name and
-returned." Without it, each implementer invents their own handling and the results
-diverge.
-
-Two related points:
+### 4. Handle the same failure the same way, and pin error wording
 
 - When more than one spec performs the same check, they must handle failure the same
   way — or the difference must be stated as intentional, not left to emerge.
@@ -98,16 +91,7 @@ understood as meaningful rather than incidental. This needs no new syntax: a lis
 already ordered; we simply commit to reading it that way and to letting each item be
 addressed individually.
 
-### 2. Let an unconditional error obligation mean "for everything else"
-
-Most error obligations apply only under a specific stated condition. Allow an error
-obligation with no condition attached to mean "this is what happens for any failure
-not otherwise covered."
-
-That gives the default-error policy from Part 1 a natural home, without adding a new
-slot or keyword — an error rule with no guard simply reads as the catch-all.
-
-### 3. Let inputs and outputs name the data that crosses between specs
+### 2. Let inputs and outputs name the data that crosses between specs
 
 Allow the input and output sections of a spec to list the named pieces of data they
 accept and produce, each with a plain-language description. The goal is that a reader
