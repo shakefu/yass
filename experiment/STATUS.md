@@ -1,19 +1,27 @@
 # STATUS
 
-- **Round:** 2 (COMPLETE) → Round 3 begins next.
-- **Phase:** Step 7 done — round committed. Panel graded (composer 38/38, gpt 38/38,
-  gemini 38/38, opus 38/38 = 152/152, zero functional misses); `results.md` written;
-  source-of-truth fixed; FINDINGS updated; RECOMMENDATIONS pruned.
-- **Next action (Round 3):** Resume protocol — read GOAL.md → this STATUS → FINDINGS →
-  latest `## Round` of LOG. Then Step 1: plan from highest-recurrence OPEN findings +
-  re-verify Round-2 fixes. Round-2 meta-finding: composition gaps (dataflow trust
-  boundary, closed-set dispatch residual) again caused 0 functional misses but visible
-  divergence/ambiguity at small scale — the panel keeps converging by guessing alike.
-  Candidates for Round 3: the still-open structured-obligation cluster at larger scale
-  (`error-table-structured`, `mapping-valued-obligations`, `priority-chains-prose`),
-  `conforms-overloaded` (not yet exercised), or non-dataflow `cross-spec-sequencing`
-  (REQUIRES/AFTER + USES overload). Author probe + private oracle, commit before running
-  agents.
+- **Round:** 3 (IN PROGRESS — Steps 1–2 done, PAUSED before panel run).
+- **Phase:** Step 2 done — probe spec + private oracle authored, validated, committed.
+  Specs (`vault.shared`/`vault.certify`/`vault.report`, 7 documents) all parse against
+  `yass.v1.schema.json`; all 11 cross-file refs resolve; oracle `--self-check` prints
+  SELFTEST OK; `grade.py --cmd <ref.py>` scores 35/35. **PAUSED on user instruction
+  before running the panel; /goal cleared.** Probing the structured-obligation cluster
+  at scale: 18-code prose defect registry, deliberately non-monotonic precedence chain,
+  one-verdict-per-record cardinality, E10/E15/E20 ordered error checks, certify|report
+  dataflow trust boundary, off-spec segmentation (tab/CRLF/NBSP). Findings under test:
+  `priority-chains-prose`, `error-table-structured`, `error-cardinality-implicit`,
+  `mapping-valued-obligations`, `error-code-refs`; regression re-verify of
+  `dataflow-invisible`, `closed-set-dispatch-residual`, `input-segmentation-completeness`,
+  `cross-cutting-single-home`.
+- **Next action (Round 3, on resume):** Step 3 — run the panel cold (gpt/gemini/opus/
+  composer), concurrent + background, unique `/tmp` workspace per model, copy in ONLY
+  `test-specs/round-03-vault/spec/*.yass.yaml`, via
+  `script/agent ... --prompt-file experiment/round-03/prompt.md`. Then Steps 4–7: grade
+  all three axes, diagnose every miss spec-defect vs model-error (≥2-model = strong
+  signal), write `experiment/round-03/results.md`, fix SOT, update FINDINGS, prune
+  resolved `context/*`, route irreducible tooling to TOOLING.md, commit `round-03`,
+  update this STATUS + LOG, update convergence counter. (Note: `/goal` was cleared on
+  user instruction — resuming the experiment requires a fresh `/goal` invocation.)
 - **Open findings:** 23 open (see FINDINGS.md). Resolved this round: 3
   (`dataflow-invisible`, `cross-cutting-single-home`, `closed-set-dispatch-residual`).
   Resolved total: 5 of 28.
