@@ -186,6 +186,10 @@ BATCHES = {
         "SHIP2 B07 400 0 10\n"
     ),
     "whitespace_split": "  SHIP1   A20  400 12   20  \n",
+    # only ASCII space (0x20) splits fields: a tab-separated line is ONE field -> E10 got 1
+    "whitespace_tab": "SHIP1\tA20\t400\t12\t20\n",
+    # only \n separates records: a trailing \r stays on window-end -> E23 (field not well-formed)
+    "crlf_record": "SHIP1 A20 400 12 20\r\n",
 }
 
 # --- self-check: hand-verified expectations for tricky batches --------------
@@ -244,6 +248,18 @@ SELFTEST = [
     ),
     ("empty_input", "", "", 0),
     ("trailing_newline", "OK SHIP1 A20 12-20\n", "", 0),
+    (
+        "whitespace_tab",
+        "",
+        "E10 malformed record: expected 5 fields, got 1\n",
+        2,
+    ),
+    (
+        "crlf_record",
+        "",
+        "E23 bad window: 12-20\r\n",
+        1,
+    ),
 ]
 
 
