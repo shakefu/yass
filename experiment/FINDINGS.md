@@ -34,15 +34,16 @@ one-shot outcome, and is routed to tooling (`lint-anti-slop`), not a language ch
 | `error-table-structured` | universal | wontfix (refuted ×2) | Large error registry forced into prose MUSTs (code+class+condition+message packed per string). Round-01: compact prose registry (E10–E90) byte-exact for 4/4. **Round-03: an 18-row registry (code, class, condition, byte-exact message) packed into scalar prose was reproduced byte-exact by 4/4 — no paraphrase, no miscopied threshold or class.** Correctness defect refuted at 2× scale; residual value is lint/readability → `lint-anti-slop`. |
 | `error-cardinality-implicit` | repeated | wontfix (refuted ×2) | "at most one per file" vs "one per rule" vs "one per (X,Y) pair" is implicit prose; proposed ONCE-PER/EACH/DEDUP-BY. Round-01: "at most one error line per record" honored by 4/4. **Round-03: one-verdict-per-door AND one-error-line-per-record (both prose) honored by 4/4 — no model emitted one line per triggered defect on multi-defect doors.** Correctness defect refuted; residual value ergonomic only. |
 | `error-code-refs` | single | wontfix (refuted ×2) | Error/defect codes cited as bare string literals in prose, unvalidatable by tooling; proposed a structured CODE key. **Round-03: codes V01–V18 cited as bare literals and read in two places (certify verdict emission + report class tally) survived intact for 4/4 cold impls — no broken mapping.** No correctness defect; the unvalidatable-by-tooling concern is real but is a lint capability, not a language defect → `lint-anti-slop`. |
-| `conforms-overloaded` | universal | open | CONFORMS does contract+inlining+provenance; most bug-prone feature. Split assertion vs render-time inline; make inline opt-in. → yass.yass.yaml, spec/cli.query. Round-02: not exercised (probe used USES/SEE for shared conventions, not CONFORMS). |
-| `conforms-inlining-semantics-misplaced` | repeated | open | Inlining rules live in cli.query not the language; guard-injection edge case silently drops guards. Move semantics into Reference spec. → yass.yass.yaml, spec/cli.query |
-| `conforms-bare-slot-meaning` | repeated | open | Grammar marks ::SLOT optional but query rejects bare CONFORMS; define meaning + align. → yass.yass.yaml, schema, spec/cli.query |
-| `self-validation-ref-bug` | universal | open | spec/cli.shared uses `../cli@...` resolving to nonexistent root cli.yass.yaml; `yass validate spec/` can't exit 0. Fix to `./cli@...`. → spec/cli.shared |
+| `conforms-overloaded` | universal | wontfix (refuted round-04) | CONFORMS does contract+inlining+provenance; proposed splitting assertion vs render-time inline + opt-in inline. **Round-04 (4/4 clean):** the axle probe used CONFORMS for shared conventions and a whole-spec `CONFORMS: ./axle.audit@axle.audit` conformance ref; all four models read match-vs-inline correctly with **zero NOTES confusion** about CONFORMS. The dual aspect is coherent — inlining is *how* a slot-targeted match is made checkable in place; splitting the relation is unwarranted. Behavioral defect refuted; the only warranted change was a documentation consolidation (match-vs-inline dual aspect now stated per-relation in `yass-reference` References + relations table). |
+| `conforms-inlining-semantics-misplaced` | repeated | resolved | Inlining rules lived only in `cli.query.InlineConforms`, not the language; the guard-combination edge case (carrier WHEN + inlined obligation's own WHEN) had no language-level meaning, only a literal-string render rule in the tool. **Round-04 confirmed the gap is real** (the conjunction semantics were absent from `yass.yass.yaml`). Fixed: promoted the *semantic* conjunction to the language — `yass.yass.yaml` `Reference` SIDE-EFFECT now states an inlined obligation with its own Guard applies only when both guards hold (carrier conjoined with inner); `yass-reference` References documents it. The literal `" and "` rendering stays in `cli.query` (genuinely tooling). |
+| `conforms-bare-slot-meaning` | repeated | resolved | Exact grammar-vs-tooling contradiction: `RefTarget` marks `::SLOT` optional and `Reference` RETURN says CONFORMS must "match the referenced spec **or** slot" (whole-spec match valid), but `cli.query.InlineConforms` erred `yass.query.conforms_no_slot`/exit 1 on a slotless CONFORMS. **Round-04: 4/4 models accepted a whole-spec `CONFORMS: ./axle.audit@axle.audit` as conform-to-the-whole-spec with zero confusion** — the grammar's reading is the intuitive one. Resolved in the grammar's favor: a whole-spec CONFORMS is a non-transcluded conformance reference (match the whole spec). `yass.yass.yaml` `Reference` SIDE-EFFECT scopes inlining to slot-targeted CONFORMS and forbids inlining a whole-spec CONFORMS; `cli.query` now leaves a whole-spec CONFORMS in place (no error); the `conforms_no_slot` code is retired from `cli.errors`; `yass-reference` relations table updated; resolved `FIXES.md` open question pruned. No schema change. |
+| `self-validation-ref-bug` | universal | resolved | Was: broken cross-file CONFORMS using `../cli@...` resolved to a nonexistent root `cli.yass.yaml`, so `yass validate spec/` could not exit 0. **Fixed in commit `868112e` (fix(spec): correct broken CONFORMS refs)** — all 12 cross-file refs now use `./cli@…` → existing `spec/cli.yass.yaml`, and bare `yass@<Construct>` refs resolve from project-root to the existing `yass.yass.yaml`. **Round-04 re-verification (rigorous, repo-wide): 17 specs schema-valid, 114 CONFORMS/USES/SEE targets all resolve, 0 dangling, 0 schema errors** (`yass validate .` would exit 0). No root `cli.yass.yaml` exists and nothing targets it. Real bug, already fixed, fix holds. |
 | `dispatch-subcommand-override` | repeated | open | Dispatch-level vs subcommand-level rule precedence (bare `-`) unexpressed. Need override mechanism or pin rule. → yass.yass.yaml, spec/cli.* |
 | `reftarget-resolution-scattered` | repeated | open | Ref-target resolution rules split across 3-4 specs; consolidate in one owner; use ::SLOT-granular refs. → yass.yass.yaml, spec/cli.* |
 | `duplicate-normativity-wording` | repeated | open | "same Normativity keyword more than once" misreads as key-repeat; means >1 keyword. Reword. → yass.yass.yaml |
 | `unreachable-codes` | repeated | open | Several error codes unreachable by design; mark (SHADOWED-BY/UNREACHABLE-WHEN) or remove. → spec/cli.errors, yass.yass.yaml |
 | `default-error-policy` | single | resolved | Guard-less ERROR obligation now defined as the **residual** (`yass.yass.yaml` `Slot.ERROR`; `yass-reference` ERROR-slot paragraph); anti-pattern of folding a foreseeable failure into the catch-all documented (`GUIDANCE`). Round-01: 4/4 models correctly read the guard-less catch-all but **all 4 had to infer** that out-of-hours routed to it (strong signal). Pruned from `RECOMMENDATIONS.md` Part 1 §4 + Part 2 §2. Re-verified round-02 (E90 residual, 4/4). |
+| `residual-reachability` | single (round-04) | resolved | The residual discipline ("Always state a residual") carried no reachability/exhaustiveness caveat, so it actively encouraged **dead** residuals — a guard-less catch-all the guarded obligations have already made unreachable. **Round-04 (4/4 STRONG):** the axle probe's `E90` "unprocessable record" residual was unreachable by construction (any 7-field record with a valid id and six valid integers is well-formed → verdict; the field-count/id/integer guards leave no remainder), and all four models independently flagged it as dead — several noting it contradicts the spec's own well-formed/malformed invariant (oracle-confirmed: `E90` has zero references in the reference impl). Fixed: `yass.yass.yaml` `Slot.ERROR` (MUST-NOT carry a guard-less residual when the guarded obligations already account for every input), `GUIDANCE` ("Error obligations" — new "do not state a residual the guards have exhausted" rule), `yass-reference` (ERROR-slot residual paragraph). The necessary converse of the resolved `default-error-policy` (state a residual *only* when the residual set is non-empty). |
 
 ## guidance
 
@@ -244,3 +245,58 @@ segmentation — was implemented correctly cold.
   composition/reference (`cross-spec-sequencing` REQUIRES/AFTER) and the CONFORMS cluster
   (`conforms-overloaded`, `conforms-inlining-semantics-misplaced`, `conforms-bare-slot-meaning`,
   `self-validation-ref-bug`).
+
+## Round-04 evidence (2026-06-24) — axle probe, panel gpt / gemini / opus / composer
+
+Probe `test-specs/round-04-axle` targeted the CONFORMS cluster in a fresh domain
+(vehicle-axle defect audit: one binary, two subcommands `audit`/`roster`). The spec set
+exercised CONFORMS three ways: shared-convention CONFORMS refs, a deliberately **dead**
+guard-less `E90` residual in `axle.audit`, and a **whole-spec** ref-only
+`CONFORMS: ./axle.audit@axle.audit` on `axle.roster` (R8) — the exact slotless-CONFORMS
+shape that `cli.query` errored on (`conforms_no_slot`).
+
+Oracle: 42 batches; `--self-check` → SELFTEST OK; reference impl 42/42 before the panel.
+Grades: **gpt 42/42 (Python, 108 s), gemini 42/42 (Python, 147 s), opus 42/42 (Python,
+380 s), composer 41/42 (Python, 91 s) = 167/168.** All four chose Python; every HOWTORUN
+was `python3 axle.py` (no build step).
+
+- **`residual-reachability` — strong (4/4), RESOLVED (new).** The headline finding. The
+  `E90` residual is unreachable by construction (the field-count / id / integer guards
+  partition every record into malformed-or-well-formed with no remainder), and **all four
+  models independently flagged it as dead**: gpt "treated `E90` as unreachable… followed the
+  explicit well-formed-record invariant"; gemini "any record passing all three checks is by
+  definition well-formed and must yield a verdict line instead of an error line"; opus "`E90`
+  residual is unreachable in practice… cannot fire"; composer "No third rejection condition
+  is defined, so `E90` appears unreachable… emitting it would violate the invariant."
+  Oracle-confirmed: `E90` has zero references in the reference impl. The residual discipline
+  said "Always state a residual" with no reachability caveat — it *encouraged* this dead
+  residual. Fixed in source of truth (see row).
+- **`conforms-bare-slot-meaning` — RESOLVED.** The whole-spec `CONFORMS: ./axle.audit@axle.audit`
+  (R8) was accepted by 4/4 as "conform to audit's whole contract" with zero confusion. The
+  grammar (`::SLOT` optional; CONFORMS matches "spec **or** slot") is the intuitive reading;
+  the `cli.query` error contradicted it. Resolved in the grammar's favor (whole-spec CONFORMS
+  = non-transcluded conformance reference); `conforms_no_slot` retired.
+- **`conforms-inlining-semantics-misplaced` — RESOLVED.** Confirmed the guard-conjunction
+  semantics were absent from the language level (only a literal-render rule in `cli.query`).
+  Promoted the semantic conjunction to `yass.yass.yaml` `Reference` SIDE-EFFECT.
+- **`conforms-overloaded` — REFUTED behaviorally (4/4 clean).** No model showed any
+  match-vs-inline confusion in NOTES. The dual aspect is coherent (inlining is *how* a
+  slot-targeted match is checked). No relation split; only a doc consolidation in
+  `yass-reference`.
+- **composer 41/42 is a MODEL-ERROR, not a spec-defect.** Sole miss `audit:aud_lone_newline`:
+  composer treated a lone `"\n"` (one byte) as zero records (exit 0, empty stderr) where the
+  oracle expects one empty record → `E10 …expected 7 fields, got 0` / exit 1. A literal reading
+  of the spec (only "zero bytes" = zero records; one byte ≠ zero bytes) supports the oracle, and
+  opus's NOTES item 4 independently agreed with the oracle's reading. Lone (1/4) deviation → not
+  a yass defect.
+- **Roster divergence (latent, untested) — NOT a new finding.** NOTES surfaced two
+  consumer-side divergences the oracle never exercised: blank-line counting toward `AXLES`
+  (gpt counts every line; gemini/opus do not) and malformed-`RECHECK`-`Y` tallying (gemini
+  → CLEAR; others → no class). Both are out-of-contract `roster` input lines — already
+  covered by the resolved `closed-set-dispatch-residual` + `trust-boundary-violation-residual`
+  guidance (GUIDANCE *Composition* even cites a prior 3/4-model instance of this). A
+  probe-authoring lapse (the oracle lacked a blank-line/malformed-Y roster batch), not a
+  yass-language gap.
+- **Convergence.** Round 4 produced a new actionable spec-defect (`residual-reachability`),
+  so the no-new-findings counter stays **0/2**. The CONFORMS cluster is now exhausted
+  (two resolved, one refuted). Round 5 is the final scheduled round.

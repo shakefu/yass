@@ -74,6 +74,9 @@ cannot yet label a test with a stable obligation id.
 
 ## `self-validate-ci-gate`
 
-Wire `yass validate spec/` into CI as a gate. Zero new tooling is required once
-`self-validation-ref-bug` is fixed (the self-definition must validate clean against its
-own schema for the gate to be meaningful). Recurrence: repeated. Status: open.
+Wire `yass validate spec/` into CI as a gate. Recurrence: repeated. Status: open
+(**ungated** as of Round 04). The blocker — `self-validation-ref-bug` — is resolved:
+commit `868112e` corrected the broken `../cli@…` refs, and a Round-04 repo-wide
+re-verification confirms 17 specs schema-valid with all 114 refs resolving (0 dangling).
+The self-definition now validates clean against its own schema, so the gate would be
+meaningful; only the CI wiring remains, which is tooling, not a language change.

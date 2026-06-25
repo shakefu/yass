@@ -115,7 +115,9 @@ spec: cli.query.InlineConforms
 INPUT:
 - MUST: accept a parsed Spec with its obligations
 RETURN:
-- WHEN: a reference-only obligation carries a CONFORMS ref
+- WHEN: "a CONFORMS ref target omits the `::SLOT` suffix and so addresses a whole spec"
+  MUST: leave the carrier obligation unchanged and inline nothing, because a whole-spec CONFORMS is a conformance reference rather than a slot transclusion
+- WHEN: a reference-only obligation carries a CONFORMS ref that names a slot
   MUST: replace it with all obligations from the referenced slot
 - WHEN: a normative obligation carries a CONFORMS ref alongside its Normativity keyword
   MUST: keep the normative obligation and append the inlined obligations after it
@@ -131,9 +133,6 @@ RETURN:
 - MUST-NOT: inline USES refs
 - MUST-NOT: inline SEE refs
 - MUST: resolve exactly one level of CONFORMS refs
-ERROR:
-- WHEN: "a CONFORMS ref target lacks a `::SLOT` suffix"
-  MUST: error with code yass.query.conforms_no_slot and exit 1
 SIDE-EFFECT:
 - MUST-NOT: modify the source spec files
 INVARIANT:

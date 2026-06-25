@@ -2,28 +2,6 @@
 
 Concrete issues discovered during spec maintenance that need resolution.
 
-## CONFORMS without ::SLOT
-
-The `yass.yass.yaml` specs (`Slot`, `Normativity`, `Guard`, `Reference`) originally
-had bare `CONFORMS: Keyword` refs. The query subcommand rejects these at resolution
-time (`yass.query.conforms_no_slot`) because the inliner needs a slot target to know
-which obligations to pull in.
-
-We patched them to `CONFORMS: Keyword::INVARIANT` to unblock query, but the deeper
-question is open: **what should bare-spec CONFORMS mean?**
-
-Options:
-- **Inline all slots** — a bare `CONFORMS: Foo` inlines every slot from `Foo`. Simple
-  but potentially noisy.
-- **Require ::SLOT always** — current v1 behavior. Explicit but verbose when a spec
-  has only one slot.
-- **Inline all slots only when the target has a single slot** — convenience shorthand,
-  but adds a rule that depends on the target's shape.
-
-The language spec (`RefTarget`) says `::SLOT` is optional (`MAY`), so the grammar
-allows it — the restriction is purely in the query subcommand's `InlineConforms` logic.
-The spec and tooling should agree on what bare CONFORMS means.
-
 ## List output format
 
 `yass list` repeats the file-level preamble description for every spec in a file. When
