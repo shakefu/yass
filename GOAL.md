@@ -8,7 +8,8 @@
 > continue. Between runs, only this file and the `experiment/FINDINGS.md` ledger
 > persist; `experiment/STATUS.md`, `experiment/LOG.md`, `experiment/round-NN/`,
 > and `test-specs/round-NN-*/` are authored fresh each run. Branch:
-> `goal-experiment` (scratch — commit freely, force/rewrite OK).
+> `goal-experiment` (scratch — commit freely, force/rewrite OK). To launch or
+> resume a run, paste `experiment/run-prompt.md` into a `/goal` invocation.
 
 ## Mission
 
