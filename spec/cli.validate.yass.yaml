@@ -185,7 +185,8 @@ RETURN:
 - WHEN: all ref targets resolve
   MUST: return success
 ERROR:
-- MUST: "first match the ref target against the grammar `^([A-Za-z0-9._/-]+@)?[A-Za-z0-9._-]+(::[A-Z-]+)?$`; on grammar failure MUST error with code yass.ref.malformed"
+- MUST: "first match the ref target against the RefTarget well-formedness grammar; on grammar failure MUST error with code yass.ref.malformed"
+- SEE: yass@RefTarget::ERROR
 - MUST: error with code yass.ref.unknown_slot when a ref target names a slot outside the recognized set
 - WHEN: a ref target addresses the same file
   MUST: error with code yass.ref.spec_not_found_same_file when the target spec does not exist in that file

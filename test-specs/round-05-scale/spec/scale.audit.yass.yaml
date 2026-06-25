@@ -31,7 +31,7 @@ INPUT:
   MUST: "still trust it: count it toward the ticket total and classify it by its second field as above, never re-validating or rejecting it"
 - MUST: "read a re-weigh line as `REWEIGH <id> <flag> <gross> <tare>`, exactly five fields where <flag> is Y or N, and count it toward the ticket total"
 - WHEN: a re-weigh line is flagged Y and both its gross and tare fields are well-formed non-negative integers
-  MUST: "re-derive the net weight from the line's own fields as net = gross minus tare, classify it against the overload registry, and tally it by the governing verdict's severity class, or as CLEAR when no verdict governs"
+  MUST: "re-derive the net weight from the line's own fields as net = gross minus tare, classify it against the overload registry, and tally it by the governing verdict's severity class, or as CLEAR when no verdict governs; a negative re-derived net, where gross is less than tare, governs no verdict here and is tallied as CLEAR, since the registry's net-below-zero case routes to the E50 error only in the run pipeline and audit raises no error and so has no such path"
   CONFORMS: ./scale.shared@scale.defects::INVARIANT
 - WHEN: a re-weigh line is flagged N
   MUST: "tally the line as CLEAR without re-deriving any verdict"
@@ -49,4 +49,4 @@ SIDE-EFFECT:
 - MUST-NOT: "write to any file, network endpoint, or environment variable, and write nothing to standard error; read only standard input and write only standard output"
 INVARIANT:
 - MUST: always exit with status 0
-- MUST: "classify every consumed line exhaustively: a re-weigh line is tallied by its re-derived verdict when flagged Y with well-formed gross and tare, and as CLEAR in every other re-weigh case; every other non-blank line is a ticket line tallied by its second field, with a second field outside TARE, NET, W01, W02, W03, and W04 counted toward the ticket total but into no class; the residual set is empty, so no guard-less catch-all MUST be stated"
+- MUST: "classify every consumed line exhaustively: a re-weigh line flagged Y with well-formed gross and tare is tallied by its re-derived verdict, which is CLEAR whenever the registry governs no verdict, including a negative net; every other re-weigh line is tallied as CLEAR; every other non-blank line is a ticket line tallied by its second field, with a second field outside TARE, NET, W01, W02, W03, and W04 counted toward the ticket total but into no class; the residual set is empty, so no guard-less catch-all MUST be stated"

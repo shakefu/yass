@@ -60,13 +60,3 @@ the real dependency will.
 Treat passing tests against the genuine external system as the standard for "done."
 Do not trust secondhand signals — editor warnings, cached analysis, or review alone
 — over a real, observed run.
-
----
-
-## Considered and set aside
-
-A dedicated way to say "use this other behavior but override part of its setup." We
-are not recommending it. The cases that motivate it are better handled by the first
-authoring rule: state the shared setup as an explicit obligation on the spec that
-coordinates the pieces. Adding more relationship vocabulary makes every spec harder
-to read cold, which works against the whole point.

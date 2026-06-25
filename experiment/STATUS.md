@@ -1,44 +1,63 @@
 # STATUS
 
-- **Round:** 4 (COMPLETE — all 7 steps done).
-- **Phase:** Round 4 closed. Axle probe (`axle.shared`/`axle.audit`/`axle.roster`,
-  7+ documents) ran the panel cold; gpt/gemini/opus scored **42/42**, composer **41/42**
-  (**167/168**, one miss = model-error). The probe drove the **CONFORMS cluster** — never
-  exercised before (Rounds 2–3 used `USES`/`SEE`) — across all three open CONFORMS findings:
-  plain slot transclusion (E10/E15/E20 enforced 4/4), the guard-combination corners (outer
-  carrier WHEN × inner H07 WHEN, AND-semantics held 4/4), and a bare whole-spec
-  `CONFORMS: ./axle.audit@axle.audit` (read as whole-spec conformance 4/4). Outcomes:
-  `conforms-overloaded` **refuted** (`wontfix`), `conforms-inlining-semantics-misplaced` and
-  `conforms-bare-slot-meaning` **resolved** in the grammar's favor (whole-spec CONFORMS = a
-  non-transcluded conformance reference; `conforms_no_slot` retired from `cli.errors`; no
-  schema change). One **new** spec-defect surfaced unanimously (4/4): `residual-reachability`
-  — the residual discipline encouraged a *dead* guard-less residual (axle `E90`, unreachable
-  by construction); resolved in `yass.yass.yaml` `Slot.ERROR` + GUIDANCE + yass-reference.
-  Edit set passed an adversarial coherence review (no contradiction, no dangling ref).
-- **Next action (Round 5 — final scheduled round):** pivot to the remaining highest-leverage
-  OPEN composition/reference findings (`cross-spec-sequencing` REQUIRES/AFTER;
-  `reftarget-resolution-scattered`; `dispatch-subcommand-override`) and re-verify the round-04
-  CONFORMS + residual-reachability fixes under load. Run the 7-step loop: plan from OPEN
-  findings + re-verify prior fixes → `round-05/PLAN.md`; author a fresh-domain CLI probe +
-  private oracle (add a blank-line / malformed-`RECHECK`-`Y` roster batch — the round-04
-  probe-authoring gap), commit before agents run; run the panel cold (unique `/tmp` per model,
-  copy in ONLY `spec/*.yass.yaml`); grade; diagnose every miss spec-defect vs model-error
-  (≥2 = strong); fix SOT; prune `context/*`; route tooling to TOOLING.md; commit; update this
-  STATUS + LOG. **HALT and report after Round 5** (or earlier on K=2 convergence).
-- **Findings (full ledger, see FINDINGS.md):** **40 total** — **resolved (fixed in SOT): 11**
+- **Round:** 5 (COMPLETE — all 7 steps done). **EXPERIMENT HALTED — final scheduled round reached.**
+- **Phase:** Round 5 closed. Scale probe (truck weighbridge: `scale.shared`/`scale.tare`/
+  `scale.weigh`/`scale.run`/`scale.audit`, five specs, two subcommands `run`/`audit`) ran the
+  panel cold; **all four models scored 49/49 = 196/196, zero functional misses** (gpt/gemini/opus
+  Python, composer Go). The probe targeted the remaining open composition/reference findings:
+  - `cross-spec-sequencing` — **refuted** (`wontfix`). The WEIGH-after-TARE per-identifier
+    stateful precondition (non-dataflow), expressed with normative prose + `USES ./scale.tare`
+    and deliberately no REQUIRES/AFTER key, was implemented correctly 4/4 with zero NOTES
+    confusion. Combined with round-02's dataflow case, **both** sequencing forms are expressible
+    today; no REQUIRES/AFTER construct is warranted.
+  - `dispatch-subcommand-override` — **refuted** (`wontfix`). `scale.audit`'s scoped prose
+    override of the shared blank-line segmentation rule (plus a whole-spec
+    `CONFORMS ./scale.run@scale.run`) was read correctly 4/4; bare-`-` dispatch handled via the
+    `disp_bare_dash` batch. A scoped prose obligation that names what it overrides suffices; no
+    OVERRIDES construct needed. **Re-verifies round-04** whole-spec-CONFORMS + guard-conjunction
+    + residual-reachability under load (all held 4/4).
+  - `reftarget-resolution-scattered` — **resolved**. `yass.yass.yaml` `RefTarget` confirmed sole
+    canonical owner; the two genuine restatements consolidated to cite it without behavior change
+    — `cli.validate` ERROR (literal charset regex → defer to RefTarget grammar + `SEE
+    yass@RefTarget::ERROR`) and `cli.query` INVARIANT (resolution restatement → defer +
+    `SEE yass@RefTarget::RETURN`). Ref-check CLEAN at 150 refs. Spec-name grammar and
+    `.yass.yaml`-suffix/`FindProjectRoot` deliberately left (different owners / separate concerns).
+  - Negative-net audit REWEIGH (4/4 NOTES) — **probe-authoring artifact, not a finding**: all four
+    resolved it identically to the oracle (tally CLEAR), zero behavioral divergence, no batch
+    exercises it. Probe tightened post-run for self-consistency; grades unaffected.
+- **Next action:** none. **HALT and report.** Round 5 was the final scheduled round and produced
+  no new actionable spec defect.
+- **Findings (full ledger, see FINDINGS.md):** **40 total** — **resolved (fixed in SOT): 12**
   (Round 1: `default-error-policy`, `input-segmentation-completeness`; Round 2:
   `dataflow-invisible`, `cross-cutting-single-home`, `closed-set-dispatch-residual`; Round 3:
-  `trust-boundary-violation-residual`, `segmentation-terminator-mechanics`; **Round 4 (+4):
+  `trust-boundary-violation-residual`, `segmentation-terminator-mechanics`; Round 4:
   `residual-reachability` (new), `conforms-inlining-semantics-misplaced`,
-  `conforms-bare-slot-meaning`, `self-validation-ref-bug` (re-verified repo-wide)**).
-  **Closed `wontfix` (refuted): 6** (`mapping-valued-obligations`, `error-table-structured`,
-  `error-code-refs`, `priority-chains-prose`, `error-cardinality-implicit`; **Round 4:
-  `conforms-overloaded`**). **Open: 23** (incl. tooling-request + backlog sections).
-- **Rounds remaining to checkpoint:** 1 (halt after Round 5).
-- **Convergence counter (rounds with no new actionable findings):** 0 / 2
-  (Round 4 produced 1 new actionable finding — `residual-reachability` — so the counter stays
-  0. The CONFORMS cluster is now exhausted: 2 resolved, 1 refuted. Round 5 pivots to
-  composition/reference sequencing and re-verifies the round-04 fixes.)
+  `conforms-bare-slot-meaning`, `self-validation-ref-bug` (re-verified repo-wide); **Round 5 (+1):
+  `reftarget-resolution-scattered`**). **Closed `wontfix` (refuted): 8**
+  (`mapping-valued-obligations`, `error-table-structured`, `error-code-refs`,
+  `priority-chains-prose`, `error-cardinality-implicit`; Round 4: `conforms-overloaded`;
+  **Round 5: `cross-spec-sequencing`, `dispatch-subcommand-override`**). **Open: 20** (incl.
+  tooling-request + backlog sections; no remaining open finding is an actionable spec defect with
+  cross-model corroboration).
+- **Rounds remaining to checkpoint:** 0 (halted after Round 5).
+- **Convergence counter (rounds with no new actionable findings):** **1 / 2** (Round 5 produced no
+  new actionable finding — both construct-request probes refuted, the one resolved finding was a
+  pre-existing documentation item, the negative-net ambiguity was an authoring artifact. The
+  experiment halts on the scheduled-round limit before the counter reaches 2.)
+
+## Outcome summary (5 rounds)
+
+- 40 findings triaged: **12 resolved** in source-of-truth, **8 refuted** (`wontfix`), **20 open**
+  (tooling requests + backlog; none an actionable, cross-model-corroborated spec defect).
+- Every round's panel scored at or near 100% against a private black-box oracle; the experiment's
+  value was in the **NOTES-level ambiguities** and **construct requests**, each traced to
+  spec-defect vs model-error and resolved at the source.
+- Net language changes: `default-error-policy`/`residual-reachability` (residual discipline + its
+  reachability converse), dataflow/cross-cutting/segmentation/trust-boundary obligations, the
+  CONFORMS semantics cluster (slot-targeted = transcluded, whole-spec = non-transcluded
+  conformance ref, guard-conjunction), and ref-target single-ownership consolidation. No
+  REQUIRES/AFTER, no OVERRIDES, no `intent:`/ordered-obligations construct was found necessary for
+  cold one-shot correctness.
 
 ## Model panel
 gpt-5.5-extra-high · gemini-3.1-pro · claude-opus-4-8-thinking-high · composer-2.5

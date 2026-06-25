@@ -67,8 +67,9 @@ SIDE-EFFECT:
 INVARIANT:
 - MUST-NOT: resolve or inline SEE refs
 - MUST: apply the scope only to cli.query.NameLookup
-- MUST: "resolve CONFORMS refs using cli.FindProjectRoot for project-root-anchored refs and the matched spec's containing directory for `./` and `../` refs, regardless of scope"
+- MUST: "resolve CONFORMS refs per the RefTarget resolution rule, using cli.FindProjectRoot for the project root, regardless of scope"
   USES: ./cli.shared@cli.FindProjectRoot
+- SEE: yass@RefTarget::RETURN
 ---
 spec: cli.query.NameLookup
 INPUT:
