@@ -13,20 +13,27 @@ Ingested from `context/{OPEN,GUIDANCE,SPEC}-FEEDBACK.md`,
 
 The **structured-obligation cluster** (`mapping-valued-obligations` as root, with
 `error-table-structured`, `error-code-refs`, `priority-chains-prose`,
-`error-cardinality-implicit`) should be triaged together — it is the
-highest-leverage language change.
+`error-cardinality-implicit`) was the hypothesized highest-leverage language change.
+**Refuted as a correctness defect across two rounds of scaled probing** (round-01
+small prose registry; round-03 18-code registry + deliberately non-monotonic precedence
++ one-verdict cardinality): zero functional misses both times and, at scale, not even a
+NOTES-flagged ambiguity. Closed `wontfix` for the experiment charter (find spec defects
+that cause cold one-shot *failures*). The remaining motivation — inference cost,
+readability, code-reference validation — is ergonomic, not falsifiable by black-box
+one-shot outcome, and is routed to tooling (`lint-anti-slop`), not a language change.
 
 ## spec-definition
 
 | id | recurrence | status | title / lever |
 |----|-----------|--------|---------------|
-| `mapping-valued-obligations` | repeated | open (probed round-01) | Obligation values are scalar-only; allow mappings to carry code/priority/metadata. ROOT enabler. → yass.yass.yaml, schema. Round-01: prose-packed error registry caused 0 functional misses across 4 models at small scale (inference-expensive, not incorrect). |
-| `priority-chains-prose` | universal | open (probed round-01) | Ordered "emit first matching error, stop" chains live as prose in INVARIANT; need PRIORITY/ORDERED construct or ordered-list semantics. → yass.yass.yaml, schema, GUIDANCE, reference. Round-01: an 8-step prose priority chain was read correctly by all 4 models (0 misses); cost was paragraphs of reasoning per model. |
+| `mapping-valued-obligations` | repeated | wontfix (refuted ×2) | Obligation values are scalar-only; proposed allowing mappings to carry code/priority/metadata (claimed ROOT enabler). Round-01: prose-packed error registry → 0 functional misses (small scale). **Round-03: an 18-row registry packed into scalar prose obligations caused 0 copy errors across 4 models; the code→class→message mapping survived being read in two places (certify + report).** Hypothesized correctness defect refuted; residual value is ergonomic/lint only → `lint-anti-slop`. |
+| `priority-chains-prose` | universal | wontfix (refuted ×2) | Ordered "emit first matching" chains live as prose; proposed a PRIORITY/ORDERED construct. Round-01: 8-step prose chain read correctly by 4/4. **Round-03: an 18-entry precedence order, deliberately non-monotonic with both severity class and code number, was read exactly by 4/4 — every precedence batch (the deciding measurement distinguishing the prose order from "most severe wins" / "lowest code wins") passed.** Correctness defect refuted at adversarial scale; residual value ergonomic only (idiom lint → `lint-anti-slop`, TOOLING.md). Round-03 prune: removed the corresponding "Treat an ordered list as ordered and step-addressable" recommendation (Part 2 §1) from `context/RECOMMENDATIONS.md`. |
 | `cross-spec-sequencing` | universal | open (probed round-02) | No way to express execution sequencing/preconditions between specs; USES conflates call/depend/after. Need REQUIRES/AFTER. → yass.yass.yaml, schema, reference. Round-02: the header-gate idiom (E40/E41 + write-nothing + reject-all + exit 2, paired with a `USES …::RETURN` pointer to the producing stage) expressed data-pipeline sequencing correctly for 4/4. Re-scoped: the dataflow case is covered; non-dataflow preconditions (REQUIRES/AFTER) remain, and USES now also carries a consumes-output-of meaning (`::RETURN`) — reinforces the USES overload. |
 | `dataflow-invisible` | universal | resolved | Specs described components, not the dataflow/trust boundary between them. **Round-02 (4/4 STRONG):** all four models flagged that grade/pack consume tally's output without the spec stating which upstream guarantees they trust vs re-validate; all guessed alike → 38/38, but the spec was silent and the `USES …::RETURN` pointer carried only structural meaning. Fixed: `yass.yass.yaml` (`Reference` gives a slot-targeted USES a dataflow reading; `Slot.INPUT` requires naming a producing slot + stating the trust boundary), `yass-reference` (References + Slots), `GUIDANCE` ("Composition"). No schema change — `::SLOT` targets already valid. Pruned `RECOMMENDATIONS.md` Part 2 §2. |
-| `error-table-structured` | universal | open (probed round-01) | ~85-row error registry forced into prose MUSTs (code+message+exit packed per string). Best AND worst artifact. Need structured error-table. → yass.yass.yaml, schema, spec/cli.errors. Round-01: a compact prose error registry (E10–E90, message+exit each) produced byte-exact output from all 4 models. |
-| `error-cardinality-implicit` | repeated | open (probed round-01) | "at most one per file" vs "one per rule" vs "one per (X,Y) pair" is implicit prose. Need ONCE-PER/EACH/DEDUP-BY. → yass.yass.yaml, schema. Round-01: "at most one error line per record" stated in prose was honored by all 4 models (interleave + priority-tie batches pass); no functional defect at this scale. |
-| `error-code-refs` | single | open | Error codes cited as bare string literals in prose, unvalidatable. Need structured CODE key. → yass.yass.yaml, schema |
+| `trust-boundary-violation-residual` | repeated | resolved | A consumer that relies on an upstream guarantee "without re-validating" must also state what it does when that guarantee is **violated** (even if only to declare the behavior unspecified). **Round-03 (3/4 STRONG):** `vault.report` stated the trust boundary (the round-02 `dataflow-invisible` fix, which held) but said nothing about an out-of-contract line (blank / unknown code); gemini, opus, composer each flagged it and **guessed** the `<total>`/class behavior — convergent on outcome, divergent on reasoning. Extends the residual principle (ERROR catch-all, closed-set dispatch) to the trust boundary. Fixed: `yass.yass.yaml` (`Slot.INPUT` new violation-residual obligation), `yass-reference` (References, slot-targeted USES), `GUIDANCE` ("Composition"). Distinct from `dataflow-invisible` (which states *what is trusted*; this states *what happens when trust fails*). |
+| `error-table-structured` | universal | wontfix (refuted ×2) | Large error registry forced into prose MUSTs (code+class+condition+message packed per string). Round-01: compact prose registry (E10–E90) byte-exact for 4/4. **Round-03: an 18-row registry (code, class, condition, byte-exact message) packed into scalar prose was reproduced byte-exact by 4/4 — no paraphrase, no miscopied threshold or class.** Correctness defect refuted at 2× scale; residual value is lint/readability → `lint-anti-slop`. |
+| `error-cardinality-implicit` | repeated | wontfix (refuted ×2) | "at most one per file" vs "one per rule" vs "one per (X,Y) pair" is implicit prose; proposed ONCE-PER/EACH/DEDUP-BY. Round-01: "at most one error line per record" honored by 4/4. **Round-03: one-verdict-per-door AND one-error-line-per-record (both prose) honored by 4/4 — no model emitted one line per triggered defect on multi-defect doors.** Correctness defect refuted; residual value ergonomic only. |
+| `error-code-refs` | single | wontfix (refuted ×2) | Error/defect codes cited as bare string literals in prose, unvalidatable by tooling; proposed a structured CODE key. **Round-03: codes V01–V18 cited as bare literals and read in two places (certify verdict emission + report class tally) survived intact for 4/4 cold impls — no broken mapping.** No correctness defect; the unvalidatable-by-tooling concern is real but is a lint capability, not a language defect → `lint-anti-slop`. |
 | `conforms-overloaded` | universal | open | CONFORMS does contract+inlining+provenance; most bug-prone feature. Split assertion vs render-time inline; make inline opt-in. → yass.yass.yaml, spec/cli.query. Round-02: not exercised (probe used USES/SEE for shared conventions, not CONFORMS). |
 | `conforms-inlining-semantics-misplaced` | repeated | open | Inlining rules live in cli.query not the language; guard-injection edge case silently drops guards. Move semantics into Reference spec. → yass.yass.yaml, spec/cli.query |
 | `conforms-bare-slot-meaning` | repeated | open | Grammar marks ::SLOT optional but query rejects bare CONFORMS; define meaning + align. → yass.yass.yaml, schema, spec/cli.query |
@@ -46,7 +53,8 @@ highest-leverage language change.
 | `cross-cutting-single-home` | universal | resolved | Cross-cutting rules need one owning spec + refs. **Round-02 (4/4):** `honey.shared` owned the entire wire protocol (dispatch, segmentation, exit policy, error-line format) and the three stage specs referenced it; all four implemented it consistently with no drift. Fixed: `GUIDANCE` ("Composition"). Pruned `RECOMMENDATIONS.md` Part 1 §3. |
 | `closed-set-dispatch-residual` | repeated | resolved | A spec that dispatches on a closed set of input values (subcommand/mode/enum) must state the out-of-set/missing case; the residual principle generalizes beyond ERROR. **Round-02 (3/4):** models flagged the undefined missing/unknown argv[1] and **diverged** (composer usage+exit 1; gpt/opus invented E00+exit 2; gemini unflagged). Distinct from `dispatch-subcommand-override` (rule precedence, still open). Fixed: `GUIDANCE` ("Closed-set dispatch"), `yass.yass.yaml` (`Slot.INPUT`), `yass-reference` (Slots). |
 | `mustnot-undertested` | universal | open (probed round-01) | MUST-NOT/negative-space obligations systematically dropped/untested; call out negative-test discipline; distinguish failure-mode prohibition vs feature deferral. → GUIDANCE. Round-01: a CLI-shaped probe made MUST-NOTs observable (no OK line for a rejected record, no error line for an accepted one) and the oracle's full stdout/stderr diff tested them — all 4 models passed. Evidence MUST-NOTs become black-box-testable once a spec is CLI-shaped; the language-level testable-vs-environmental split stays open. |
-| `input-segmentation-completeness` | single (round-01) | resolved | Input segmentation must state every boundary: exact separator + character class (ASCII space vs general whitespace), empty input, blank interior unit, leading/trailing/repeated separator. Round-01: 3/4 models flagged trailing-newline/blank-line ambiguity; composer split fields on Unicode whitespace and stripped `\r` (non-conformant) — caught only after hardening the oracle with tab + CRLF batches. → GUIDANCE ("Input segmentation: specify every boundary"). Re-verified round-02: tab/CR/NBSP-as-data, single optional trailing newline, empty input = zero records all handled by 4/4. |
+| `input-segmentation-completeness` | single (round-01) | resolved | Input segmentation must state every boundary: exact separator + character class (ASCII space vs general whitespace), empty input, blank interior unit, leading/trailing/repeated separator. Round-01: 3/4 models flagged trailing-newline/blank-line ambiguity; composer split fields on Unicode whitespace and stripped `\r` (non-conformant) — caught only after hardening the oracle with tab + CRLF batches. → GUIDANCE ("Input segmentation: specify every boundary"). Re-verified round-02: tab/CR/NBSP-as-data, single optional trailing newline, empty input = zero records all handled by 4/4. Re-verified round-03 (off-spec batches 4/4). |
+| `segmentation-terminator-mechanics` | repeated (round-01, round-03) | resolved | Refinement of `input-segmentation-completeness`: a bare "MAY accept a trailing newline" leaves the *mechanics* (how many trailing separators are absorbed — characteristically exactly one) and the *degenerate* input (a lone separator with no content; input that is only separators) under-determined. **Round-03 (2/4):** gpt and opus each constructed the precise rule themselves (strip exactly one trailing `0x0A`; remaining blanks are zero-field records; lone `"\n"` = one zero-field record), converging on the oracle but with no spec text saying it. Fixed: `GUIDANCE` ("Input segmentation") checklist now requires the optional-terminator count and the all-separators/lone-separator case. |
 | `when-complement-discipline` | repeated | open | Every WHEN guard implies a load-bearing negative branch; treat "or" as exhaustiveness checklist. → GUIDANCE |
 | `layer-shadowing-tests` | repeated | open | Obligations shadowed by lower layer need reachable test inputs; document unreachable-by-design codes. → GUIDANCE |
 | `outcome-not-mechanism` | repeated | open | Distinguish observable outcomes from prescribed mechanism/ordering. → GUIDANCE |
@@ -63,7 +71,7 @@ highest-leverage language change.
 
 | id | recurrence | status | title |
 |----|-----------|--------|-------|
-| `lint-anti-slop` | repeated | open | `yass lint` for schema-valid-but-hollow specs + colon-space/Norway footguns + auto-quote fmt. |
+| `lint-anti-slop` | repeated | open | `yass lint` for schema-valid-but-hollow specs + colon-space/Norway footguns + auto-quote fmt. **Now also owns the refuted structured-obligation cluster's ergonomic/machine-checkability residue: `yass extract-errors` registry projection, byte-exact message-template lint, error-code reference validation, priority/cardinality idiom lint. Detailed in TOOLING.md.** |
 | `test-gen-and-coverage` | universal | open | spec→test generation + coverage check; promote TEST-TAXONOMY.md. Gated on per-obligation identity language work. |
 | `self-validate-ci-gate` | repeated | open | Wire `yass validate spec/` into CI (zero new tooling once self-validation-ref-bug fixed). |
 
@@ -169,3 +177,70 @@ capacities / exit codes — was implemented correctly cold by all four.
 - **Not exercised.** `conforms-overloaded` — the probe used `USES`/`SEE` for shared
   conventions (they are "draws on", not "must match"), so `CONFORMS` was not tested. Stays
   open, untested.
+
+## Round-03 evidence (2026-06-24) — vault probe, panel gpt / gemini / opus / composer
+
+Probe `test-specs/round-03-vault` was built to break the structured-obligation cluster at a
+scale Rounds 1–2 never reached (bank-vault time-lock door annual certification: one binary,
+two subcommands `certify`/`report`). A single `vault.shared` owned an **18-code defect
+registry** (V01–V18, each row = code + class + condition + byte-exact message packed into one
+scalar prose obligation), a **deliberately non-monotonic precedence order** (not severity-
+sorted, not code-sorted, so the cheapest shortcut yields a wrong verdict), a class→exit map,
+and the wire/segmentation rules; `vault.certify` emitted one verdict per door and
+`vault.report` re-read the codes to tally by class. Targets: the full structured-obligation
+cluster (primary), `dataflow-invisible` + `cross-cutting-single-home` +
+`closed-set-dispatch-residual` + `input-segmentation-completeness` regression coverage.
+
+Oracle: 35 batches; `--self-check` → SELFTEST OK; reference impl 35/35 before the panel.
+Grades: **gpt 35/35 (Python, 152 s), gemini 35/35 (Python, 199 s), opus 35/35 (Python,
+200 s), composer 35/35 (Python, 63 s) = 140/140, zero functional misses.** All four chose
+Python. Every targeted obligation — the 18-row registry, the non-monotonic precedence, one-
+verdict cardinality, ordered validation, the `certify | report` trust boundary, and off-spec
+segmentation — was implemented correctly cold.
+
+- **Headline meta-finding — the structured-obligation cluster is REFUTED a second time.** The
+  18-row registry was reproduced byte-exact by 4/4 (no paraphrase, no miscopied threshold);
+  the adversarial 18-entry precedence order was read exactly by 4/4 (every precedence batch,
+  the deciding measurement, passed); one-verdict-per-door and one-error-line-per-record were
+  honored by 4/4; codes read in two places survived intact. Not even a NOTES-flagged
+  ambiguity about the registry or precedence. `mapping-valued-obligations`,
+  `priority-chains-prose`, `error-table-structured`, `error-cardinality-implicit`, and
+  `error-code-refs` are closed `wontfix (refuted ×2)`; the residual ergonomic/validation
+  motivation is routed to `lint-anti-slop` (tooling), not a language change.
+- **`trust-boundary-violation-residual` — corroborated (3/4 STRONG), RESOLVED (new).**
+  `vault.report` carried the round-02 `dataflow-invisible` fix (named the producer, stated
+  the trust boundary) — which held, no model over-validated — but said nothing about an
+  out-of-contract line (blank, or unknown code). gemini, opus, and composer each flagged it
+  and **guessed** the `<total>`/class contribution: convergent on outcome (count toward
+  `<total>`, classify as nothing), divergent on reasoning. Extends the residual principle
+  (ERROR catch-all, closed-set dispatch) to the trust boundary. Fixed: `yass.yass.yaml`
+  (`Slot.INPUT` violation-residual obligation), `yass-reference` (References / slot-targeted
+  USES), `GUIDANCE` ("Composition"). Distinct from `dataflow-invisible`: that states *what is
+  trusted*, this states *what happens when the trust is violated*; `dataflow-invisible` stays
+  resolved.
+- **`segmentation-terminator-mechanics` — corroborated (2/4), RESOLVED (new).** `vault.lines`
+  stated the optional trailing terminator as a bare `MAY accept a single trailing newline`,
+  leaving the mechanics (how many trailing `0x0A` are absorbed) and the degenerate input
+  (a lone `"\n"`; input that is only separators) unstated. gpt and opus each constructed the
+  precise rule themselves (strip exactly one trailing newline, remaining blanks are zero-field
+  records, lone `"\n"` = one zero-field record), converging on the oracle with no spec text
+  saying it. Refines the resolved `input-segmentation-completeness`. Fixed: `GUIDANCE`
+  ("Input segmentation") checklist now requires the terminator count and the
+  all-separators/lone-separator case.
+- **Regressions held (4/4).** `dataflow-invisible` (the `USES …::RETURN` pointer + stated
+  trust boundary; no model re-validated trusted fields), `closed-set-dispatch-residual`
+  (missing/unknown `argv[1]` → `usage: vault {certify|report}` to stderr, exit 2),
+  `input-segmentation-completeness` (tab/CR/NBSP-as-data, runs-of-spaces field splitting,
+  empty input = zero records), and `cross-cutting-single-home` (one `vault.shared` owned the
+  protocol; both subcommand specs referenced it, no drift) all re-verified.
+- **Non-issues (model-reasoning, not spec-defects).** "read all stdin before output"
+  ordering (gemini, 1/4) — unambiguous obligation, single-model restatement. Unbounded
+  integers (opus, 1/4) — no functional impact, uncorroborated. Encoding (composer decoded
+  Latin-1, others bytes) — all byte-exact-correct; the tab/CR/NBSP-as-data MUST-NOT forced
+  byte-awareness.
+- **Convergence.** Round 3 produced two new actionable spec-defects, so the no-new-findings
+  counter stays 0/2. But the primary probe target (structured-obligation cluster) is now
+  exhausted/refuted, so Rounds 4–5 pivot to the next-highest-leverage open findings:
+  composition/reference (`cross-spec-sequencing` REQUIRES/AFTER) and the CONFORMS cluster
+  (`conforms-overloaded`, `conforms-inlining-semantics-misplaced`, `conforms-bare-slot-meaning`,
+  `self-validation-ref-bug`).
