@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  scale tare: the TARE operation of the run subcommand. It reads one operation
+  record whose keyword is TARE, acknowledges the vehicle's empty (tare) weight on
+  standard output, and records that tare weight for the session so a later WEIGH
+  of the same vehicle can derive a net weight. Taring a vehicle is the
+  precondition that a WEIGH of that vehicle depends on.
+version: v1
+related:
+- ./scale.shared.yass.yaml
+- ./scale.weigh.yass.yaml
+- ./scale.run.yass.yaml
+---
+spec: scale.tare
+INPUT:
+- MUST: "process a TARE operation record, whose first field -- the keyword -- is exactly TARE; the record is a well-formed operation record by the shared record format"
+  CONFORMS: ./scale.shared@scale.record::INPUT
+- MUST: "read the record's second field as the vehicle identifier and its third field as the tare weight, a well-formed non-negative integer"
+RETURN:
+- MUST: "write exactly one line `<id> TARE <number>` to standard output, where <id> is the vehicle identifier and <number> is the tare weight exactly as read, and contribute 0 to the exit status as a CLEAR-class acknowledgement"
+SIDE-EFFECT:
+- MUST: "record the tare weight for this session under the vehicle identifier, as tare[id] = number, so a later WEIGH of the same identifier can read it"
+- MUST: "when a later TARE names a vehicle identifier that already has a recorded tare weight, overwrite the stored value so the most recent TARE wins, and raise no error for the re-tare"
