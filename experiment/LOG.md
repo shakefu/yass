@@ -206,3 +206,62 @@ panel results, diagnosis, fixes applied, findings delta.
 _(Round 5 begins next — final scheduled round: composition/reference sequencing
 (`cross-spec-sequencing`, `reftarget-resolution-scattered`, `dispatch-subcommand-override`)
 + re-verify the round-04 CONFORMS and residual-reachability fixes. HALT and report after.)_
+
+## Round 5 — composition/reference: cross-spec sequencing · subcommand override · ref-target consolidation (2026-06-24)
+
+- **Plan** (`round-05/PLAN.md`): pivot to the remaining highest-leverage open
+  composition/reference findings and re-verify the round-04 fixes under load. Targets:
+  `cross-spec-sequencing` (does a non-dataflow per-id stateful precondition need a REQUIRES/AFTER
+  relation?), `dispatch-subcommand-override` (does a subcommand-level override of a shared/CONFORMS'd
+  rule need an OVERRIDES construct?), `reftarget-resolution-scattered` (consolidate restated
+  ref-target rules onto the `RefTarget` owner). Close the round-04 probe-authoring gap by stating
+  exhaustiveness explicitly in the probe.
+- **Spec** (`test-specs/round-05-scale`): truck weighbridge — `run` and `audit` subcommands over a
+  shared `scale.shared` spec (dispatch, line/field segmentation, 3-field operation record with
+  ordered errors E10/E25/E15/E20, a 5-class overload defect registry W01>W02>W03>W04>CLEAR with
+  net<0 → E50, the error set). `scale.tare`/`scale.weigh` are the run operations; `scale.weigh`
+  carries the WEIGH-after-TARE per-id precondition (prose + `USES ./scale.tare`, no sequencing key,
+  E40 on unmet). `scale.audit` carries a scoped prose override of the shared blank-line rule plus a
+  whole-spec `CONFORMS ./scale.run@scale.run` and guard-conjoined inlined CONFORMS to
+  `scale.defects::INVARIANT`. Probe + reference + oracle (49 batches, SELFTEST OK, ref impl 49/49,
+  incl. `disp_bare_dash`, the four-corner audit guard matrix, residual/exhaustiveness, full
+  `run | audit` pipeline) committed before any agent ran.
+- **Panel (cold, isolated `/tmp/yass-r05/<model>`, oracle never copied in):** gpt 49/49 (Python),
+  gemini 49/49 (Python), opus 49/49 (Python), composer 49/49 (Go) = **196/196, zero functional
+  misses.**
+- **Diagnosis** (`round-05/results.md`): no new actionable spec defect.
+  - `cross-spec-sequencing` **refuted** (4/4 clean, zero NOTES confusion). The non-dataflow per-id
+    precondition is expressible in prose + `USES`; combined with round-02's dataflow case, both
+    sequencing forms work today. No REQUIRES/AFTER warranted. → `wontfix`.
+  - `dispatch-subcommand-override` **refuted** (4/4 clean). A scoped prose obligation that names
+    what it overrides suffices; no OVERRIDES construct warranted. The same probe **re-verified
+    round-04** (whole-spec CONFORMS = non-transcluded conformance ref; guard-conjunction;
+    residual-reachability exhaustiveness) — all held 4/4. → `wontfix`.
+  - `reftarget-resolution-scattered` **resolved** — `RefTarget` confirmed sole owner; consolidated
+    the two genuine restatements to cite it (`cli.validate` ERROR literal regex → grammar-by-name +
+    `SEE yass@RefTarget::ERROR`; `cli.query` INVARIANT resolution restatement → defer +
+    `SEE yass@RefTarget::RETURN`). Ref-check CLEAN at 150 refs. Spec-name grammar +
+    `.yass.yaml`-suffix/`FindProjectRoot` deliberately left (different owners / separate concerns).
+  - Negative-net audit REWEIGH (4/4 NOTES) — **probe-authoring artifact, not a finding**: all four
+    resolved it identically to the oracle (tally CLEAR), zero behavioral divergence, no batch
+    exercises it. Probe tightened post-run for self-consistency; grades unaffected.
+- **Source-of-truth fixes:** `spec/cli.validate.yass.yaml` ERROR — drop the duplicated ref-target
+  charset regex, defer to the `RefTarget` grammar + reference-only `SEE: yass@RefTarget::ERROR`.
+  `spec/cli.query.yass.yaml` INVARIANT — defer the resolution restatement to the `RefTarget`
+  resolution rule + reference-only `SEE: yass@RefTarget::RETURN` (load-bearing
+  `USES ./cli.shared@cli.FindProjectRoot` preserved). No `yass.yass.yaml` / schema /
+  `GUIDANCE.md` / `yass-reference.md` change (the restatements were the only defect; the owner was
+  already complete). **Prune** (distilled docs only): `context/NOTES.md` — deleted the refuted
+  `USES`-becomes-call-like triage note (cross-spec-sequencing/REQUIRES/AFTER); `context/RECOMMENDATIONS.md`
+  — deleted the set-aside OVERRIDES recommendation (refuted via dispatch-subcommand-override). The
+  three raw-feedback transcripts (`SPEC-FEEDBACK.md`, `OPEN-FEEDBACK.md`, `GUIDANCE-FEEDBACK.md`)
+  deliberately **not** edited — verbatim historical record. Validation gate held: ref-check CLEAN at
+  150 refs (0 dangling, 0 schema errors); `grade.py --self-check` → SELFTEST OK.
+- **Findings delta:** resolved `reftarget-resolution-scattered`; closed `cross-spec-sequencing` and
+  `dispatch-subcommand-override` `wontfix` (refuted). Full ledger: 40 total — **12 resolved (SOT),
+  8 wontfix, 20 open.** Convergence counter: **1/2.**
+
+_(Round 5 was the final scheduled round. **EXPERIMENT HALTED.** Outcome: 12 findings resolved in
+source-of-truth, 8 refuted, 20 open (tooling/backlog, none an actionable cross-model-corroborated
+spec defect). No REQUIRES/AFTER, OVERRIDES, `intent:`, or ordered-obligations construct was found
+necessary for cold one-shot correctness. See STATUS.md "Outcome summary".)_

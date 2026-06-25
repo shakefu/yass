@@ -28,7 +28,7 @@ one-shot outcome, and is routed to tooling (`lint-anti-slop`), not a language ch
 |----|-----------|--------|---------------|
 | `mapping-valued-obligations` | repeated | wontfix (refuted ×2) | Obligation values are scalar-only; proposed allowing mappings to carry code/priority/metadata (claimed ROOT enabler). Round-01: prose-packed error registry → 0 functional misses (small scale). **Round-03: an 18-row registry packed into scalar prose obligations caused 0 copy errors across 4 models; the code→class→message mapping survived being read in two places (certify + report).** Hypothesized correctness defect refuted; residual value is ergonomic/lint only → `lint-anti-slop`. |
 | `priority-chains-prose` | universal | wontfix (refuted ×2) | Ordered "emit first matching" chains live as prose; proposed a PRIORITY/ORDERED construct. Round-01: 8-step prose chain read correctly by 4/4. **Round-03: an 18-entry precedence order, deliberately non-monotonic with both severity class and code number, was read exactly by 4/4 — every precedence batch (the deciding measurement distinguishing the prose order from "most severe wins" / "lowest code wins") passed.** Correctness defect refuted at adversarial scale; residual value ergonomic only (idiom lint → `lint-anti-slop`, TOOLING.md). Round-03 prune: removed the corresponding "Treat an ordered list as ordered and step-addressable" recommendation (Part 2 §1) from `context/RECOMMENDATIONS.md`. |
-| `cross-spec-sequencing` | universal | open (probed round-02) | No way to express execution sequencing/preconditions between specs; USES conflates call/depend/after. Need REQUIRES/AFTER. → yass.yass.yaml, schema, reference. Round-02: the header-gate idiom (E40/E41 + write-nothing + reject-all + exit 2, paired with a `USES …::RETURN` pointer to the producing stage) expressed data-pipeline sequencing correctly for 4/4. Re-scoped: the dataflow case is covered; non-dataflow preconditions (REQUIRES/AFTER) remain, and USES now also carries a consumes-output-of meaning (`::RETURN`) — reinforces the USES overload. |
+| `cross-spec-sequencing` | universal | wontfix (refuted round-05) | No dedicated construct to express execution sequencing/preconditions between specs; USES conflates call/depend/after. Was: need REQUIRES/AFTER. Round-02: the header-gate idiom (E40/E41 + write-nothing + reject-all + exit 2, paired with a `USES …::RETURN` pointer) expressed the **dataflow** sequencing case correctly for 4/4. **Round-05 (4/4 clean): `scale.weigh`'s "a WEIGH requires a prior TARE for the same vehicle id earlier in the input" — a non-dataflow, per-identifier stateful precondition — was expressed with a normative prose obligation + a `USES ./scale.tare@scale.tare` pointer (no REQUIRES/AFTER key) and implemented correctly cold by all four with zero NOTES confusion.** Both sequencing forms (dataflow header-gate, non-dataflow stateful precondition) are expressible today with normative prose + USES; the REQUIRES/AFTER construct is unwarranted as a correctness need. Refuted. The USES-reads-both-call-and-after overload is an ergonomic/lint observation, not a one-shot-failure defect. |
 | `dataflow-invisible` | universal | resolved | Specs described components, not the dataflow/trust boundary between them. **Round-02 (4/4 STRONG):** all four models flagged that grade/pack consume tally's output without the spec stating which upstream guarantees they trust vs re-validate; all guessed alike → 38/38, but the spec was silent and the `USES …::RETURN` pointer carried only structural meaning. Fixed: `yass.yass.yaml` (`Reference` gives a slot-targeted USES a dataflow reading; `Slot.INPUT` requires naming a producing slot + stating the trust boundary), `yass-reference` (References + Slots), `GUIDANCE` ("Composition"). No schema change — `::SLOT` targets already valid. Pruned `RECOMMENDATIONS.md` Part 2 §2. |
 | `trust-boundary-violation-residual` | repeated | resolved | A consumer that relies on an upstream guarantee "without re-validating" must also state what it does when that guarantee is **violated** (even if only to declare the behavior unspecified). **Round-03 (3/4 STRONG):** `vault.report` stated the trust boundary (the round-02 `dataflow-invisible` fix, which held) but said nothing about an out-of-contract line (blank / unknown code); gemini, opus, composer each flagged it and **guessed** the `<total>`/class behavior — convergent on outcome, divergent on reasoning. Extends the residual principle (ERROR catch-all, closed-set dispatch) to the trust boundary. Fixed: `yass.yass.yaml` (`Slot.INPUT` new violation-residual obligation), `yass-reference` (References, slot-targeted USES), `GUIDANCE` ("Composition"). Distinct from `dataflow-invisible` (which states *what is trusted*; this states *what happens when trust fails*). |
 | `error-table-structured` | universal | wontfix (refuted ×2) | Large error registry forced into prose MUSTs (code+class+condition+message packed per string). Round-01: compact prose registry (E10–E90) byte-exact for 4/4. **Round-03: an 18-row registry (code, class, condition, byte-exact message) packed into scalar prose was reproduced byte-exact by 4/4 — no paraphrase, no miscopied threshold or class.** Correctness defect refuted at 2× scale; residual value is lint/readability → `lint-anti-slop`. |
@@ -38,8 +38,8 @@ one-shot outcome, and is routed to tooling (`lint-anti-slop`), not a language ch
 | `conforms-inlining-semantics-misplaced` | repeated | resolved | Inlining rules lived only in `cli.query.InlineConforms`, not the language; the guard-combination edge case (carrier WHEN + inlined obligation's own WHEN) had no language-level meaning, only a literal-string render rule in the tool. **Round-04 confirmed the gap is real** (the conjunction semantics were absent from `yass.yass.yaml`). Fixed: promoted the *semantic* conjunction to the language — `yass.yass.yaml` `Reference` SIDE-EFFECT now states an inlined obligation with its own Guard applies only when both guards hold (carrier conjoined with inner); `yass-reference` References documents it. The literal `" and "` rendering stays in `cli.query` (genuinely tooling). |
 | `conforms-bare-slot-meaning` | repeated | resolved | Exact grammar-vs-tooling contradiction: `RefTarget` marks `::SLOT` optional and `Reference` RETURN says CONFORMS must "match the referenced spec **or** slot" (whole-spec match valid), but `cli.query.InlineConforms` erred `yass.query.conforms_no_slot`/exit 1 on a slotless CONFORMS. **Round-04: 4/4 models accepted a whole-spec `CONFORMS: ./axle.audit@axle.audit` as conform-to-the-whole-spec with zero confusion** — the grammar's reading is the intuitive one. Resolved in the grammar's favor: a whole-spec CONFORMS is a non-transcluded conformance reference (match the whole spec). `yass.yass.yaml` `Reference` SIDE-EFFECT scopes inlining to slot-targeted CONFORMS and forbids inlining a whole-spec CONFORMS; `cli.query` now leaves a whole-spec CONFORMS in place (no error); the `conforms_no_slot` code is retired from `cli.errors`; `yass-reference` relations table updated; resolved `FIXES.md` open question pruned. No schema change. |
 | `self-validation-ref-bug` | universal | resolved | Was: broken cross-file CONFORMS using `../cli@...` resolved to a nonexistent root `cli.yass.yaml`, so `yass validate spec/` could not exit 0. **Fixed in commit `868112e` (fix(spec): correct broken CONFORMS refs)** — all 12 cross-file refs now use `./cli@…` → existing `spec/cli.yass.yaml`, and bare `yass@<Construct>` refs resolve from project-root to the existing `yass.yass.yaml`. **Round-04 re-verification (rigorous, repo-wide): 17 specs schema-valid, 114 CONFORMS/USES/SEE targets all resolve, 0 dangling, 0 schema errors** (`yass validate .` would exit 0). No root `cli.yass.yaml` exists and nothing targets it. Real bug, already fixed, fix holds. |
-| `dispatch-subcommand-override` | repeated | open | Dispatch-level vs subcommand-level rule precedence (bare `-`) unexpressed. Need override mechanism or pin rule. → yass.yass.yaml, spec/cli.* |
-| `reftarget-resolution-scattered` | repeated | open | Ref-target resolution rules split across 3-4 specs; consolidate in one owner; use ::SLOT-granular refs. → yass.yass.yaml, spec/cli.* |
+| `dispatch-subcommand-override` | repeated | wontfix (refuted round-05) | Was: subcommand-level rule that contradicts a shared/dispatch-level rule has no language mechanism (need OVERRIDES or pin-rule). **Round-05 (4/4 clean): `scale.audit` overrode the shared blank-line segmentation rule (shared: a blank line is a zero-field record → `E10` under `run`; audit: a blank line is a skipped section break) with a scoped prose obligation that names the shared rule it overrides and scopes the override to audit alone — and carried a whole-spec `CONFORMS ./scale.run@scale.run` at the same time.** All four read the scoped override correctly with zero confusion; the bare-`-` precedence case was covered by the `disp_bare_dash` batch (4/4). A scoped prose obligation expresses subcommand-level override of a shared/CONFORMS'd rule without a dedicated OVERRIDES construct. Refuted. Also re-verified round-04 whole-spec-CONFORMS (non-transcluded conformance ref) and guard-conjunction as durable under a fresh probe. |
+| `reftarget-resolution-scattered` | repeated | resolved | Ref-target resolution rules + charset grammar restated across specs instead of citing one owner; risk of drift. **Round-05: confirmed `yass.yass.yaml` `RefTarget` is the sole canonical owner of both the resolution rule (RETURN slot: `./`/`../` → relative to referencing file, no dot → project root, append `.yass.yaml`, case-sensitive byte compare) and the charset grammar (ERROR slot: path `[A-Za-z0-9._/-]`, spec-name `[A-Za-z0-9._-]`, slot `[A-Z-]`, `path@SpecName::SLOT` shape).** Two genuine restatements consolidated to cite it without behavior change: `spec/cli.validate` ERROR (had re-encoded the charset as a literal regex `^([A-Za-z0-9._/-]+@)?…$`) now defers to the RefTarget grammar by name + reference-only `SEE: yass@RefTarget::ERROR`; `spec/cli.query` INVARIANT (had restated the `./`/`../`-vs-root resolution) now defers to the RefTarget resolution rule + reference-only `SEE: yass@RefTarget::RETURN`. Repo ref-check CLEAN (150 refs, 0 dangling). Deliberately left unconsolidated (avoid over-citation): the spec-*name* grammar `^[A-Za-z0-9_-]+(\.[…])*$` (different owner), and the `.yass.yaml`-suffix / `FindProjectRoot` rules (separate concerns — file discovery / root detection, not ref-target resolution). |
 | `duplicate-normativity-wording` | repeated | open | "same Normativity keyword more than once" misreads as key-repeat; means >1 keyword. Reword. → yass.yass.yaml |
 | `unreachable-codes` | repeated | open | Several error codes unreachable by design; mark (SHADOWED-BY/UNREACHABLE-WHEN) or remove. → spec/cli.errors, yass.yass.yaml |
 | `default-error-policy` | single | resolved | Guard-less ERROR obligation now defined as the **residual** (`yass.yass.yaml` `Slot.ERROR`; `yass-reference` ERROR-slot paragraph); anti-pattern of folding a foreseeable failure into the catch-all documented (`GUIDANCE`). Round-01: 4/4 models correctly read the guard-less catch-all but **all 4 had to infer** that out-of-hours routed to it (strong signal). Pruned from `RECOMMENDATIONS.md` Part 1 §4 + Part 2 §2. Re-verified round-02 (E90 residual, 4/4). |
@@ -300,3 +300,71 @@ was `python3 axle.py` (no build step).
 - **Convergence.** Round 4 produced a new actionable spec-defect (`residual-reachability`),
   so the no-new-findings counter stays **0/2**. The CONFORMS cluster is now exhausted
   (two resolved, one refuted). Round 5 is the final scheduled round.
+
+## Round-05 evidence (2026-06-24) — scale probe, panel gpt / gemini / opus / composer
+
+Probe `test-specs/round-05-scale` targeted the remaining open composition/reference findings
+in a fresh domain (truck weighbridge: one binary, two subcommands `run`/`audit`; five specs —
+`scale.shared` owns dispatch + segmentation + the 3-field record format + the overload registry
++ the error set; `scale.tare`/`scale.weigh` are the run operations; `scale.run` is the producer;
+`scale.audit` is the consumer of the `run | audit` pipeline). Three probe targets, each chosen
+to test whether an *open construct request* is actually needed or is already expressible:
+(1) **`cross-spec-sequencing`** — `scale.weigh` requires a prior TARE for the *same vehicle id*
+earlier in the input (a non-dataflow, per-identifier stateful precondition), expressed with
+normative prose + `USES ./scale.tare@scale.tare` and **no** REQUIRES/AFTER key;
+(2) **`dispatch-subcommand-override`** — `scale.audit` overrides the shared blank-line
+segmentation rule with a scoped prose obligation while also carrying a whole-spec
+`CONFORMS ./scale.run@scale.run` (which re-tests the round-04 whole-spec-CONFORMS + guard
+conjunction resolutions);
+(3) **`reftarget-resolution-scattered`** — a documentation-consolidation finding, verified by
+inspection rather than by the panel.
+
+Oracle: 49 batches; `--self-check` → SELFTEST OK; reference impl 49/49 before the panel.
+Grades: **gpt 49/49 (Python), gemini 49/49 (Python), opus 49/49 (Python), composer 49/49 (Go)
+= 196/196, zero functional misses.**
+
+- **`cross-spec-sequencing` — REFUTED (4/4 clean), now `wontfix`.** The WEIGH-after-TARE
+  per-identifier precondition (satisfied only by a prior TARE for the *identical* id, never a
+  different id; an unmet precondition yields the `E40` rejection, not a verdict) was implemented
+  correctly cold by all four with zero NOTES confusion, expressed entirely in prose + a `USES`
+  pointer. Combined with round-02's dataflow header-gate case (also 4/4), **both** the dataflow
+  and the non-dataflow stateful-precondition forms of cross-spec sequencing are expressible today
+  without a dedicated REQUIRES/AFTER relation. The construct is unwarranted as a correctness need;
+  the residual USES-overload observation (USES reads as both "calls" and "runs after") is
+  ergonomic/lint, not a one-shot-failure defect.
+- **`dispatch-subcommand-override` — REFUTED (4/4 clean), now `wontfix`.** `scale.audit`'s INPUT
+  obligation overrode the shared segmentation rule (shared: a blank line is a zero-field record →
+  `E10` under `run`; audit: a blank line is a skipped section break, counted toward nothing) by a
+  scoped prose obligation that explicitly names the shared rule it overrides and scopes the
+  override to audit alone. All four read the scoped override correctly; the bare-`-` dispatch
+  precedence was exercised by the `disp_bare_dash` batch (→ `usage:` / exit 2, 4/4). A scoped
+  prose obligation suffices; no OVERRIDES construct or pin-rule mechanism is warranted.
+- **Round-04 resolutions re-verified under load (4/4).** The same probe carried a whole-spec
+  `CONFORMS ./scale.run@scale.run` (read as a non-transcluded conformance reference, not inlined)
+  and guard-conjoined inlined obligations (`CONFORMS …@scale.defects::INVARIANT` under an outer
+  WHEN), both handled correctly by all four — `conforms-bare-slot-meaning`,
+  `conforms-inlining-semantics-misplaced`, and the `residual-reachability` exhaustiveness
+  discipline (both `scale.weigh` and `scale.audit` assert an empty residual instead of stating a
+  dead catch-all) all held.
+- **`reftarget-resolution-scattered` — RESOLVED (consolidation).** Confirmed `RefTarget` is the
+  sole canonical owner of both the resolution rule (RETURN slot) and the charset grammar (ERROR
+  slot); consolidated the two genuine restatements (`cli.validate` ERROR regex; `cli.query`
+  INVARIANT resolution restatement) to cite `RefTarget` via reference-only `SEE` siblings, no
+  behavior change, ref-check CLEAN (150 refs). Look-alikes (spec-name grammar; `.yass.yaml`-suffix
+  / `FindProjectRoot`) deliberately left alone to avoid over-citation.
+- **Negative-net audit REWEIGH (4/4 NOTES) — probe-authoring artifact, NOT a yass finding.** All
+  four models noted a tension in `scale.audit`: a flagged-Y re-weigh line with `gross < tare`
+  yields a negative re-derived net, and the shared registry says "net below zero is never a verdict
+  but is the `E50` error" — yet audit raises no error (it exits 0 by contract). All four resolved
+  it identically to the oracle (tally as CLEAR: a negative net governs no verdict, and `E50` is a
+  run-pipeline-only path audit has no access to), so there was **zero behavioral divergence** and
+  no oracle batch even exercises it. This is a gap the probe spec should have pinned unambiguously
+  but did not (the round-04 lesson) — a probe-authoring artifact, not a language defect. The probe
+  spec was tightened post-run (the flag-Y obligation and the exhaustiveness INVARIANT now state the
+  negative-net→CLEAR disposition explicitly) for self-consistency; this does not affect any grade
+  (the oracle's expected output was unchanged and no batch depends on it).
+- **Convergence.** Round 5 produced **no new actionable spec-defect** — both construct-request
+  probes were refuted, the one resolved finding (`reftarget-resolution-scattered`) was a
+  pre-existing open documentation-consolidation item, and the negative-net ambiguity was a
+  probe-authoring artifact. The no-new-findings counter advances **0/2 → 1/2**. Round 5 is the
+  final scheduled round, so the experiment **HALTS** here regardless of the counter.
