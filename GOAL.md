@@ -124,8 +124,3 @@ Each round is recorded in `experiment/LOG.md` and its artifacts in
 Commit after: scaffolding, each spec+oracle authoring, each round's
 results+fixes, and each findings-file pruning. Conventional commits (repo uses
 cog.toml). Small, frequent commits — compaction can happen at any time.
-
-## Current status
-
-See `experiment/STATUS.md`. As of setup: scaffolding + ledger created, Round 1
-not yet started.
