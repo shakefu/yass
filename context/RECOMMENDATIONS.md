@@ -63,24 +63,6 @@ Do not trust secondhand signals — editor warnings, cached analysis, or review 
 
 ---
 
-## Part 2 — Format changes to consider
-
-None of these add new keywords. Each gives meaning to a shape the format already
-allows, so a reader can still understand a spec without being taught new vocabulary.
-
-### 1. Treat an ordered list as ordered and step-addressable
-
-When an obligation's content is a list whose order matters, that order should be part
-of the contract, and each step should be referenceable on its own.
-
-Sequenced steps are among the most directly useful content a spec can carry — they
-map almost one-to-one onto both code and tests — but only when their order is
-understood as meaningful rather than incidental. This needs no new syntax: a list is
-already ordered; we simply commit to reading it that way and to letting each item be
-addressed individually.
-
----
-
 ## Considered and set aside
 
 A dedicated way to say "use this other behavior but override part of its setup." We

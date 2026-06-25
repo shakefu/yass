@@ -90,7 +90,14 @@ segmentation, name:
   vaguer "whitespace", which invites splitting on tabs and other Unicode spaces);
 - empty input (zero units);
 - an empty or blank unit in the interior;
-- a leading, trailing, or repeated separator.
+- a leading or repeated separator;
+- the mechanics of an *optional trailing terminator* — say how many trailing separators are
+  absorbed (characteristically exactly one), and therefore what a second trailing separator,
+  or a blank final unit, denotes. "MAY accept a trailing newline" without the count leaves
+  an implementer to guess whether one or all are stripped;
+- the degenerate input that is *only* separators — a lone separator with no content, or a
+  run of them — which the cases above otherwise leave under-determined (is a lone separator
+  empty input, or one empty unit?).
 
 Each of these is a case an implementer will hit and otherwise resolve by guessing. State
 the intended outcome as an obligation, or declare it out of scope — do not leave it to
@@ -125,7 +132,14 @@ obligations, not prose:
   those upstream guarantees the consuming spec relies on (and therefore does NOT
   re-validate) and which it re-checks.** A consumer that silently re-validates, or silently
   trusts, forces every implementer to guess the boundary; they will guess differently. The
-  consuming spec owns that decision — make it in an obligation.
+  consuming spec owns that decision — make it in an obligation. **And for each guarantee it
+  relies on without re-validating, state what it does if that guarantee is violated** — even
+  if only to declare the behavior unspecified. Stating the trust without the violation
+  residual is the same omission as a rejection with no catch-all: observed in practice as
+  three of four models silently inventing how a consumer counts and classifies an
+  out-of-contract input line. The residual principle — every delegated check needs its
+  failure case pinned — applies to a trust boundary exactly as it does to the `ERROR` slot
+  and to closed-set dispatch.
 
 - **Give every cross-cutting concern a single home.** When a rule spans many specs — a wire
   format, the shape of an error line, how input is segmented, how a subcommand is

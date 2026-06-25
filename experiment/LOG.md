@@ -85,5 +85,60 @@ panel results, diagnosis, fixes applied, findings delta.
   `default-error-policy` + `input-segmentation-completeness`; annotated `conforms-overloaded`
   not-exercised. Open: 23. Resolved total: 5 of 28. Convergence counter: 0/2.
 
-_(Round 3 begins next: structured-obligation cluster at larger scale, `conforms-overloaded`,
-or non-dataflow sequencing.)_
+## Round 3 — structured-obligation cluster at adversarial scale (2026-06-24)
+
+- **Plan** (`round-03/PLAN.md`): drive the structured-obligation cluster
+  (`priority-chains-prose`, `error-table-structured`, `error-cardinality-implicit`,
+  `mapping-valued-obligations`, `error-code-refs`) to a scale where, if a prose-only
+  obligation shape actually causes one-shot failures, it would show. Re-verify the four
+  Round-1/2 composition fixes under load.
+- **Spec** (`test-specs/round-03-vault`): bank-vault time-lock door certification CLI —
+  `certify` and `report` subcommands over a shared `vault.shared` spec. Deliberately
+  adversarial: an **18-row** prose defect registry (code V01–V18, class, condition,
+  byte-exact message); an **18-entry precedence order made non-monotonic** against both
+  severity class and code number (so "most severe wins" and "lowest code wins" both
+  diverge from the stated order — the deciding measurement); one-verdict-per-door and
+  one-error-line-per-record cardinality; bare V-code literals read in two places
+  (certify verdict emission + report class tally); a certify→report dataflow trust
+  boundary; off-spec segmentation (tab / CRLF / NBSP). Probe + reference + oracle
+  (35 batches, SELFTEST OK, ref impl 35/35) committed before any agent ran.
+- **Panel (cold, isolated `/tmp`, oracle never copied in):** gpt 35/35 (Python, 152s),
+  gemini 35/35 (Python, 199s), opus 35/35 (Python, 200s), composer 35/35 (Python, 63s)
+  = **140/140, zero functional misses.** Every precedence batch passed; the 18-row
+  registry and byte-exact messages reproduced exactly; bare codes survived being read in
+  two places; cardinality honored on multi-defect doors.
+- **Diagnosis** (`round-03/results.md`): **the structured-obligation cluster is refuted as
+  a correctness defect across two rounds.** Prose obligation values — even at 18 rows, a
+  non-monotonic precedence chain, and codes read in two places — caused 0 functional
+  misses in 4/4 cold implementations. The black-box method cannot measure the residual
+  *ergonomic* hypothesis (authoring/diff/validation cost), so the cluster is closed
+  `wontfix` (5 ids) with that residue routed to tooling. Two new corroborated spec-defects
+  surfaced from the panel's aligned guessing: (B) `trust-boundary-violation-residual`
+  STRONG (3/4) — naming a trust boundary (Round-2 fix) is not enough; the consumer must
+  also pin what it does **if a relied-on guarantee is violated**, or models invent the
+  out-of-contract handling; (A) `segmentation-terminator-mechanics` (2/4) — "MAY accept a
+  trailing newline" without a strip count, and the lone-/all-separator degenerate input,
+  are each under-determined. Regression re-verify held 4/4 for `dataflow-invisible`,
+  `closed-set-dispatch-residual`, `input-segmentation-completeness`, `cross-cutting-single-home`.
+- **Source-of-truth fixes:** `yass.yass.yaml` — `Slot.INPUT` now requires, for each
+  relied-on producer guarantee, stating the behavior if that guarantee does not hold
+  (residual on violation). `yass-reference.md` — slot-targeted `USES` bullet extended with
+  the violation residual. `GUIDANCE.md` — Composition trust-boundary bullet extended with
+  the violation residual; input-segmentation checklist gains the optional-terminator strip
+  count and the lone-/all-separator degenerate cases. No schema change. **Prune:** removed
+  `RECOMMENDATIONS.md` Part 2 §1 ("Treat an ordered list as ordered and step-addressable"),
+  the recommendation corresponding to the now-`wontfix` `priority-chains-prose`. The raw
+  per-agent feedback corpus (`SPEC/GUIDANCE/OPEN-FEEDBACK.md`) was deliberately **not**
+  carved up — it is one-time-ingested provenance that still seeds open findings.
+- **Tooling routed:** created `experiment/TOOLING.md`; `lint-anti-slop` now owns the
+  cluster's ergonomic residue — `yass extract-errors` registry projection, byte-exact
+  message-template lint, error-code reference validation, and priority/cardinality idiom
+  lint. The language stays scalar-prose-only.
+- **Findings delta:** closed `wontfix` (refuted ×2): `mapping-valued-obligations`,
+  `error-table-structured`, `error-code-refs`, `priority-chains-prose`,
+  `error-cardinality-implicit`. Added + resolved: `trust-boundary-violation-residual`,
+  `segmentation-terminator-mechanics`. Total findings: 30. Resolved (SOT): 7. Open: 18.
+  Convergence counter: 0/2.
+
+_(Round 4 begins next: composition/reference + the CONFORMS cluster —
+`cross-spec-sequencing`, `conforms-overloaded`, `self-validation-ref-bug`.)_

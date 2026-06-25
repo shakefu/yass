@@ -100,6 +100,8 @@ RETURN:
 - WHEN: the input is the data another spec's slot produces
   MUST: name that producing spec and slot with a USES reference, and state which of its guarantees this spec relies on without re-validating
   USES: Reference
+- WHEN: a guarantee of that producing slot is relied on without re-validation
+  MUST: state what the spec does if that guarantee does not hold, even if only to declare the behavior unspecified
 - WHEN: the slot selects behavior from a closed set of input values
   MUST: state the behavior for an input value outside that set, or one that is missing
 ---

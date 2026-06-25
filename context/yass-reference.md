@@ -130,7 +130,11 @@ An obligation is a **YAML mapping** (a list item under a slot):
   anchor for a pipeline or producer/consumer relationship. It does **not** by itself
   decide the trust boundary — which of the producer's guarantees the consumer relies on
   versus re-checks is the consuming spec's own obligation to state (see GUIDANCE,
-  *Composition*).
+  *Composition*). That obligation includes the **residual on violation**: for each
+  guarantee the consumer relies on without re-validating, the consuming spec must also
+  state what it does if that guarantee does not hold — even if only to declare the
+  behavior unspecified. Stating the trust without pinning its violation leaves every
+  implementer to invent the out-of-contract behavior.
 
 - DRY is achieved by **transclusion** (inlining), not bare pointers.
 
