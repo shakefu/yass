@@ -117,6 +117,8 @@ RETURN:
   MUST: read it as a specific, foreseeable failure that applies only under that guard
 - WHEN: an obligation in this slot carries no Guard
   MUST: read it as the residual policy for any failure not matched by a guarded obligation in the same slot
+- WHEN: the guarded obligations in this slot already account for every possible input
+  MUST-NOT: carry a guard-less residual obligation, because the residual set is empty and the obligation can never apply
 ---
 spec: Slot.SIDE-EFFECT
 RETURN:
@@ -204,13 +206,17 @@ ERROR:
   MUST: be rejected when the referenced spec does not declare that slot in its source document
   USES: RefTarget
 SIDE-EFFECT:
-- WHEN: the relation is CONFORMS
+- WHEN: the relation is CONFORMS and its target names a slot
   MUST: be inlined into the referencing spec when resolved
+- WHEN: the relation is CONFORMS and its target names a whole spec with no slot
+  MUST-NOT: be inlined, because a whole-spec CONFORMS is a conformance reference rather than a slot transclusion
 - WHEN: the relation is USES
   MAY: be inlined when the referencing spec is resolved
 - WHEN: the relation is SEE
   MUST-NOT: be inlined
 - MUST: carry provenance as a comment naming the source ref when inlined
+- WHEN: an inlined obligation carries its own Guard and the carrier obligation also carried a Guard
+  MUST: apply only when both guards hold, the carrier's guard conjoined with the inlined obligation's own guard
 INVARIANT:
 - CONFORMS: Keyword::INVARIANT
 ---

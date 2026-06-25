@@ -79,6 +79,18 @@ Two rules follow:
   outcome (a specific error code, message, or exit status) that outcome MUST be stated on
   that obligation — not left for the reader to infer from the catch-all. A reader (or
   model) must not have to deduce a domain rule from "everything else."
+- **Do not state a residual the guards have already exhausted.** A residual only has
+  meaning when the guarded obligations leave some input unmatched. When the enumerated
+  guards partition the input completely — every unit is either rejected by a named guard
+  or accepted as well-formed, with no remainder — there is no residual set, and a
+  guard-less catch-all is *dead*: it can never fire. A dead residual asserted alongside an
+  exhaustive partition is a contradiction every careful reader flags. (Observed directly:
+  all four panel models independently rejected a guard-less `E90` error obligation as
+  unreachable, several noting it would violate the spec's own well-formed/malformed
+  invariant.) Before adding a residual, confirm the guarded cases leave a genuine
+  remainder; when they are exhaustive, state that exhaustiveness rather than a residual
+  that cannot be reached. `Slot.ERROR` makes this binding: a guard-less residual MUST-NOT
+  be carried when the guarded obligations already account for every input.
 
 ## Input segmentation: specify every boundary
 

@@ -79,7 +79,6 @@ RETURN:
 - MUST: "yass.query.name_blank means the query spec name is empty or contains internal whitespace; message `spec name is blank or contains whitespace`; exit 2"
 - MUST: "yass.query.no_match means no spec matches the given name in scope; message `no spec matches: <name>`; exit 1"
 - MUST: "yass.query.conforms_unresolved means a CONFORMS ref could not be resolved during inlining; message `unresolvable CONFORMS ref: <target>`; exit 1"
-- MUST: "yass.query.conforms_no_slot means a CONFORMS ref target lacks a slot suffix in the form double-colon SLOT; message `CONFORMS ref must address a slot in v1: <target>`; exit 1"
 - MUST: "yass.query.scope_not_found means the provided scope path does not exist; message `scope path does not exist: <path>`; exit 2"
 - MUST: "yass.query.scope_empty means the provided scope contains zero .yass.yaml files; message `no .yass.yaml files found in scope: <path>`; exit 2"
 - MUST: "yass.internal.uncaught means an uncaught internal error occurred in a subcommand handler; message `internal error: <message>`; exit 1"
