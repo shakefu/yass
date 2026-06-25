@@ -1,11 +1,14 @@
 # GOAL — yass spec-improvement experiment
 
-> This file is my durable north star. The main session autocompacts at 100k, so
-> **this file plus the committed `experiment/` state is the only memory that
-> survives.** After a compaction, re-read this file top to bottom, then
-> `experiment/STATUS.md`, `experiment/FINDINGS.md`, and the latest round in
-> `experiment/LOG.md`, and continue from there. Branch: `goal-experiment`
-> (scratch — commit freely, force/rewrite OK).
+> This file is my durable north star and the reusable method. The main session
+> autocompacts at 100k, so during a run **this file plus the run's `experiment/`
+> working state is the only memory that survives** — after a compaction, re-read
+> this file top to bottom, then the in-progress run's `experiment/STATUS.md`,
+> `experiment/FINDINGS.md`, and the latest round in `experiment/LOG.md`, and
+> continue. Between runs, only this file and the `experiment/FINDINGS.md` ledger
+> persist; `experiment/STATUS.md`, `experiment/LOG.md`, `experiment/round-NN/`,
+> and `test-specs/round-NN-*/` are authored fresh each run. Branch:
+> `goal-experiment` (scratch — commit freely, force/rewrite OK).
 
 ## Mission
 
@@ -85,8 +88,8 @@ Each round is recorded in `experiment/LOG.md` and its artifacts in
    `test-specs/round-NN-<name>/spec/*.yass.yaml` and `.../oracle/`.
    **Commit** before running agents.
 3. **Run the panel.** For each model: make a unique `/tmp` workspace, copy in
-   only `spec/*.yass.yaml`, run via `script/agent` with the cold prompt
-   (`experiment/round-NN/prompt.md`), in the background, concurrently.
+   only `spec/*.yass.yaml`, run via `script/agent` with the generic cold prompt
+   (`experiment/cold-prompt.md`), in the background, concurrently.
 4. **Grade.** Build each impl (per its `HOWTORUN.txt`), run the oracle, score
    pass rate + obligation coverage + an efficiency/quality read. Read each
    agent's `NOTES.md` for self-reported friction.
