@@ -1,0 +1,59 @@
+round-04-axle oracle -- how to run
+==================================
+
+The oracle is PRIVATE. It is never copied into a candidate's workspace; it only
+ever runs from this directory, against a candidate binary it invokes itself.
+
+Files
+-----
+  oracle/grade.py   The authoritative grader. Embeds simulate_audit /
+                    simulate_roster (the reference semantics) and the batch
+                    table. Compares a candidate's stdout, stderr, and exit code
+                    byte-for-byte (UTF-8 with surrogateescape).
+  oracle/ref.py     A clean reference implementation of the axle CLI. Coded
+                    independently of grade.py's simulators, so a shared bug
+                    cannot pass both. It must score full marks.
+
+Self-check (no candidate needed)
+--------------------------------
+Confirms the oracle's own invariants: registry/precedence integrity, H07
+isolation for the four-corner readings, the hand-written expectation tuples
+(O1-O4 transclusion, single-class message exactness, the deciding precedence
+batch, H07 on/off, ordered E10/E15/E20 checks, CRLF-as-data, the four guard
+corners, the over-validation probe), and audit->roster chain consistency.
+
+    cd test-specs/round-04-axle
+    python3 oracle/grade.py --self-check
+
+Expect exactly:
+
+    SELFTEST OK
+
+Grade a candidate
+-----------------
+Pass the base command that runs the candidate program; the grader appends the
+subcommand (audit / roster) and feeds each batch's stdin.
+
+    cd test-specs/round-04-axle
+    python3 oracle/grade.py --cmd "<run command>"
+
+Examples:
+
+    python3 oracle/grade.py --cmd "python3 /path/to/candidate/axle.py"
+    python3 oracle/grade.py --cmd "node /path/to/candidate/axle.js"
+    python3 oracle/grade.py --cmd "/path/to/candidate/axle"
+
+The grader prints any per-batch FAIL diagnostics (expected vs got, repr'd so
+whitespace and control bytes are visible) and a final line:
+
+    SCORE: <passed>/<total>
+
+A full score means passed == total. Pipeline batches feed the candidate's own
+audit stdout into its own roster (roster must never see audit's stderr).
+
+Verify the reference scores full
+--------------------------------
+    cd test-specs/round-04-axle
+    python3 oracle/grade.py --cmd "python3 oracle/ref.py"
+
+Expect SCORE: <total>/<total>.
