@@ -237,8 +237,8 @@ RETURN:
 - MUST: "append the literal suffix `.yass.yaml` to the path token to produce the target file path"
 - MUST: compare paths and spec names with case-sensitive byte comparison
 - MUST-NOT: search alternative basenames or extensions for the target file
-- MUST: "resolve `./cli.shared@Foo` to `<dir-of-referencing-file>/cli.shared.yass.yaml` and the spec named `Foo`"
-- MUST: "resolve `cli@Foo` to `<project-root>/cli.yass.yaml` and the spec named `Foo`"
+- MUST: "resolve `./order.items@Foo` to `<dir-of-referencing-file>/order.items.yass.yaml` and the spec named `Foo`"
+- MUST: "resolve `order@Foo` to `<project-root>/order.yass.yaml` and the spec named `Foo`"
 ERROR:
 - MUST: "be rejected when it is not well-formed per the `path@SpecName::SLOT` grammar"
 - MUST: be rejected when the slot is outside the recognized set
