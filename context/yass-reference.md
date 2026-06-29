@@ -60,6 +60,22 @@ obligation SHOULD be placed in `INVARIANT` only when none of `INPUT`, `RETURN`, 
 or `SIDE-EFFECT` is suitable. It exists so always-true constraints are not forced into
 `SIDE-EFFECT` (which means *effects*) — not as a general catch-all.
 
+In the `ERROR` slot specifically, a **guarded** obligation (with `WHEN`) names one
+specific failure mode, and a **guard-less** obligation is the **residual** — the policy
+for any failure not matched by a guarded obligation in the same slot. State a residual
+whenever a spec rejects anything; but a foreseeable, named failure with its own
+observable outcome (a distinct error code, message, or exit status) belongs in its own
+guarded obligation, never folded into the residual. A residual is meaningful only when
+the guards leave inputs unmatched: if the guarded obligations already account for every
+input, the residual set is empty and a guard-less catch-all is **dead** — it can never
+fire. Do not state one; assert the exhaustiveness instead.
+
+The residual discipline generalizes beyond `ERROR`: whenever a slot branches on a
+**closed set of values** — most commonly an `INPUT` that dispatches on a subcommand,
+mode, or enum — it must state the behavior for a value outside that set, or one that is
+missing. The residual is to a dispatch what the guard-less catch-all is to the error
+table.
+
 When a spec describes something that is not a function (e.g. the language defining
 itself), read the function-shaped slots structurally: `INPUT` = the form a thing takes,
 `RETURN` = what a well-formed thing denotes, `ERROR` = malformed forms that must be
@@ -78,7 +94,8 @@ An obligation is a **YAML mapping** (a list item under a slot):
   obligation, value = a **single** ref-target string.
 - **Ref-only** — a mapping with one or more relation keys and **no** normativity keyword
   and **no** `WHEN`. Allowed; it adds no obligation of its own and resolves per its
-  relation (only `CONFORMS` transcludes).
+  relation (only a **slot-targeted** `CONFORMS` transcludes; a whole-spec `CONFORMS`
+  stays in place as a conformance reference).
 
 ## References
 
@@ -97,17 +114,43 @@ An obligation is a **YAML mapping** (a list item under a slot):
     bare names means no target ever leads with an indicator, so none need quoting.)
 - **Relations:**
 
-  | Relation   | Resolution             | Meaning                                                   |
-  |------------|------------------------|-----------------------------------------------------------|
-  | `CONFORMS` | always inlined         | hard requirement — must match the referenced spec or slot |
-  | `USES`     | pointer, MAY inline    | behavior depends on / draws on the target                 |
-  | `SEE`      | pointer, never inlined | related context the behavior does not depend on           |
+  | Relation   | Resolution                       | Meaning                                                   |
+  |------------|----------------------------------|-----------------------------------------------------------|
+  | `CONFORMS` | slot: inlined; whole-spec: not   | hard requirement — must match the referenced spec or slot |
+  | `USES`     | pointer, MAY inline              | behavior depends on / draws on the target                 |
+  | `SEE`      | pointer, never inlined           | related context the behavior does not depend on           |
 
-  `CONFORMS` always inlines, because conformity is a hard requirement — the conformer
-  needs that spec or slot in front of it. `USES` is a pointer that tooling MAY inline
-  (e.g. surface once per session); `SEE` is a pure pointer, never inlined. The
-  discriminator: use `USES` when the obligation's behavior depends on or draws on the
-  target, `SEE` when the target is merely related context.
+  `CONFORMS` is a hard requirement with **two aspects of one meaning**: the carrier must
+  **match** the referenced spec or slot, and inlining is *how* that match is made
+  checkable in place. A **slot-targeted** `CONFORMS` (`…::SLOT`) inlines the referenced
+  slot's obligations in front of the carrier. A **whole-spec** `CONFORMS` (no `::SLOT`) is
+  a conformance reference to the entire spec — it is **not** transcluded (there is no
+  single slot to splice); the conformer must satisfy the referenced spec as a whole. This
+  matches the language meaning that `CONFORMS` must "match the referenced spec **or**
+  slot." `USES` is a pointer that tooling MAY inline (e.g. surface once per session);
+  `SEE` is a pure pointer, never inlined. The discriminator: use `USES` when the
+  obligation's behavior depends on or draws on the target, `SEE` when the target is merely
+  related context.
+
+- **Guards conjoin when an inlined obligation is itself guarded.** When a slot-targeted
+  `CONFORMS` carrier has a `WHEN` guard and an inlined obligation carries its own `WHEN`,
+  the inlined obligation applies only when **both** guards hold — the carrier's guard
+  conjoined with the inner guard. (This is the language-level meaning; how a tool renders
+  the combined guard text is the tool's concern.)
+
+- **Slot-targeted `USES` carries a dataflow reading.** When a `USES` target names a slot
+  — characteristically an `INPUT` that points at a producer's `RETURN`,
+  `USES <producer>::RETURN` — it means the obligation **consumes or builds on the data
+  that slot produces**: the data crossing the boundary is exactly what that slot yields,
+  so the producer's `RETURN` guarantees characterize it here. This is the structural
+  anchor for a pipeline or producer/consumer relationship. It does **not** by itself
+  decide the trust boundary — which of the producer's guarantees the consumer relies on
+  versus re-checks is the consuming spec's own obligation to state (see GUIDANCE,
+  *Composition*). That obligation includes the **residual on violation**: for each
+  guarantee the consumer relies on without re-validating, the consuming spec must also
+  state what it does if that guarantee does not hold — even if only to declare the
+  behavior unspecified. Stating the trust without pinning its violation leaves every
+  implementer to invent the out-of-contract behavior.
 
 - DRY is achieved by **transclusion** (inlining), not bare pointers.
 
@@ -159,9 +202,10 @@ than restating it.
 
 ## Notes / open items
 
-- Resolution: `CONFORMS` is inlined into the referencing spec (one level in v1; cycles,
-  transitive resolution, batching, and depth are deferred). `SEE` is a pure pointer,
-  never inlined. `USES` is a pointer that tooling **MAY** inline.
+- Resolution: a **slot-targeted** `CONFORMS` is inlined into the referencing spec (one level
+  in v1; cycles, transitive resolution, batching, and depth are deferred); a **whole-spec**
+  `CONFORMS` (no `::SLOT`) is not inlined — it is a conformance reference to the entire spec.
+  `SEE` is a pure pointer, never inlined. `USES` is a pointer that tooling **MAY** inline.
 - Idea (undiscussed until now, not in v1): tooling MAY surface each `USES` target **once
   per calling session** as its own appended doc fragment — present in context but not
   repeated, and not inlined into the referencing spec. `SEE` would stay a pure pointer.
