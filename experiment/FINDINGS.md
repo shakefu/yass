@@ -89,11 +89,11 @@ one-shot outcome, and is routed to tooling (`lint-anti-slop`), not a language ch
 |----|-----------|--------|-------|
 | `man-page-vocabulary` | repeated | open | Realign vocab to man-page sections: CONFORMS→CONFORMS-TO, SEE→SEE-ALSO, ERROR→ERRORS, RETURN→RETURN-VALUE?, add EXIT-STATUS/DIAGNOSTICS/EXAMPLES/OPTIONS. |
 | `example-slot` | universal | open | Add EXAMPLE slot (worked input→output pairs) for emitter/serializer specs. |
-| `slot-model-for-non-functional-specs` | repeated | wontfix (probed rounds 06–07) | Five function-shaped slots fit procedural/serializer/config specs awkwardly; PROCEDURE/ALGORITHM slot or split SIDE-EFFECT. `context/DESIGN-BLOCKS.md` resolves it as a new **document type** (`design:`), not a slot. **Round-06 two-arm probe: the lifecycle-ordering facet is REFUTED as a correctness need** — a non-obvious multi-spec stage order one-shot 4/4 both with the `design:` block (arm A) and with the strongest current-language expression (coordinating-spec prose + USES backlinks, arm B). The construct itself proved **cold-legible (4/4 functional, zero NOTES confusion)**. **Round-07 probed the algorithm-home CLARITY claim directly under a pre-registered rubric: NULL** — a five-trap largest-remainder algorithm one-shot 8/8 (400/400, zero trap misses) with 0 arm-A vs 1 borderline (self-refuted) arm-B hedger; scattered declarative obligations were read as cleanly as the pseudocode block. Both strongest facets refuted/unsupported for one-shot outcome; the residual serializer/config awkwardness is ergonomic and unfalsifiable by this method → `wontfix` under the charter. See `design-blocks-proposal`. |
+| `slot-model-for-non-functional-specs` | repeated | wontfix (probed rounds 06–08) | Five function-shaped slots fit procedural/serializer/config specs awkwardly; PROCEDURE/ALGORITHM slot or split SIDE-EFFECT. `context/DESIGN-BLOCKS.md` resolves it as a new **document type** (`design:`), not a slot. **Round-06 two-arm probe: the lifecycle-ordering facet is REFUTED as a correctness need** — a non-obvious multi-spec stage order one-shot 4/4 both with the `design:` block (arm A) and with the strongest current-language expression (coordinating-spec prose + USES backlinks, arm B). The construct itself proved **cold-legible (4/4 functional, zero NOTES confusion)**. **Round-07 probed the algorithm-home CLARITY claim directly under a pre-registered rubric: NULL** — a five-trap largest-remainder algorithm one-shot 8/8 (400/400, zero trap misses) with 0 arm-A vs 1 borderline (self-refuted) arm-B hedger; scattered declarative obligations were read as cleanly as the pseudocode block. **Round-08 tested the "slots distort non-functional content" claim BEHAVIORALLY for the first time** (the facet r07 had excused as unfalsifiable — corrected: a live container + direct-SQL made it falsifiable): a binding Postgres stack constraint homed in SIDE-EFFECT/INVARIANT on a `crib.store` spec (the contested, "distorted" placement) bound cold compliance exactly as well as the purpose-built `design:` block — 4/4 vs 4/4, zero misses. All three facets (lifecycle, algorithm, non-functional constraint) now refuted/unsupported for one-shot outcome → `wontfix` under the charter. See `design-blocks-proposal`. |
 | `intent-field-and-max-lengths` | repeated | open | Bounded per-spec `intent:` field + enforced max lengths on prose fields (tensions no-free-prose non-goal). |
 | `multi-target-refs` | repeated | open | List-valued relation keys (CONFORMS/USES/SEE accept multiple targets). |
 | `root-and-rules-files` | single | open | Explicit `root.yass.yaml` project-root marker + `rules.yass.yaml` for tooling meta-rules. |
-| `design-blocks-proposal` | single (proposal) | wontfix (rounds 06–07: no experimental mandate — pure design preference) | `context/DESIGN-BLOCKS.md`: `design:` document type (name + required freeform `type` + opaque `content`) + repurposed `USES` (→ design only; dataflow → slot-targeted `CONFORMS`; structural links → `SEE`). **Round-06:** dataflow-as-CONFORMS re-validated 4/4; lifecycle-ordering correctness refuted (A pass + B pass); construct cold-legible (4/4, zero NOTES confusion); relation partition machine-checkable. **Round-07 (clarity probe, pre-registered rubric): NULL** — algorithm-as-design-block vs good-faith scattered obligations, 400/400 with zero trap misses in both arms, hedger counts arm A 0 vs arm B 1 (borderline, self-refuted); the guarded-USES→design rule (untested in r06) cold-covered clean (4/4 `EMPTY FEED`, no over-application). Per the pre-registered disposition table (null + no trap misses): closed as a **pure design preference** — the construct is validated harmless and cold-legible, fixes no correctness defect, and showed no measurable clarity advantage; its remaining rationale (tech-constraint home, relation disambiguation, dead-block lint) is unfalsifiable by black-box one-shot outcome. Adoption stays a legitimate language-owner call outside the charter; nothing in the evidence mandates it. |
+| `design-blocks-proposal` | single (proposal) | wontfix (rounds 06–08: no experimental mandate — pure design preference) | `context/DESIGN-BLOCKS.md`: `design:` document type (name + required freeform `type` + opaque `content`) + repurposed `USES` (→ design only; dataflow → slot-targeted `CONFORMS`; structural links → `SEE`). **Round-06:** dataflow-as-CONFORMS re-validated 4/4; lifecycle-ordering correctness refuted (A pass + B pass); construct cold-legible (4/4, zero NOTES confusion); relation partition machine-checkable. **Round-07 (clarity probe, pre-registered rubric): NULL** — algorithm-as-design-block vs good-faith scattered obligations, 400/400 with zero trap misses in both arms, hedger counts arm A 0 vs arm B 1 (borderline, self-refuted); the guarded-USES→design rule (untested in r06) cold-covered clean (4/4 `EMPTY FEED`, no over-application). **Round-08 probed the last motivation — tech/stack constraints — with the unfalsifiability excuse removed** (live postgres:16 container: direct-SQL, external-mutation, and no-state-files verification): 4/4 arm A AND 4/4 arm B fully compliant (248/248, zero misses of any kind), NOTES null under either rubric scope → the slot-homed constraint bound exactly as well as the `design:` block. All three motivations now probed (r06 lifecycle: correctness refuted; r07 algorithm: clarity null; r08 tech constraint: compliance null). Closed as a **pure design preference** — validated harmless and cold-legible across 12 arm-A runs, fixes no correctness defect, no measurable clarity or compliance advantage; the genuinely unfalsifiable residue shrinks to the relation-disambiguation ergonomics and the dead-block lint. Adoption stays a legitimate language-owner call outside the charter; nothing in three rounds of evidence mandates it. |
 
 ## Round-01 evidence (2026-06-24) — berth probe, panel gpt / gemini / opus / composer
 
@@ -500,3 +500,70 @@ the panel. Grades: **gpt A 50/50 + B 50/50 (Python/Python), gemini A 50/50 + B 5
 - **Convergence.** Round 7 produced **no new actionable spec-defect and no miss at all** — the
   third consecutive no-new-findings round (05, 06, 07). The K=2 convergence signal, first
   reached at round-06, is exceeded; the language is stable against this probe family.
+
+## Round-08 evidence (2026-07-22) — crib probe, panel gpt / gemini / opus / composer
+
+Probe `test-specs/round-08-crib` (committed pre-panel, `caf118e`) probed the third and last
+DESIGN-BLOCKS motivation — **tech/stack constraints** — with the round-07 unfalsifiability
+excuse removed: the grader provisions a live PostgreSQL (`postgres:16`, docker) per run and
+verifies compliance DIRECTLY (SQL row assertions against `crib_stock`; grader-driven
+UPDATE/INSERT/DELETE between invocations that the next invocation must reflect; a fresh
+scratch CWD that must stay empty). Unlike rounds 06–07, this was a **placement differential**:
+arm B's home for a stack constraint is the contested one — SIDE-EFFECT/INVARIANT prose on a
+`crib.store` spec, precisely the proposal's "distorts slot semantics" claim — so the proposal
+predicted a *behavioral* difference for the first time. Domain: tool-crib ledger (`crib
+post`/`crib report`), cross-process persistence inherent, algorithmic load deliberately low.
+The constraint (identical both arms): state in the Postgres at `CRIB_PGDSN`; idempotent
+`crib_stock(tool_id, balance)` creation; MUST-NOT persist anywhere else; shared-table
+authority (other clients' changes are authoritative — shadow state fails behaviorally). Arm A:
+`design: CribStore`, `type: stack`, bound by `USES`. Arm B: the same four points as
+SIDE-EFFECT/INVARIANT obligations. E50/E51 store residuals (unset-DSN / unreachable) pinned in
+the shared spec, identical both arms.
+
+Oracle: 31 batches / ~55 steps (RUN/SQL/MUTATE/FILES sequences); `--self-check` → SELFTEST OK
+(fully offline); ref.py 31/31 against the live container; ref-check `RESULT: CLEAN` both arms;
+discrimination proof — a deliberately non-compliant shadow-state candidate fails every
+SQL/MUTATE batch + the E51 residual. Grades: **gpt A 31/31 + B 31/31 (Python/psycopg2 both),
+gemini A 31/31 + B 31/31 (Python/psycopg2 both), opus A 31/31 (Go/pgx) + B 31/31
+(Python/psycopg2), composer A 31/31 (Go/pgx) + B 31/31 (Python/psycopg2) = 248/248, zero batch
+failures of any kind; the model-error ledger is empty.**
+
+- **Headline — PRIMARY compliance differential NULL (4/4 vs 4/4).** Every model in both arms
+  landed its state in the live Postgres and only there: all direct-SQL row assertions, all
+  external-mutation batches (including the shadow-killer: grader UPDATEs a balance, the next
+  `ISSUE` must use the current value or wrongly answer E30), and all no-state-files checks
+  passed 8/8. The slot-distorted SIDE-EFFECT/INVARIANT home bound the constraint exactly as
+  well as the purpose-built document type. Pre-registered disposition row 3: **both wontfix
+  rows CONFIRMED with the unfalsifiability excuse removed** — the strongest close available.
+- **SECONDARY — NOTES rubric NULL under either scope (scope decision documented).** The
+  pre-registered scope named "the env-var contract", but the E50/E51 text lives outside the
+  arm deltas (shared spec, byte-identical), so those items cannot measure the carrier. Both
+  scopes reported: narrow (carrier content only) — arm A 1 hedger (gemini-A: FOR-UPDATE
+  "strongest interpretation" of shared-table authority) vs arm B 1 (gemini-B: per-record
+  commit "safest way") → same model, same theme, NULL; broad (adding store-failure mapping) —
+  arm A 3 vs arm B 4 → neither threshold → NULL. Author re-applied the rubric independently
+  to all 8 NOTES files; full agreement.
+- **Round-spec authoring observation (recorded, NOT a carrier differential or language
+  defect):** five models across both arms flagged the same unpinned corner — no error code
+  for a store failure AFTER a successful connect — and all resolved it identically (→ E51,
+  exit 2), zero behavioral divergence, no oracle batch exercises it. The gap sits in the
+  shared spec, outside the arm deltas. Per the round-05 precedent this is a probe-authoring
+  artifact: the LANGUAGE already provides the needed idiom (the residual discipline); the
+  round's spec under-applied it to the store-failure set. Recommended tightening (lead's
+  call): a residual ERROR obligation mapping post-connect store failures to E51; oracle
+  unchanged.
+- **TERTIARY — durations:** arm A mean 245 s vs arm B 189 s — arm B faster 4/4, the OPPOSITE
+  direction from round-07, itself supporting the noise-dominated caveat. The two Go runs
+  (both arm A) carried module fetch + build. Descriptive only.
+- **Self-provisioning (descriptive, per PLAN):** opus self-tested against a live Postgres in
+  both arms (arm A left a `crib-pg-test` container running — swept post-panel per the
+  teardown note); no other model did. Equal-opportunity, no spec leakage, recorded for
+  diagnosis context only (no misses needed diagnosing).
+- **Incidental re-coverage:** guarded-USES→design re-verified (arm A's E50 obligation is
+  `WHEN … MUST … USES: CribStore`, 4/4 clean); the standing regression surface (dispatch
+  residual, segmentation edges, exhaustive error set, byte-exact echoes,
+  cross-cutting-single-home) held 8/8.
+- **Convergence.** Round 8 produced **no new actionable spec-defect and no miss of any
+  kind** — the **fourth consecutive no-new-findings round (05, 06, 07, 08)**. The K=2
+  convergence signal remains exceeded; with all three DESIGN-BLOCKS motivations now probed
+  to null/refuted, the proposal's experimental docket is complete.
