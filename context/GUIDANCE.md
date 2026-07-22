@@ -37,6 +37,15 @@ Note: the only comments yass emits are tooling-generated provenance comments
 (`# CONFORMS: ...`) on resolved fragments. Those are not an author-facing channel, and
 should not become one.
 
+One fenced carve-out: a **design block** (a `design:` document — see *Design document*
+in the reference) carries normative freeform content, but it is not a prose channel on
+specs. The prose is fenced inside a declared block with a name, a required `type`, and
+normative force through the reference graph (`USES`); it cannot leak into a `spec:`
+document, and an unreferenced design block is dead weight that lint flags — declared
+normative content nothing binds to. The forcing function stays intact for spec
+documents: express intent as obligations, or not at all. The preamble `description`
+remains the only free-text field outside a design block.
+
 ## Ordering: implementation sequence
 
 Spec document fragments (`spec:` documents) within a file SHOULD be ordered in the
@@ -138,9 +147,10 @@ obligations, not prose:
 - **Name the dataflow and the trust boundary.** When one spec's `INPUT` consumes the data
   another spec's `RETURN` produces (a pipeline stage, a handler reading a producer's
   output), point at the producer with a slot-targeted reference —
-  `USES <producer>::RETURN`. That pointer is not decorative: it means *the data this input
-  consumes is exactly what that slot produces*, so the producer's `RETURN` guarantees
-  characterize the data crossing the boundary. Having named it, **state explicitly which of
+  `CONFORMS <producer>::RETURN`. That pointer is not decorative: it means *the data this
+  input consumes must match exactly what that slot produces*, so the producer's `RETURN`
+  guarantees characterize the data crossing the boundary — and inlining puts them in
+  front of the consumer's `INPUT`. Having named it, **state explicitly which of
   those upstream guarantees the consuming spec relies on (and therefore does NOT
   re-validate) and which it re-checks.** A consumer that silently re-validates, or silently
   trusts, forces every implementer to guess the boundary; they will guess differently. The
@@ -156,9 +166,9 @@ obligations, not prose:
 - **Give every cross-cutting concern a single home.** When a rule spans many specs — a wire
   format, the shape of an error line, how input is segmented, how a subcommand is
   dispatched — write it once in one spec that owns it completely, and reference that spec
-  (`USES`/`CONFORMS`) from the others. Do not restate the rule in fragments across the
-  specs it touches. A reader should learn the whole of a concern from one place rather than
-  reconstructing it from scattered, drift-prone mentions.
+  (`CONFORMS`, or `SEE` for pure context) from the others. Do not restate the rule in
+  fragments across the specs it touches. A reader should learn the whole of a concern
+  from one place rather than reconstructing it from scattered, drift-prone mentions.
 
 ## Open: how a skill uses the test taxonomy
 

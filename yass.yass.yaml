@@ -2,7 +2,7 @@
 ---
 description: >
   yass — Yet Another Spec Syntax — defining itself. Each spec below is one construct of
-  the language; its obligations are that construct's well-formedness rules, and USES
+  the language; its obligations are that construct's well-formedness rules, and SEE
   refs link a construct to the constructs it contains.
 version: v1
 related:
@@ -22,19 +22,22 @@ INPUT:
 - MAY: use CRLF or LF line endings, treated equivalently by the YAML 1.2 parser
 RETURN:
 - MUST: begin with a single Preamble as its first document
-  USES: Preamble
-- MUST: treat every other document as a Spec
-  USES: Spec
-- MAY: contain zero Spec documents, in which case the file is a valid Preamble-only file
+  SEE: Preamble
+- MUST: "treat every other document with a `spec` key as a Spec"
+  SEE: Spec
+- MUST: "treat every other document with a `design` key as a Design"
+  SEE: Design
+- MAY: contain zero Spec and zero Design documents, in which case the file is a valid Preamble-only file
 - MAY: omit a trailing newline at end-of-file, treated as well-formed either way
 ERROR:
 - MUST: be rejected when the stream is not well-formed YAML
+- MUST: "be rejected when a document after the first has neither a `spec` key nor a `design` key"
 INVARIANT:
 - MUST: preserve document order, since Preamble validity depends on position
 ---
 spec: Preamble
 INPUT:
-- MUST: "be a YAML mapping that has no `spec` key"
+- MUST: "be a YAML mapping that has neither a `spec` key nor a `design` key"
 - MUST: be present as the first document of every file
 - MUST: provide a description of the file
 - MUST: provide a version
@@ -67,24 +70,48 @@ INPUT:
 - MUST-NOT: case-insensitively match any Slot keyword or any Normativity keyword with its name
 RETURN:
 - MUST: carry zero or more Slots
-  USES: Slot
+  SEE: Slot
 ERROR:
 - MUST: be rejected when it has no spec name
 - MUST: be rejected when a key other than spec is not a valid Slot key
-  USES: Slot
+  SEE: Slot
 - MUST: be rejected when its name does not match the composition regex
 - MUST: "be rejected when its name begins or ends with `.`"
 - MUST: "be rejected when its name contains consecutive `.` characters"
 - MUST: be rejected when its name case-insensitively matches a Slot or Normativity keyword
 INVARIANT:
 - MUST-NOT: depend on its position within the file (documentation guideline; not enforced by validation tooling)
-- MUST-NOT: share its name with another Spec in the same file
+- MUST-NOT: share its name with another Spec or a Design in the same file
+---
+spec: Design
+INPUT:
+- MUST: "be a YAML mapping with a `design` key naming the design block"
+- MUST: follow the same name grammar and keyword restrictions as a Spec name
+  SEE: Spec
+- MUST: "carry a `type` key stating a brief freeform interpretation hint"
+- MUST: "carry a `content` key whose value is a block scalar holding the freeform body"
+- MUST-NOT: carry any Slot key
+  SEE: Slot
+RETURN:
+- MUST: denote a named, typed body of normative freeform content
+- MUST: be followed by any implementation bound to it through a USES reference
+  SEE: Reference
+ERROR:
+- MUST: be rejected when it has no design name
+- MUST: "be rejected when it omits `type` or `content`"
+- MUST: "be rejected when its `type` or `content` value is not a string"
+- MUST: "be rejected when it carries a key other than `design`, `type`, or `content`"
+INVARIANT:
+- MUST-NOT: share its name with another Design or a Spec in the same file
+- MUST-NOT: have its `type` value validated against a closed set by tooling
+- MUST-NOT: have References recognized inside its content
+  SEE: Reference
 ---
 spec: Slot
 INPUT:
 - MUST: be one of INPUT, RETURN, ERROR, SIDE-EFFECT, or INVARIANT
 - MUST: hold a list of Obligations
-  USES: Obligation
+  SEE: Obligation
 RETURN:
 - MUST: group obligations that describe the same facet of what the spec describes
 ERROR:
@@ -98,8 +125,8 @@ RETURN:
 - MUST: state what the spec accepts, and which parts are required or optional
 - MUST: state the validation or preconditions applied to those inputs
 - WHEN: the input is the data another spec's slot produces
-  MUST: name that producing spec and slot with a USES reference, and state which of its guarantees this spec relies on without re-validating
-  USES: Reference
+  MUST: name that producing spec and slot with a slot-targeted CONFORMS reference, and state which of its guarantees this spec relies on without re-validating
+  SEE: Reference
 - WHEN: a guarantee of that producing slot is relied on without re-validation
   MUST: state what the spec does if that guarantee does not hold, even if only to declare the behavior unspecified
 - WHEN: the slot selects behavior from a closed set of input values
@@ -134,29 +161,29 @@ spec: Obligation
 INPUT:
 - MUST: be a YAML mapping
 - MUST: carry exactly one Normativity keyword unless it is reference-only
-  USES: Normativity
+  SEE: Normativity
 - MAY: carry one Guard
-  USES: Guard
+  SEE: Guard
 - MAY: carry one or more References
-  USES: Reference
+  SEE: Reference
 RETURN:
 - WHEN: it carries a Normativity keyword
   MUST: express a single requirement on what the spec describes
 - WHEN: it is reference-only
   MUST: add no obligation of its own, leaving its references to resolve per their relation
-  USES: Reference
+  SEE: Reference
 ERROR:
 - MUST: "be rejected when prose containing `: ` is left unquoted"
 - MUST: be rejected when it carries neither a Normativity keyword nor a Reference
 - MUST: be rejected when it carries a Guard but no Normativity keyword
-  USES: Guard
+  SEE: Guard
 - MUST: be rejected when its value at a scalar position is a YAML mapping, sequence, or null
 - MUST: be rejected when it carries the same Normativity keyword more than once
-  USES: Normativity
+  SEE: Normativity
 INVARIANT:
 - MUST-NOT: carry the same Reference relation key more than once
 - MUST: be defined as reference-only iff it carries at least one Reference relation key AND carries no Normativity keyword AND carries no WHEN guard
-  USES: Reference
+  SEE: Reference
 ---
 spec: Normativity
 INPUT:
@@ -180,7 +207,7 @@ RETURN:
 - MUST: express a sufficient condition under which the obligation applies
 ERROR:
 - MUST: be rejected when it stands alone with no Normativity keyword
-  USES: Normativity
+  SEE: Normativity
 INVARIANT:
 - CONFORMS: Keyword::INVARIANT
 - MUST-NOT: express a necessary condition
@@ -189,32 +216,38 @@ spec: Reference
 INPUT:
 - MUST: be one of the relation keys CONFORMS, USES, or SEE
 - MUST: take a single RefTarget string as its value
-  USES: RefTarget
+  SEE: RefTarget
 RETURN:
 - WHEN: the relation is CONFORMS
   MUST: mean the obligation must match the referenced spec or slot
 - WHEN: the relation is USES
-  MUST: mean the obligation's behavior depends on or draws on the referenced spec or slot
-- WHEN: the relation is USES and its target names a slot
-  MUST: mean the obligation consumes or builds on the data that slot produces, so that slot's stated guarantees characterize the data at the boundary
+  MUST: mean the referenced Design binds the obligation, so an implementation follows its content
+  SEE: Design
+- WHEN: the relation is USES and the obligation carries a Guard
+  MUST: scope when the referenced Design binds by that guard
+  SEE: Guard
 - WHEN: the relation is SEE
-  MUST: mean the referenced spec is related context the obligation does not depend on
+  MUST: mean the referenced spec or design is related context the obligation does not depend on
 ERROR:
-- MUST: be rejected when its target does not resolve to an existing spec or slot
-  USES: RefTarget
+- MUST: be rejected when its target does not resolve to an existing spec, slot, or design
+  SEE: RefTarget
+- WHEN: the relation is CONFORMS
+  MUST: be rejected when its target resolves to a Design rather than a spec or slot
+- WHEN: the relation is USES
+  MUST: be rejected when its target resolves to a spec or slot rather than a Design
 - WHEN: "the relation target names a slot via `::SLOT`"
   MUST: be rejected when the referenced spec does not declare that slot in its source document
-  USES: RefTarget
+  SEE: RefTarget
 SIDE-EFFECT:
 - WHEN: the relation is CONFORMS and its target names a slot
   MUST: be inlined into the referencing spec when resolved
 - WHEN: the relation is CONFORMS and its target names a whole spec with no slot
   MUST-NOT: be inlined, because a whole-spec CONFORMS is a conformance reference rather than a slot transclusion
 - WHEN: the relation is USES
-  MAY: be inlined when the referencing spec is resolved
+  MUST: append the referenced Design's typed content to the emitted fragment when resolved, once per Design even when multiple obligations reference it
 - WHEN: the relation is SEE
   MUST-NOT: be inlined
-- MUST: carry provenance as a comment naming the source ref when inlined
+- MUST: carry provenance as a comment naming the source ref when inlined or appended
 - WHEN: an inlined obligation carries its own Guard and the carrier obligation also carried a Guard
   MUST: apply only when both guards hold, the carrier's guard conjoined with the inlined obligation's own guard
 INVARIANT:
@@ -222,27 +255,29 @@ INVARIANT:
 ---
 spec: RefTarget
 INPUT:
-- MUST: "name a spec, bare for the same file or as `path@SpecName` for another file"
-- MAY: "address a slot by appending `::SLOT`"
+- MUST: "name a spec or design, bare for the same file or as `path@SpecName` for another file"
+- MAY: "address a slot by appending `::SLOT` when the target is a spec"
 RETURN:
-- MUST: address the whole spec when no slot is given
+- MUST: address the whole spec or design when no slot is given
 - WHEN: a slot is given
   MUST: address that slot of the spec
-  USES: Slot
+  SEE: Slot
 - WHEN: "the path begins with `./` or `../`"
   MUST: resolve relative to the referencing file
 - WHEN: the path has no leading dot
   MUST: resolve from the project root
 - MUST: "treat the path token as a POSIX-style relative path with `/` separators"
 - MUST: "append the literal suffix `.yass.yaml` to the path token to produce the target file path"
-- MUST: compare paths and spec names with case-sensitive byte comparison
+- MUST: compare paths and document names with case-sensitive byte comparison
 - MUST-NOT: search alternative basenames or extensions for the target file
-- MUST: "resolve `./order.items@Foo` to `<dir-of-referencing-file>/order.items.yass.yaml` and the spec named `Foo`"
-- MUST: "resolve `order@Foo` to `<project-root>/order.yass.yaml` and the spec named `Foo`"
+- MUST: "resolve `./order.items@Foo` to `<dir-of-referencing-file>/order.items.yass.yaml` and the spec or design named `Foo`"
+- MUST: "resolve `order@Foo` to `<project-root>/order.yass.yaml` and the spec or design named `Foo`"
 ERROR:
 - MUST: "be rejected when it is not well-formed per the `path@SpecName::SLOT` grammar"
 - MUST: be rejected when the slot is outside the recognized set
-  USES: Slot
+  SEE: Slot
+- MUST: "be rejected when `::SLOT` is appended to a target that resolves to a Design, because a Design carries no slots"
+  SEE: Design
 - MUST: "be rejected when the path token contains a backslash or any character outside `[A-Za-z0-9._/-]`"
 - MUST: "be rejected when the spec-name token contains any character outside `[A-Za-z0-9._-]`"
 - MUST: "be rejected when the slot token contains any character outside `[A-Z-]`"
