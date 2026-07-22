@@ -1,0 +1,43 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  kiln fire: the fire subcommand and the producer of the fire | report
+  pipeline. It reads a load manifest from standard input, rejects malformed
+  records with the shared error registry, and for each accepted LOAD record
+  runs the firing procedure -- the four firing stages in the fixed order this
+  spec states -- writing one stage line per stage and one grade line per
+  record. This spec is the single home for the firing procedure: the execution
+  order of the stages is stated here and nowhere else.
+version: v1
+related:
+- ./kiln.shared.yass.yaml
+- ./kiln.stages.yass.yaml
+---
+spec: kiln.fire
+INPUT:
+- MUST: run when the program's first command-line argument is fire
+- MUST: "segment standard input into records and fields exactly as the shared segmentation rules state"
+  CONFORMS: ./kiln.shared@kiln.lines::INPUT
+- MUST: "accept exactly the records that are well-formed load records by the shared record format, and reject every other record"
+  CONFORMS: ./kiln.shared@kiln.record::INPUT
+RETURN:
+- MUST: "run the firing procedure once for each accepted record: exactly the four firing stages, each exactly once, in exactly this order: first SOAK, then SEAL, then VENT, then RAMP; this order is normative -- it is not alphabetical order and it is not the order in which the stage specs are documented in their file"
+- MUST: "start the procedure with the record's base firing index as the running index, pass each stage's produced index to the next stage in the procedure, and take the index the last stage produces as the final firing index"
+- MUST: "write the four stage lines in execution order as the stages run, then exactly one grade line for the record's final firing index"
+  CONFORMS: ./kiln.shared@kiln.grade::INVARIANT
+- MUST: "process records in input order and write all of one record's stage and grade lines before processing the next record, so lines of different records never interleave"
+- MUST: "exit with the maximum exit contribution across all records: 0 when standard input is empty or every record grades DONE, otherwise the largest applicable of 1 for a rejected record, 2 for a G10 grade, and 3 for a G90 grade"
+- USES: ./kiln.stages@kiln.ramp
+- USES: ./kiln.stages@kiln.seal
+- USES: ./kiln.stages@kiln.soak
+- USES: ./kiln.stages@kiln.vent
+ERROR:
+- MUST: "reject a record exactly as the shared record format states, writing that record's single error line to standard error and no standard-output line for it"
+  CONFORMS: ./kiln.shared@kiln.record::ERROR
+- MUST: "treat the error set E10, E25, E15, and E20 as exhaustive over every record: every record is either rejected by exactly one of those named errors or accepted and fired; the residual set is empty, so no guard-less catch-all error obligation MUST be stated, since it could never fire"
+SIDE-EFFECT:
+- MUST-NOT: "write to any file, network endpoint, or environment variable; read only standard input and write only standard output and standard error"
+- SHOULD-NOT: hold more than one record's output lines in memory before writing them
+INVARIANT:
+- MUST: "carry the running firing index as an exact, possibly negative, integer; write a negative index with a leading ASCII minus sign and no other sign, padding, or grouping"
+- MUST: "write exactly five standard-output lines for each accepted record -- four stage lines then one grade line -- and none for a rejected record"
