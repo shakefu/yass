@@ -36,7 +36,7 @@ one-shot outcome, and is routed to tooling (`lint-anti-slop`), not a language ch
 | `mapping-valued-obligations` | repeated | wontfix (refuted ×2) | Obligation values are scalar-only; proposed allowing mappings to carry code/priority/metadata (claimed ROOT enabler). Round-01: prose-packed error registry → 0 functional misses (small scale). **Round-03: an 18-row registry packed into scalar prose obligations caused 0 copy errors across 4 models; the code→class→message mapping survived being read in two places (certify + report).** Hypothesized correctness defect refuted; residual value is ergonomic/lint only → `lint-anti-slop`. |
 | `priority-chains-prose` | universal | wontfix (refuted ×2) | Ordered "emit first matching" chains live as prose; proposed a PRIORITY/ORDERED construct. Round-01: 8-step prose chain read correctly by 4/4. **Round-03: an 18-entry precedence order, deliberately non-monotonic with both severity class and code number, was read exactly by 4/4 — every precedence batch (the deciding measurement distinguishing the prose order from "most severe wins" / "lowest code wins") passed.** Correctness defect refuted at adversarial scale; residual value ergonomic only (idiom lint → `lint-anti-slop`, TOOLING.md). Round-03 prune: removed the corresponding "Treat an ordered list as ordered and step-addressable" recommendation (Part 2 §1) from `context/RECOMMENDATIONS.md`. |
 | `cross-spec-sequencing` | universal | wontfix (refuted round-05) | No dedicated construct to express execution sequencing/preconditions between specs; USES conflates call/depend/after. Was: need REQUIRES/AFTER. Round-02: the header-gate idiom (E40/E41 + write-nothing + reject-all + exit 2, paired with a `USES …::RETURN` pointer) expressed the **dataflow** sequencing case correctly for 4/4. **Round-05 (4/4 clean): `scale.weigh`'s "a WEIGH requires a prior TARE for the same vehicle id earlier in the input" — a non-dataflow, per-identifier stateful precondition — was expressed with a normative prose obligation + a `USES ./scale.tare@scale.tare` pointer (no REQUIRES/AFTER key) and implemented correctly cold by all four with zero NOTES confusion.** Both sequencing forms (dataflow header-gate, non-dataflow stateful precondition) are expressible today with normative prose + USES; the REQUIRES/AFTER construct is unwarranted as a correctness need. Refuted. The USES-reads-both-call-and-after overload is an ergonomic/lint observation, not a one-shot-failure defect. |
-| `dataflow-invisible` | universal | resolved | Specs described components, not the dataflow/trust boundary between them. **Round-02 (4/4 STRONG):** all four models flagged that grade/pack consume tally's output without the spec stating which upstream guarantees they trust vs re-validate; all guessed alike → 38/38, but the spec was silent and the `USES …::RETURN` pointer carried only structural meaning. Fixed: `yass.yass.yaml` (`Reference` gives a slot-targeted USES a dataflow reading; `Slot.INPUT` requires naming a producing slot + stating the trust boundary), `yass-reference` (References + Slots), `GUIDANCE` ("Composition"). No schema change — `::SLOT` targets already valid. Pruned `RECOMMENDATIONS.md` Part 2 §2. |
+| `dataflow-invisible` | universal | resolved | Specs described components, not the dataflow/trust boundary between them. **Round-02 (4/4 STRONG):** all four models flagged that grade/pack consume tally's output without the spec stating which upstream guarantees they trust vs re-validate; all guessed alike → 38/38, but the spec was silent and the `USES …::RETURN` pointer carried only structural meaning. Fixed: `yass.yass.yaml` (`Reference` gives a slot-targeted USES a dataflow reading; `Slot.INPUT` requires naming a producing slot + stating the trust boundary), `yass-reference` (References + Slots), `GUIDANCE` ("Composition"). No schema change — `::SLOT` targets already valid. Pruned `RECOMMENDATIONS.md` Part 2 §2. **Round-06: the resolved pattern (producer pointer + stated trust boundary + violation residual) re-validated 4/4 under BOTH carriers — the current `USES …::RETURN` (arm B) and DESIGN-BLOCKS' proposed slot-targeted `CONFORMS …::RETURN` (arm A); the trust-boundary obligations are carrier-independent, clearing the proposal's migration item 1.** |
 | `trust-boundary-violation-residual` | repeated | resolved | A consumer that relies on an upstream guarantee "without re-validating" must also state what it does when that guarantee is **violated** (even if only to declare the behavior unspecified). **Round-03 (3/4 STRONG):** `vault.report` stated the trust boundary (the round-02 `dataflow-invisible` fix, which held) but said nothing about an out-of-contract line (blank / unknown code); gemini, opus, composer each flagged it and **guessed** the `<total>`/class behavior — convergent on outcome, divergent on reasoning. Extends the residual principle (ERROR catch-all, closed-set dispatch) to the trust boundary. Fixed: `yass.yass.yaml` (`Slot.INPUT` new violation-residual obligation), `yass-reference` (References, slot-targeted USES), `GUIDANCE` ("Composition"). Distinct from `dataflow-invisible` (which states *what is trusted*; this states *what happens when trust fails*). |
 | `error-table-structured` | universal | wontfix (refuted ×2) | Large error registry forced into prose MUSTs (code+class+condition+message packed per string). Round-01: compact prose registry (E10–E90) byte-exact for 4/4. **Round-03: an 18-row registry (code, class, condition, byte-exact message) packed into scalar prose was reproduced byte-exact by 4/4 — no paraphrase, no miscopied threshold or class.** Correctness defect refuted at 2× scale; residual value is lint/readability → `lint-anti-slop`. |
 | `error-cardinality-implicit` | repeated | wontfix (refuted ×2) | "at most one per file" vs "one per rule" vs "one per (X,Y) pair" is implicit prose; proposed ONCE-PER/EACH/DEDUP-BY. Round-01: "at most one error line per record" honored by 4/4. **Round-03: one-verdict-per-door AND one-error-line-per-record (both prose) honored by 4/4 — no model emitted one line per triggered defect on multi-defect doors.** Correctness defect refuted; residual value ergonomic only. |
@@ -89,10 +89,11 @@ one-shot outcome, and is routed to tooling (`lint-anti-slop`), not a language ch
 |----|-----------|--------|-------|
 | `man-page-vocabulary` | repeated | open | Realign vocab to man-page sections: CONFORMS→CONFORMS-TO, SEE→SEE-ALSO, ERROR→ERRORS, RETURN→RETURN-VALUE?, add EXIT-STATUS/DIAGNOSTICS/EXAMPLES/OPTIONS. |
 | `example-slot` | universal | open | Add EXAMPLE slot (worked input→output pairs) for emitter/serializer specs. |
-| `slot-model-for-non-functional-specs` | repeated | open | Five function-shaped slots fit procedural/serializer/config specs awkwardly; PROCEDURE/ALGORITHM slot or split SIDE-EFFECT. |
+| `slot-model-for-non-functional-specs` | repeated | open (probed round-06: construct validated, adoption pending decision) | Five function-shaped slots fit procedural/serializer/config specs awkwardly; PROCEDURE/ALGORITHM slot or split SIDE-EFFECT. `context/DESIGN-BLOCKS.md` resolves it as a new **document type** (`design:`), not a slot. **Round-06 two-arm probe: the lifecycle-ordering facet is REFUTED as a correctness need** — a non-obvious multi-spec stage order one-shot 4/4 both with the `design:` block (arm A) and with the strongest current-language expression (coordinating-spec prose + USES backlinks, arm B). The construct itself proved **cold-legible (4/4 functional, zero NOTES confusion)** — adopting it costs nothing in one-shot success, but it cannot claim ordering correctness as justification. Remaining rationale (algorithm/tech-constraint home, USES disambiguation) is ergonomic — see `design-blocks-proposal`. |
 | `intent-field-and-max-lengths` | repeated | open | Bounded per-spec `intent:` field + enforced max lengths on prose fields (tensions no-free-prose non-goal). |
 | `multi-target-refs` | repeated | open | List-valued relation keys (CONFORMS/USES/SEE accept multiple targets). |
 | `root-and-rules-files` | single | open | Explicit `root.yass.yaml` project-root marker + `rules.yass.yaml` for tooling meta-rules. |
+| `design-blocks-proposal` | single (proposal) | open (probed round-06: cold-legible; correctness need refuted; adoption pending decision) | `context/DESIGN-BLOCKS.md`: `design:` document type (name + required freeform `type` + opaque `content`) + repurposed `USES` (→ design only; dataflow → slot-targeted `CONFORMS`; structural links → `SEE`). **Round-06:** its own validation plan is complete with a split result — (1) dataflow-as-CONFORMS re-validated 4/4; (2) lifecycle both ways: arm A (design block) 4/4 functional on the ordering probe with zero NOTES confusion about `design:`/ref-only USES/SEE→design, but arm B (current v1) ALSO 4/4 → the construct answers no one-shot correctness need per the discipline that closed five prior construct requests. The relation/target-kind partition was demonstrated machine-checkable (local ref-check: arm A 20 refs, zero spec→spec USES). Adoption now rests solely on ergonomic grounds (algorithm/tech-constraint home, USES disambiguation, dead-block lint) outside this experiment's charter — a language-owner decision, not an experimental necessity. |
 
 ## Round-01 evidence (2026-06-24) — berth probe, panel gpt / gemini / opus / composer
 
@@ -375,3 +376,70 @@ Grades: **gpt 49/49 (Python), gemini 49/49 (Python), opus 49/49 (Python), compos
   pre-existing open documentation-consolidation item, and the negative-net ambiguity was a
   probe-authoring artifact. The no-new-findings counter advances **0/2 → 1/2**. Round 5 is the
   final scheduled round, so the experiment **HALTS** here regardless of the counter.
+
+## Round-06 evidence (2026-07-22) — kiln probe, panel gpt / gemini / opus / composer
+
+Probe `test-specs/round-06-kiln` is the experimental validation `context/DESIGN-BLOCKS.md`
+demands before landing: **two spec sets pinning byte-identical behavior** (kiln-firing
+controller: one binary, subcommands `fire`/`report`; ten specs across four files per arm),
+graded by one 48-batch oracle, 4 models × 2 arms = 8 cold isolated runs. **Arm A** carries the
+proposed language: a `design: FiringSequence` document (`type: ordered-steps`, opaque `content`)
+is the sole carrier of the firing order, bound via ref-only/attached `USES` (cross-file
+`./kiln.shared@FiringSequence` + one bare same-file ref), one `SEE`→design, the dataflow pointer
+as slot-targeted `CONFORMS ./kiln.fire@kiln.fire::RETURN`, and zero spec→spec `USES` (structural
+links are `SEE`). **Arm B** is the strongest current-v1 expression of the same behavior: the
+coordinating `kiln.fire` spec owns the order as a normative prose obligation, stage specs and
+`kiln.grade` back-reference it with `USES`, dataflow as `USES …::RETURN`. The probe target: the
+mandated stage order **SOAK → SEAL → VENT → RAMP** is deliberately non-obvious (not
+alphabetical/doc order, not reverse, not domain intuition), stated in exactly ONE place per arm,
+with non-commutative per-stage arithmetic (×3, −220, +35, ×2) and one log line per stage so a
+wrong order fails on labels AND values.
+
+Oracle: 48 batches; `--self-check` → SELFTEST OK (incl. rival-order trace divergence for every
+batch base); reference impl 48/48 before the panel; local ref-check `RESULT: CLEAN` (arm A
+20 refs, every `USES` target a design block; arm B 18 refs, all spec/slot). Grades: **gpt A 48/48
++ B 48/48 (Python/Python), gemini A 48/48 + B 48/48 (Python/Python), opus A 48/48 + B 48/48
+(Python/Python), composer A 45/48 + B 48/48 (Go/Go) = 381/384.**
+
+- **Headline — multi-spec lifecycle ordering is REFUTED as a correctness need (A pass + B pass).**
+  All eight runs implemented the non-obvious stage order exactly; no model fell back on
+  alphabetical, documentation order, or domain intuition; zero NOTES confusion about the ordering
+  source in either arm. The strongest current-language expression one-shots as well as the
+  proposed construct, so per the discipline that closed five prior construct requests
+  (structured obligations, REQUIRES/AFTER, OVERRIDES…), the lifecycle case — the last untested
+  residue of the sequencing cluster — is **`wontfix` as a correctness motivation**. Recorded on
+  `slot-model-for-non-functional-specs` and `design-blocks-proposal`.
+- **The `design:` construct is cold-legible (4/4 functional).** All four arm-A models parsed the
+  unfamiliar document type cold, treated its `content` as normative through the `USES` binding,
+  followed cross-file and bare-name refs to it, and read `SEE`→design without comment (opus's
+  NOTES explicitly walk the design block, the CONFORMS boundary, and the empty-residual
+  reasoning). Adopting DESIGN-BLOCKS would not harm one-shot implementation — it just cannot
+  claim correctness as its justification. Adoption is now a design decision on ergonomic grounds
+  (algorithm/tech home, USES disambiguation, dead-block lint), outside the experiment charter.
+- **Dataflow reading re-validated under the migrated carrier (4/4).** Arm A's consumer
+  (`CONFORMS …::RETURN` + stated trust boundary + violation residual) reproduced the resolved
+  `dataflow-invisible` / `trust-boundary-violation-residual` behavior exactly — trusted line
+  shape, no re-validation, all violation inputs (out-of-contract id, wrong field count, unknown
+  token, blank line, wrong-case token) routed to the stated LINES-only residual. Arm B
+  re-verified the current `USES` carrier. The trust-boundary obligations are
+  carrier-independent; DESIGN-BLOCKS migration item 1 is experimentally cleared.
+- **composer arm A 45/48 is a MODEL-ERROR, not a spec-defect.** Misses `fire_tab_is_data`,
+  `fire_cr_is_data`, `rep_tab_is_data` — one root cause, confirmed in source: `strings.Fields`
+  (any-whitespace splitting) against an explicit tab/CR-are-data MUST-NOT — the **identical
+  shortcut composer took in round-01**. Control: the segmentation text is byte-identical in both
+  arms and composer's own arm-B Go impl hand-rolled a byte splitter → 48/48; the other three
+  models were clean in both arms. Uncorroborated single-model miss on unambiguous text.
+- **Regressions held.** `closed-set-dispatch-residual` (incl. bare `-`),
+  `input-segmentation-completeness` + `segmentation-terminator-mechanics` (7/8 runs clean; the
+  eighth is the model-error above), `residual-reachability` (three exhaustiveness assertions, no
+  invented catch-alls), `cross-cutting-single-home`, and slot-targeted CONFORMS transclusion
+  (`::INPUT`/`::ERROR`/`::INVARIANT`) all re-verified in both arms.
+- **NOTES noise was benign:** extra-argv ignored, byte-length ids, `str(int)` negative
+  formatting, and the rejected-record exit contribution read across `kiln.fire`+`kiln.grade`
+  (noted by two models as unambiguous once both specs are read — the single-home pattern working).
+  Not exercised this round: a guarded `USES`→design (guard-scopes-binding rule) — deliberately
+  left out to keep the probe unconfounded; untested if adoption proceeds.
+- **Convergence.** Round 6 produced **no new actionable spec-defect** — both probe questions
+  resolved against a language change (one refuted-as-correctness, one re-validation), and the
+  only miss was a repeat model-error. The no-new-findings counter advances **1/2 → 2/2: the K=2
+  convergence signal is reached.**
