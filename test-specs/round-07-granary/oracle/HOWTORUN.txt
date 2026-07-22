@@ -1,0 +1,90 @@
+round-07-granary oracle -- how to run
+=====================================
+
+The oracle is PRIVATE. It is never copied into a candidate's workspace; it only
+ever runs from this directory, against a candidate binary it invokes itself.
+
+This round is a TWO-ARM clarity probe: spec-arm-a (proposed design-block
+language: `design: AllotmentProcedure` pseudocode + a guarded USES ->
+`design: EmptyFeed`) and spec-arm-b (current v1 language: the same rules as
+declarative obligations) pin the SAME observable behavior byte for byte, so
+this ONE oracle grades candidates built from either arm.
+
+Files
+-----
+  oracle/grade.py   The authoritative grader. Embeds an independent simulator
+                    (simulate_allot / simulate_tally + dispatch; sort-key
+                    distribution) and the batch table. Every batch carries a
+                    hand-pinned expected (stdout, stderr, exit). Compares a
+                    candidate's stdout, stderr, and exit code byte-for-byte
+                    (UTF-8 with surrogateescape -- no whitespace or
+                    trailing-newline normalization).
+  oracle/ref.py     A clean reference implementation of the granary CLI. Coded
+                    independently of grade.py (explicit repeated-selection
+                    scan for the leftover distribution vs the oracle's
+                    sort-key formulation), so a shared bug cannot pass both.
+                    It must score full marks.
+
+The CLI under test
+------------------
+One binary `granary`; argv[1] selects a subcommand from the closed set
+{allot, tally}. The grader appends the subcommand and feeds each batch's stdin.
+
+  granary allot  < manifest -> header gate (`POOL <units>` first record, else
+                               `E40 bad pool header` / exit 2 / no stdout),
+                               claim records (E10/E25/E15/E20, exit 1 on any
+                               rejection), largest-remainder allotment: per-
+                               claim integer floor, integer remainders,
+                               exactly `leftover` extras distributed by
+                               remainder desc / base asc / LATER input
+                               position first; `<id> GET <units>` per claim
+                               in input order + one `REMAIN <r>` line.
+  granary tally  < lines     -> LINES/CLAIMS/UNITS/REMAIN summary, exit 0;
+                               zero-byte input -> the single line
+                               `EMPTY FEED` (the guarded-design case).
+  (missing / unknown / wrong-case / bare `-` argv[1]) -> "usage: granary
+                               {allot|tally}" on stderr, exit 2, no stdout.
+
+Self-check (no candidate needed)
+--------------------------------
+Confirms the oracle's own invariants: every designated trap batch
+DISCRIMINATES (rival models -- earlier-position tie-break, larger-base
+tie-break, per-claim half-up rounding -- each produce output different from
+the pinned expectation); conservation (sum of GET units + REMAIN = pool) over
+every pinned allot expectation; the tie-break truth table on the deciding
+datasets; and that the embedded simulator reproduces every hand-pinned batch
+expectation byte-exactly.
+
+    cd test-specs/round-07-granary
+    python3 oracle/grade.py --self-check
+
+Expect exactly:
+
+    SELFTEST OK
+
+Grade a candidate
+-----------------
+Pass the base command that runs the candidate program; the grader appends the
+subcommand (allot / tally) and feeds each batch's stdin.
+
+    cd test-specs/round-07-granary
+    python3 oracle/grade.py --cmd "<run command>"
+
+Examples:
+
+    python3 oracle/grade.py --cmd "python3 /path/to/candidate/granary.py"
+    python3 oracle/grade.py --cmd "/path/to/candidate/granary"
+
+The grader prints any per-batch FAIL diagnostics (expected vs got, repr'd so
+whitespace and control bytes are visible) and a final line:
+
+    SCORE: <passed>/<total>
+
+A full score means passed == total.
+
+Verify the reference scores full
+--------------------------------
+    cd test-specs/round-07-granary
+    python3 oracle/grade.py --cmd "python3 oracle/ref.py"
+
+Expect SCORE: <total>/<total>.

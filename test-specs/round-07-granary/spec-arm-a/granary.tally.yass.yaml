@@ -1,0 +1,48 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  granary tally: the tally subcommand and consumer of the allot | tally
+  pipeline. It reads the lines granary allot writes to standard output,
+  classifies each line, and writes a four-line summary -- except on completely
+  empty input, where it follows the EmptyFeed procedure instead. It trusts the
+  text allot produced and never re-validates or re-derives it.
+version: v1
+related:
+- ./granary.shared.yass.yaml
+- ./granary.allot.yass.yaml
+---
+spec: granary.tally
+INPUT:
+- MUST: run when the program's first command-line argument is tally
+- MUST: "segment standard input into records exactly as the shared segmentation rules state; each record is one line"
+  CONFORMS: ./granary.shared@granary.lines::INPUT
+- WHEN: standard input is completely empty, containing zero bytes
+  MUST: "follow the EmptyFeed procedure instead of writing the four summary lines"
+  USES: EmptyFeed
+- MUST: "read each record as one line of the text granary allot writes to standard output -- a claim line `<id> GET <units>` or the final line `REMAIN <r>` -- relying on allot's guarantee that a claim line carries GET as its second field and a well-formed non-negative integer as its third, and that the REMAIN line carries exactly two fields with a well-formed non-negative integer second; do not re-validate the identifier and do not re-derive any allotment"
+  CONFORMS: ./granary.allot@granary.allot::RETURN
+- MUST: "classify each record in this order, comparing tokens case-sensitively byte-for-byte: a record whose second field is GET is a claim line; otherwise a record of exactly two fields whose first field is REMAIN and whose second field is a well-formed non-negative integer is a remainder line; every other record -- including a record with zero fields, such as a blank line -- is unclassified"
+- WHEN: a record violates the relied-on shape -- a claim line whose third field is missing or not a well-formed non-negative integer, a REMAIN record with the wrong field count or a malformed number, or any other out-of-contract line
+  MUST: "still count the record toward the LINES total, add nothing to any sum beyond what the classification above yields, and raise no error"
+- MAY: "receive lines granary allot never produced, such as hand-fed or hand-edited lines; they are governed by the classification and violation rules above and are never rejected"
+RETURN:
+- WHEN: standard input is not completely empty
+  MUST: "write exactly four lines to standard output in this order and then exit with status 0: `LINES <total>`, `CLAIMS <claims>`, `UNITS <units>`, `REMAIN <remain>`"
+- MUST: "set <total> to the number of records read, counting every record including an unclassified one"
+- MUST: "set <claims> to the number of claim lines; set <units> to the sum, over the claim lines, of each line's third field when that field is present and a well-formed non-negative integer, adding nothing for a claim line whose third field is missing or malformed; set <remain> to the sum of the remainder lines' second fields"
+SIDE-EFFECT:
+- MUST-NOT: "write anything to standard error or to any file, network endpoint, or environment variable; read only standard input and write only standard output"
+INVARIANT:
+- MUST: always exit with status 0
+- MUST: "classify every record exhaustively: claim line, remainder line, or unclassified per the stated order; every record counts toward the LINES total, so no other catch-all MUST be stated"
+---
+design: EmptyFeed
+type: ordered-steps
+content: |
+  When the tally subcommand's standard input is completely empty (zero
+  bytes):
+
+    1. Write the single line `EMPTY FEED` to standard output.
+    2. Write nothing else, to any stream, and exit with status 0.
+
+  The four summary lines are not written in this case.
