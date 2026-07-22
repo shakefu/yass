@@ -34,6 +34,8 @@ ERROR:
   USES: CribStore
 - WHEN: the subcommand is valid and CRIB_PGDSN is set but the database cannot be reached or the connection is refused
   MUST: "write the line `E51 database unavailable` to standard error, write nothing to standard output, and exit with status 2"
+- WHEN: the subcommand is valid and the connection succeeded but the store fails afterward -- a failed table creation, a lost connection, or any other database error during processing
+  MUST: "write the line `E51 database unavailable` to standard error and exit with status 2; output already written stands, and no further records are processed"
 INVARIANT:
 - MUST: "terminate every line written to standard output or standard error with a single newline byte (0x0A), and write no other line-terminator byte"
 - MUST: "echo any input-derived text in a message, such as a rejected field or a tool identifier, byte-for-byte exactly as it was read"
