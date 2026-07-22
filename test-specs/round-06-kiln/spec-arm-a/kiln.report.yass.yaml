@@ -1,0 +1,36 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  kiln report: the report subcommand and consumer of the fire | report
+  pipeline. It reads the lines kiln fire writes to standard output, classifies
+  each line by its second field alone, and writes a five-line tally. It trusts
+  the text fire produced and never re-validates or re-derives it.
+version: v1
+related:
+- ./kiln.shared.yass.yaml
+- ./kiln.fire.yass.yaml
+---
+spec: kiln.report
+INPUT:
+- MUST: run when the program's first command-line argument is report
+- MUST: "segment standard input into records exactly as the shared segmentation rules state; each record is one line"
+  CONFORMS: ./kiln.shared@kiln.lines::INPUT
+- MUST: "read each record as one line of the text kiln fire writes to standard output -- a stage line `<id> <STAGE> <index>` or a grade line -- relying on fire's guarantee that every such line names a load identifier first and a category token second, and do not re-validate the identifier, the field count, or any index, nor re-derive any stage arithmetic or any grade"
+  CONFORMS: ./kiln.fire@kiln.fire::RETURN
+- MUST: "classify each record by its second field alone, compared case-sensitively byte-for-byte: a second field of RAMP, SEAL, SOAK, or VENT classifies it a stage line, DONE a completed firing, G10 an underfired firing, and G90 an overfired firing"
+  CONFORMS: ./kiln.shared@kiln.grade::INVARIANT
+- WHEN: a record's second field is none of RAMP, SEAL, SOAK, VENT, DONE, G10, or G90, or the record has fewer than two fields -- including a record with zero fields, such as a blank line
+  MUST: "still count the record toward the LINES total but classify it into no category and raise no error; this is the stated behavior whenever the relied-on line shape is violated, such as by a hand-edited or truncated line"
+- MAY: "receive lines kiln fire never produced, such as hand-fed or hand-edited lines; they are governed by the classification and residual rules above and are never rejected"
+- SEE: ./kiln.shared@FiringSequence
+RETURN:
+- MUST: "write exactly five lines to standard output in this order and then exit with status 0: `LINES <total>`, `STAGES <stages>`, `DONE <dones>`, `UNDERFIRED <unders>`, `OVERFIRED <overs>`"
+- MUST: "set <total> to the number of records read, counting every record including one that classified into no category"
+- MUST: "set <stages> to the number of records classified as stage lines, <dones> to the number classified DONE, <unders> to the number classified G10, and <overs> to the number classified G90"
+- WHEN: standard input is empty
+  MUST: write the same five lines with every count equal to 0
+SIDE-EFFECT:
+- MUST-NOT: "write anything to standard error or to any file, network endpoint, or environment variable; read only standard input and write only standard output"
+INVARIANT:
+- MUST: always exit with status 0
+- MUST: "classify every record exhaustively: by its second field into exactly one of stage, DONE, G10, or G90, or into no category under the stated violation rule; every record counts toward the LINES total, so no other catch-all MUST be stated"

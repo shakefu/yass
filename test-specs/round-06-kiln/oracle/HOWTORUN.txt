@@ -1,0 +1,84 @@
+round-06-kiln oracle -- how to run
+==================================
+
+The oracle is PRIVATE. It is never copied into a candidate's workspace; it only
+ever runs from this directory, against a candidate binary it invokes itself.
+
+This round is a TWO-ARM probe: spec-arm-a (proposed design-block language) and
+spec-arm-b (current v1 language) pin the SAME observable behavior byte for
+byte, so this ONE oracle grades candidates built from either arm.
+
+Files
+-----
+  oracle/grade.py   The authoritative grader. Embeds an independent simulator
+                    (simulate_fire / simulate_report + dispatch, data-driven op
+                    table) and the batch table. Every batch carries a
+                    hand-pinned expected (stdout, stderr, exit). Compares a
+                    candidate's stdout, stderr, and exit code byte-for-byte
+                    (UTF-8 with surrogateescape -- no whitespace or
+                    trailing-newline normalization).
+  oracle/ref.py     A clean reference implementation of the kiln CLI. Coded
+                    independently of grade.py's simulators (straight-line
+                    per-stage statements and if-ladders vs the oracle's
+                    data-driven op table), so a shared bug cannot pass both.
+                    It must score full marks.
+
+The CLI under test
+------------------
+One binary `kiln`; argv[1] selects a subcommand from the closed set
+{fire, report}. The grader appends the subcommand and feeds each batch's stdin.
+
+  kiln fire    < manifest -> per accepted LOAD record four stage lines
+                             (SOAK, SEAL, VENT, RAMP -- the mandated order)
+                             plus one grade line (DONE / G10 / G90) to stdout;
+                             per rejected record one error line
+                             (E10/E25/E15/E20) to stderr; exit = max
+                             contribution (DONE 0, error 1, G10 2, G90 3).
+  kiln report  < lines     -> five-line tally (LINES/STAGES/DONE/UNDERFIRED/
+                             OVERFIRED) to stdout, exit 0.
+  (missing / unknown / wrong-case / bare `-` argv[1]) -> "usage: kiln
+                             {fire|report}" on stderr, exit 2, no stdout.
+
+Self-check (no candidate needed)
+--------------------------------
+Confirms the oracle's own invariants: the mandated stage order differs from
+every rival prior (alphabetical / documentation order, reverse documentation
+order, domain intuition) and every rival's trace AND final index diverge from
+the mandated ones for every batch base; the grade boundary truth table
+(2000/2001 and 499/500, negative final -> G10); report token-map consistency;
+and that the embedded simulator reproduces every hand-pinned batch expectation
+byte-exactly.
+
+    cd test-specs/round-06-kiln
+    python3 oracle/grade.py --self-check
+
+Expect exactly:
+
+    SELFTEST OK
+
+Grade a candidate
+-----------------
+Pass the base command that runs the candidate program; the grader appends the
+subcommand (fire / report) and feeds each batch's stdin.
+
+    cd test-specs/round-06-kiln
+    python3 oracle/grade.py --cmd "<run command>"
+
+Examples:
+
+    python3 oracle/grade.py --cmd "python3 /path/to/candidate/kiln.py"
+    python3 oracle/grade.py --cmd "/path/to/candidate/kiln"
+
+The grader prints any per-batch FAIL diagnostics (expected vs got, repr'd so
+whitespace and control bytes are visible) and a final line:
+
+    SCORE: <passed>/<total>
+
+A full score means passed == total.
+
+Verify the reference scores full
+--------------------------------
+    cd test-specs/round-06-kiln
+    python3 oracle/grade.py --cmd "python3 oracle/ref.py"
+
+Expect SCORE: <total>/<total>.
