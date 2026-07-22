@@ -89,11 +89,11 @@ one-shot outcome, and is routed to tooling (`lint-anti-slop`), not a language ch
 |----|-----------|--------|-------|
 | `man-page-vocabulary` | repeated | open | Realign vocab to man-page sections: CONFORMS→CONFORMS-TO, SEE→SEE-ALSO, ERROR→ERRORS, RETURN→RETURN-VALUE?, add EXIT-STATUS/DIAGNOSTICS/EXAMPLES/OPTIONS. |
 | `example-slot` | universal | open | Add EXAMPLE slot (worked input→output pairs) for emitter/serializer specs. |
-| `slot-model-for-non-functional-specs` | repeated | open (probed round-06: construct validated, adoption pending decision) | Five function-shaped slots fit procedural/serializer/config specs awkwardly; PROCEDURE/ALGORITHM slot or split SIDE-EFFECT. `context/DESIGN-BLOCKS.md` resolves it as a new **document type** (`design:`), not a slot. **Round-06 two-arm probe: the lifecycle-ordering facet is REFUTED as a correctness need** — a non-obvious multi-spec stage order one-shot 4/4 both with the `design:` block (arm A) and with the strongest current-language expression (coordinating-spec prose + USES backlinks, arm B). The construct itself proved **cold-legible (4/4 functional, zero NOTES confusion)** — adopting it costs nothing in one-shot success, but it cannot claim ordering correctness as justification. Remaining rationale (algorithm/tech-constraint home, USES disambiguation) is ergonomic — see `design-blocks-proposal`. |
+| `slot-model-for-non-functional-specs` | repeated | wontfix (probed rounds 06–07) | Five function-shaped slots fit procedural/serializer/config specs awkwardly; PROCEDURE/ALGORITHM slot or split SIDE-EFFECT. `context/DESIGN-BLOCKS.md` resolves it as a new **document type** (`design:`), not a slot. **Round-06 two-arm probe: the lifecycle-ordering facet is REFUTED as a correctness need** — a non-obvious multi-spec stage order one-shot 4/4 both with the `design:` block (arm A) and with the strongest current-language expression (coordinating-spec prose + USES backlinks, arm B). The construct itself proved **cold-legible (4/4 functional, zero NOTES confusion)**. **Round-07 probed the algorithm-home CLARITY claim directly under a pre-registered rubric: NULL** — a five-trap largest-remainder algorithm one-shot 8/8 (400/400, zero trap misses) with 0 arm-A vs 1 borderline (self-refuted) arm-B hedger; scattered declarative obligations were read as cleanly as the pseudocode block. Both strongest facets refuted/unsupported for one-shot outcome; the residual serializer/config awkwardness is ergonomic and unfalsifiable by this method → `wontfix` under the charter. See `design-blocks-proposal`. |
 | `intent-field-and-max-lengths` | repeated | open | Bounded per-spec `intent:` field + enforced max lengths on prose fields (tensions no-free-prose non-goal). |
 | `multi-target-refs` | repeated | open | List-valued relation keys (CONFORMS/USES/SEE accept multiple targets). |
 | `root-and-rules-files` | single | open | Explicit `root.yass.yaml` project-root marker + `rules.yass.yaml` for tooling meta-rules. |
-| `design-blocks-proposal` | single (proposal) | open (probed round-06: cold-legible; correctness need refuted; adoption pending decision) | `context/DESIGN-BLOCKS.md`: `design:` document type (name + required freeform `type` + opaque `content`) + repurposed `USES` (→ design only; dataflow → slot-targeted `CONFORMS`; structural links → `SEE`). **Round-06:** its own validation plan is complete with a split result — (1) dataflow-as-CONFORMS re-validated 4/4; (2) lifecycle both ways: arm A (design block) 4/4 functional on the ordering probe with zero NOTES confusion about `design:`/ref-only USES/SEE→design, but arm B (current v1) ALSO 4/4 → the construct answers no one-shot correctness need per the discipline that closed five prior construct requests. The relation/target-kind partition was demonstrated machine-checkable (local ref-check: arm A 20 refs, zero spec→spec USES). Adoption now rests solely on ergonomic grounds (algorithm/tech-constraint home, USES disambiguation, dead-block lint) outside this experiment's charter — a language-owner decision, not an experimental necessity. |
+| `design-blocks-proposal` | single (proposal) | wontfix (rounds 06–07: no experimental mandate — pure design preference) | `context/DESIGN-BLOCKS.md`: `design:` document type (name + required freeform `type` + opaque `content`) + repurposed `USES` (→ design only; dataflow → slot-targeted `CONFORMS`; structural links → `SEE`). **Round-06:** dataflow-as-CONFORMS re-validated 4/4; lifecycle-ordering correctness refuted (A pass + B pass); construct cold-legible (4/4, zero NOTES confusion); relation partition machine-checkable. **Round-07 (clarity probe, pre-registered rubric): NULL** — algorithm-as-design-block vs good-faith scattered obligations, 400/400 with zero trap misses in both arms, hedger counts arm A 0 vs arm B 1 (borderline, self-refuted); the guarded-USES→design rule (untested in r06) cold-covered clean (4/4 `EMPTY FEED`, no over-application). Per the pre-registered disposition table (null + no trap misses): closed as a **pure design preference** — the construct is validated harmless and cold-legible, fixes no correctness defect, and showed no measurable clarity advantage; its remaining rationale (tech-constraint home, relation disambiguation, dead-block lint) is unfalsifiable by black-box one-shot outcome. Adoption stays a legitimate language-owner call outside the charter; nothing in the evidence mandates it. |
 
 ## Round-01 evidence (2026-06-24) — berth probe, panel gpt / gemini / opus / composer
 
@@ -443,3 +443,60 @@ batch base); reference impl 48/48 before the panel; local ref-check `RESULT: CLE
   resolved against a language change (one refuted-as-correctness, one re-validation), and the
   only miss was a repeat model-error. The no-new-findings counter advances **1/2 → 2/2: the K=2
   convergence signal is reached.**
+
+## Round-07 evidence (2026-07-22) — granary probe, panel gpt / gemini / opus / composer
+
+Probe `test-specs/round-07-granary` measured the DESIGN-BLOCKS **clarity claim** directly —
+round-06 having settled correctness — with a **measurement design pre-registered in PLAN.md
+before any panel run**. Two arms, byte-identical behavior (communal granary: `allot`/`tally`;
+largest-remainder allotment with five explicit traps: per-claim integer floor never-half-up,
+exact integer remainder numerators, exactly-`leftover` distribution with ≤1 extra per claim,
+the non-conventional tie-break remainder-desc → base-asc → **later-position-first**, and the
+zero-total residual). **Arm A:** the computation solely in `design: AllotmentProcedure`
+(`type: pseudocode`, bare `USES:` binding) + `design: EmptyFeed` bound via a **guarded**
+`WHEN … MUST … USES:` (the guarded-USES→design rule flagged untested in round-06), made
+observable-if-ignored (zero-byte tally input → `EMPTY FEED`, not the four summary lines).
+**Arm B (good-faith current v1):** identical rules as declarative obligations scattered across
+INPUT / four guarded RETURN obligations / INVARIANT; dataflow `USES …::RETURN`. Signal =
+differential only: PRIMARY a pre-registered NOTES rubric (HEDGE/MISDESCRIPTION/RESTATEMENT,
+algorithm-scoped; positive = ≥2 arm-B hedgers with ≤1 arm-A; reverse = ≥2 arm-A), SECONDARY
+corroborated trap-batch misses in one arm, TERTIARY duration (descriptive only).
+
+Oracle: 50 batches; `--self-check` → SELFTEST OK (incl. proof every trap batch discriminates
+its rival models: input-order, larger-base, earlier-position, half-up); reference impl 50/50
+and ref-check `RESULT: CLEAN` (arm A: 8 refs, both USES→design, zero spec→spec USES) before
+the panel. Grades: **gpt A 50/50 + B 50/50 (Python/Python), gemini A 50/50 + B 50/50
+(Python/Python), opus A 50/50 + B 50/50 (Python/Python), composer A 50/50 (Python) + B 50/50
+(Go) = 400/400, zero misses of any kind; the model-error ledger is empty.**
+
+- **Headline — the clarity claim is NOT experimentally supported: PRIMARY outcome NULL.**
+  Hedger counts (rubric applied independently by author and lead, agreeing): **arm A 0, arm B
+  1** — gemini-B's tie-break item ("relative index among accepted claims or absolute among all
+  records — I assumed absolute") is a literal HEDGE but the model itself proved the two
+  readings order identically (vacuous; the same distinction exists verbatim in arm A's design
+  block, where nobody raised it). Borderline against arm A: composer-A's "Interpreted as"
+  tie-break item — classed RESTATEMENT (content is the explicit spec text, no alternative
+  reading, correct and confident). Neither the positive (≥2 vs ≤1) nor the reverse (≥2 arm-A)
+  threshold was approached. Scattered declarative obligations were read as cleanly as the
+  pseudocode block.
+- **SECONDARY — zero trap-batch misses in either arm.** All floor edges, all three tie-break
+  levels, exact-division zero-iteration, zero-weight exclusion, zero-total residual,
+  rejected-record non-participation, and the exactness case passed 8/8. No
+  correctness-at-the-margin differential.
+- **TERTIARY — durations (descriptive only, per the pre-registration):** arm A faster for 3/4
+  models (gpt 102 s vs 155 s; gemini 175 vs 238; composer 92 vs 155; opus ~flat 223 vs 217);
+  never decision-weight.
+- **Guarded-USES→design — cold-covered, clean (secondary target).** All four arm-A models
+  followed the guarded binding (`EMPTY FEED` on zero bytes, included in their 50/50) and none
+  over-applied it (the `"\n"`-is-not-empty boundary passed 8/8); zero NOTES confusion about
+  the construct or either binding. The round-06 coverage gap is closed.
+- **Disposition per the pre-registered outcome table (null + no trap misses):**
+  `design-blocks-proposal` → **wontfix — pure design preference, no experimental mandate**
+  (validated harmless and cold-legible across rounds 06–07; fixes no correctness defect; no
+  measurable clarity advantage; remaining rationale unfalsifiable by this method — adoption
+  stays an owner call). `slot-model-for-non-functional-specs` → **wontfix (probed rounds
+  06–07)**: both of its strongest facets (lifecycle procedure, algorithm home) now
+  refuted/unsupported for one-shot outcome.
+- **Convergence.** Round 7 produced **no new actionable spec-defect and no miss at all** — the
+  third consecutive no-new-findings round (05, 06, 07). The K=2 convergence signal, first
+  reached at round-06, is exceeded; the language is stable against this probe family.
