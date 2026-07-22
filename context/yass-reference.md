@@ -17,7 +17,7 @@ consumes them to drive test (TDD) and implementation generation.
 
 - **Required**, **exactly one**, and **MUST be the first** document of every file.
   Making it mandatory simplifies parsing and validation.
-- Identified structurally by the **absence of a `spec:` key**.
+- Identified structurally by the **absence of a `spec:` or `design:` key**.
 - The file name is the identity of the whole unit; the preamble does **not** repeat it.
 - Keys:
   - `description` — **required**; file-level summary (block scalar `>` allowed).
@@ -38,6 +38,39 @@ consumes them to drive test (TDD) and implementation generation.
 - Granularity: **one public symbol / endpoint → one spec.** Also the unit of retrieval.
 - The five slots are themselves defined in `yass.yass.yaml` as `Slot.INPUT`, `Slot.RETURN`,
   `Slot.ERROR`, `Slot.SIDE-EFFECT`, and `Slot.INVARIANT`.
+
+## Design document
+
+- A `design:` key naming the block, plus **required** `type` and `content` keys — and
+  **no slots**. A peer of `spec:` in the YAML stream:
+
+  ```yaml
+  ---
+  design: StartupSequence
+  type: ordered-steps
+  content: |
+    1. Warm the cache
+    2. Connect the database
+    3. Mark the service live
+  ```
+
+- Names share the **file-wide uniqueness namespace** with spec names (same name
+  grammar), so a ref target stays unambiguous — a bare name or `path@Name` resolves to
+  exactly one document, spec or design.
+- `type` — **required**; a brief freeform interpretation hint, one or two words
+  (`pseudocode`, `ordered-steps`, `constraint`, `stack`, …), **opaque to tooling**.
+  Deliberately not a closed set: tooling never branches on the value, so there is no
+  out-of-set case to pin.
+- `content` — **required block scalar**. The body is **opaque**: no refs are recognized
+  inside it.
+- **Normative force:** an implementation bound to a design block via reference MUST
+  follow it. The block is not commentary; it binds through the reference graph (the
+  `USES` relation — see *References*).
+- The home for normative content that is not an obligation on observable behavior:
+  algorithms / pseudocode, technology or stack constraints from outside forces, and
+  multi-spec lifecycle procedures that have no owning symbol.
+- An **unreferenced design block is dead weight** — declared normative content nothing
+  binds to — and is flagged by lint.
 
 ## Slots
 
@@ -94,14 +127,15 @@ An obligation is a **YAML mapping** (a list item under a slot):
   obligation, value = a **single** ref-target string.
 - **Ref-only** — a mapping with one or more relation keys and **no** normativity keyword
   and **no** `WHEN`. Allowed; it adds no obligation of its own and resolves per its
-  relation (only a **slot-targeted** `CONFORMS` transcludes; a whole-spec `CONFORMS`
-  stays in place as a conformance reference).
+  relation (a **slot-targeted** `CONFORMS` transcludes; a whole-spec `CONFORMS` stays in
+  place as a conformance reference; a ref-only `USES` — a bare `- USES: Name` list item —
+  transcludes too, appending its design block's content).
 
 ## References
 
 - Relation is the **YAML key**; target is a **single string**.
 - **Target syntax:** `path@SpecName::SLOT`
-  - A **bare spec name** (`SpecName`) addresses a spec in the **same file**.
+  - A **bare name** (`SpecName`) addresses a spec or design in the **same file**.
   - `@` separates a path from the spec name (`path@SpecName`) for **other files**.
   - `::` separates the spec name from a slot (`SpecName::SLOT`); omit it to address the
     whole spec.
@@ -109,16 +143,22 @@ An obligation is a **YAML mapping** (a list item under a slot):
     path without a leading dot is **from the project root**. The `.yass.yaml` extension
     is omitted.
   - The **slot is the finest addressable unit**. Named anchors, never line numbers.
+    Slots belong to specs only: **`::SLOT` on a target that resolves to a design is a
+    validation error** — a design carries no slots.
   - (`#` was rejected as a separator — a leading `#` is a YAML comment, and `@` is a
     reserved YAML indicator that can't start a plain scalar either. Making same-file refs
     bare names means no target ever leads with an indicator, so none need quoting.)
 - **Relations:**
 
-  | Relation   | Resolution                       | Meaning                                                   |
-  |------------|----------------------------------|-----------------------------------------------------------|
-  | `CONFORMS` | slot: inlined; whole-spec: not   | hard requirement — must match the referenced spec or slot |
-  | `USES`     | pointer, MAY inline              | behavior depends on / draws on the target                 |
-  | `SEE`      | pointer, never inlined           | related context the behavior does not depend on           |
+  | Relation   | Target         | Resolution                     | Meaning                                          |
+  |------------|----------------|--------------------------------|--------------------------------------------------|
+  | `CONFORMS` | spec or slot   | slot: inlined; whole-spec: not | hard requirement — must match the spec or slot   |
+  | `USES`     | design block   | content appended + provenance  | binding design the implementation must follow    |
+  | `SEE`      | spec or design | pointer, never inlined         | related context the behavior does not depend on  |
+
+  **Each relation has exactly one target kind.** A relation/target-kind mismatch —
+  `USES` → spec, `CONFORMS` → design — is a **validation error**, so the
+  CONFORMS-vs-USES distinction is machine-checkable rather than a judgment call.
 
   `CONFORMS` is a hard requirement with **two aspects of one meaning**: the carrier must
   **match** the referenced spec or slot, and inlining is *how* that match is made
@@ -127,10 +167,12 @@ An obligation is a **YAML mapping** (a list item under a slot):
   a conformance reference to the entire spec — it is **not** transcluded (there is no
   single slot to splice); the conformer must satisfy the referenced spec as a whole. This
   matches the language meaning that `CONFORMS` must "match the referenced spec **or**
-  slot." `USES` is a pointer that tooling MAY inline (e.g. surface once per session);
-  `SEE` is a pure pointer, never inlined. The discriminator: use `USES` when the
-  obligation's behavior depends on or draws on the target, `SEE` when the target is merely
-  related context.
+  slot." `USES` binds the carrier to a **design block**: resolution appends the block's
+  typed content to the emitted fragment, **once**, with a provenance comment
+  (`# USES: StartupSequence`), deduplicated when several obligations reference the same
+  block — a design block has no obligations to splice into a slot. When a guarded
+  obligation carries a `USES`, the guard scopes **when the design binds**. `SEE` is a
+  pure pointer, never inlined.
 
 - **Guards conjoin when an inlined obligation is itself guarded.** When a slot-targeted
   `CONFORMS` carrier has a `WHEN` guard and an inlined obligation carries its own `WHEN`,
@@ -138,15 +180,16 @@ An obligation is a **YAML mapping** (a list item under a slot):
   conjoined with the inner guard. (This is the language-level meaning; how a tool renders
   the combined guard text is the tool's concern.)
 
-- **Slot-targeted `USES` carries a dataflow reading.** When a `USES` target names a slot
-  — characteristically an `INPUT` that points at a producer's `RETURN`,
-  `USES <producer>::RETURN` — it means the obligation **consumes or builds on the data
-  that slot produces**: the data crossing the boundary is exactly what that slot yields,
-  so the producer's `RETURN` guarantees characterize it here. This is the structural
-  anchor for a pipeline or producer/consumer relationship. It does **not** by itself
-  decide the trust boundary — which of the producer's guarantees the consumer relies on
-  versus re-checks is the consuming spec's own obligation to state (see GUIDANCE,
-  *Composition*). That obligation includes the **residual on violation**: for each
+- **Slot-targeted `CONFORMS` carries the dataflow reading.** When one spec's `INPUT`
+  consumes the data another spec's slot produces — characteristically an `INPUT` that
+  points at a producer's `RETURN`, `CONFORMS <producer>::RETURN` — it means the
+  obligation **must match the data that slot produces**: the data crossing the boundary
+  is exactly what that slot yields, so the producer's `RETURN` guarantees characterize
+  it here, and inlining puts those guarantees in front of the consumer's `INPUT`. This
+  is the structural anchor for a pipeline or producer/consumer relationship. It does
+  **not** by itself decide the trust boundary — which of the producer's guarantees the
+  consumer relies on versus re-checks is the consuming spec's own obligation to state
+  (see GUIDANCE, *Composition*). That obligation includes the **residual on violation**: for each
   guarantee the consumer relies on without re-validating, the consuming spec must also
   state what it does if that guarantee does not hold — even if only to declare the
   behavior unspecified. Stating the trust without pinning its violation leaves every
@@ -163,7 +206,8 @@ Fixed-meaning keywords are written **UPPERCASE**; content-bearing field keys are
   `RETURN`, `ERROR`, `SIDE-EFFECT`, `INVARIANT`), normativity (`MUST`, `MAY`, …), the
   guard `WHEN`, and the relations (`CONFORMS`, `USES`, `SEE`). Also the slot portion of a
   ref target (the part after `::`).
-- **lowercase** (labels for values): `spec`, `description`, `version`, `related`.
+- **lowercase** (labels for values): `spec`, `design`, `type`, `content`, `description`,
+  `version`, `related`.
 - In **prose**, write a keyword UPPERCASE when you mean the keyword itself (e.g. "the
   `RETURN` slot"), so it cannot be confused with the ordinary word.
 
@@ -182,7 +226,8 @@ than restating it.
 ## Provenance (emitted fragments)
 
 - Inlined obligations carry a YAML comment naming the source, e.g.
-  `# CONFORMS: db/user@User::RETURN`.
+  `# CONFORMS: db/user@User::RETURN`. Appended design blocks carry the same, e.g.
+  `# USES: StartupSequence`.
 - An emitted fragment identifies the **queried** spec; there is **no host `file:`
   header** (redundant and able to contradict — the filesystem is the source of truth).
 
@@ -205,10 +250,8 @@ than restating it.
 - Resolution: a **slot-targeted** `CONFORMS` is inlined into the referencing spec (one level
   in v1; cycles, transitive resolution, batching, and depth are deferred); a **whole-spec**
   `CONFORMS` (no `::SLOT`) is not inlined — it is a conformance reference to the entire spec.
-  `SEE` is a pure pointer, never inlined. `USES` is a pointer that tooling **MAY** inline.
-- Idea (undiscussed until now, not in v1): tooling MAY surface each `USES` target **once
-  per calling session** as its own appended doc fragment — present in context but not
-  repeated, and not inlined into the referencing spec. `SEE` would stay a pure pointer.
+  `SEE` is a pure pointer, never inlined. `USES` appends its design block's typed content
+  to the emitted fragment, once per block, with provenance.
 - Drift detection (content hashing) is deferred to a generated index.
 - Verification is out of scope — tooling routes/retrieves, never verifies obligation
   content (keeps it language-agnostic). A `COMPATIBLE` relation was deliberately
