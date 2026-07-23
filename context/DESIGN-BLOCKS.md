@@ -1,11 +1,15 @@
 # Design Blocks — a second document type
 
-Status: proposal, not decided. Captures a design discussed for v1: a new document
-type (`design:`) carrying named, typed, freeform normative content — algorithms,
-technology constraints, multi-spec lifecycle procedures — and a repurposing of the
-`USES` relation to target design blocks exclusively. yass is pre-release (v0.0.x);
-as with MAN-ALIGNMENT.md, this is in-development shaping of what v1 *says*, not a
-migration. Nothing below is decided.
+Status: **drafted into the language on `goal-experiment`** (PR #16, merged
+2026-07-22) as an evaluation draft — a new document type (`design:`) carrying
+named, typed, freeform normative content — algorithms, technology constraints,
+multi-spec lifecycle procedures — and a repurposing of the `USES` relation to
+target design blocks exclusively. Experiment rounds 06–08 found no one-shot
+correctness, clarity, or compliance differential (see `experiment/FINDINGS.md`,
+`design-blocks-proposal`); the merge is a preference-based draft adoption for
+manual/authoring evaluation, not a validated necessity. yass is pre-release
+(v0.0.x); this remains in-development shaping of what v1 *says*, not a
+migration. No CLI implements the resolution semantics yet.
 
 ## Motivation
 
