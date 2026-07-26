@@ -1,9 +1,6 @@
-# yass — Authoring Guidance (holding doc)
+# yass — Authoring Guidance
 
-Steerage for AI agents (and humans) writing yass specs. This is a **holding doc**: the
-rules here emerge from trial-and-error using the specs, and their final home is TBD —
-some may become language-level meta-rules, others may stay as guidance. Nothing here is
-settled; it exists so the guidance is not lost while we figure out where it belongs.
+Steerage for AI agents (and humans) writing yass specs.
 
 ## Guiding principle
 
