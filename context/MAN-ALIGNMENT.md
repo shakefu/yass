@@ -196,5 +196,13 @@ self-definition and spec set before this lands.
    to the structured-obligation overhaul or kept independent?
 5. Hyphen as the multi-word separator is assumed throughout (consistent with
    `MUST-NOT`/`SIDE-EFFECT`); confirm we never want spaces-in-quoted-keys instead.
-6. Does `USES` stay as the single in-house relation, or does its lack of a man
-   anchor justify re-examining the dependency middle entirely?
+6. ~~Does `USES` stay as the single in-house relation, or does its lack of a man
+   anchor justify re-examining the dependency middle entirely?~~ **Answered: `USES`
+   stays; no fourth relation.** The dependency middle is already covered by the
+   existing three-way partition once the relations are read on the right axes:
+   `CONFORMS` = must match (spec or slot), `USES` = a binding design block, `SEE` =
+   the open-ended pointer that resolves to nothing and imposes nothing. A dependency
+   that is neither a match-requirement nor a design binding — dispatch, run-after
+   ordering, plain cross-reference — is carried by the obligation's own prose with a
+   `SEE` naming the target; it needs no relation of its own. The lack of a man anchor
+   for `USES` is a naming concern, not a structural gap.
