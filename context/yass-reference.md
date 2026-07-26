@@ -150,15 +150,16 @@ An obligation is a **YAML mapping** (a list item under a slot):
     bare names means no target ever leads with an indicator, so none need quoting.)
 - **Relations:**
 
-  | Relation   | Target         | Resolution                     | Meaning                                          |
-  |------------|----------------|--------------------------------|--------------------------------------------------|
-  | `CONFORMS` | spec or slot   | slot: inlined; whole-spec: not | hard requirement — must match the spec or slot   |
-  | `USES`     | design block   | content appended + provenance  | binding design the implementation must follow    |
-  | `SEE`      | spec or design | pointer, never inlined         | related context the behavior does not depend on  |
+  | Relation   | Target                | Resolution                     | Meaning                                          |
+  |------------|-----------------------|--------------------------------|--------------------------------------------------|
+  | `CONFORMS` | spec or slot          | slot: inlined; whole-spec: not | hard requirement — must match the spec or slot   |
+  | `USES`     | design block          | content appended + provenance  | binding design the implementation must follow    |
+  | `SEE`      | spec, slot, or design | pointer, never inlined         | open-ended pointer — imposes nothing on its own  |
 
-  **Each relation has exactly one target kind.** A relation/target-kind mismatch —
-  `USES` → spec, `CONFORMS` → design — is a **validation error**, so the
-  CONFORMS-vs-USES distinction is machine-checkable rather than a judgment call.
+  **`CONFORMS` and `USES` each pin a target kind; `SEE` takes any.** A
+  relation/target-kind mismatch — `USES` → spec, `CONFORMS` → design — is a **validation
+  error**, so the CONFORMS-vs-USES distinction is machine-checkable rather than a
+  judgment call.
 
   `CONFORMS` is a hard requirement with **two aspects of one meaning**: the carrier must
   **match** the referenced spec or slot, and inlining is *how* that match is made
@@ -171,8 +172,23 @@ An obligation is a **YAML mapping** (a list item under a slot):
   typed content to the emitted fragment, **once**, with a provenance comment
   (`# USES: StartupSequence`), deduplicated when several obligations reference the same
   block — a design block has no obligations to splice into a slot. When a guarded
-  obligation carries a `USES`, the guard scopes **when the design binds**. `SEE` is a
-  pure pointer, never inlined.
+  obligation carries a `USES`, the guard scopes **when the design binds**. `SEE` names a
+  spec or design **for the reader**: it is never inlined and imposes nothing on the
+  carrier beyond what the obligation's own prose already states.
+
+- **Choosing a relation — three questions, in order.**
+  1. *Must this obligation match what the target says?* → **`CONFORMS`**. Slot-targeted
+     (`…::SLOT`) when one specific slot is the contract; whole-spec when another spec
+     owns cross-cutting rules this one must obey (see GUIDANCE, *Composition*).
+  2. *Is the target a design block whose freeform body binds the implementation?* →
+     **`USES`**. Design blocks only — `USES` at a spec is a validation error.
+  3. *Everything else* → **`SEE`**. It is the open-ended catch-all, and the right key
+     even when a genuine dependency exists: a dispatcher spec naming the handler specs
+     it **dispatches** to, a stage that **must run after** another spec, or plain "go
+     read this next." The dependency is stated in the obligation's own prose; `SEE` only
+     says where the named thing is defined. What `SEE` must never carry is a
+     *constraint* — if the target's rules bind this spec, that is whole-spec `CONFORMS`,
+     and reaching for `SEE` silently drops the requirement.
 
 - **Guards conjoin when an inlined obligation is itself guarded.** When a slot-targeted
   `CONFORMS` carrier has a `WHEN` guard and an inlined obligation carries its own `WHEN`,

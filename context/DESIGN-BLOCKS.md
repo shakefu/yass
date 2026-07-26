@@ -155,8 +155,8 @@ Every current `USES` targets a spec or slot, so all of them move:
 2. **Structural navigation links in the self-definition** — `Document USES
    Preamble`, `Slot USES Obligation`, `Spec USES Slot`, and the rest of the
    "this construct contains that construct" links — migrate to **`SEE`** or are
-   dropped. They were never dataflow and never "draws on behavior"; they are
-   related-context pointers, which is exactly what `SEE` means.
+   dropped. They were never dataflow and never "draws on behavior"; they name a
+   construct for the reader and impose nothing, which is exactly what `SEE` is for.
 
 ## Relationship to the no-free-prose non-goal
 

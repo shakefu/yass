@@ -227,7 +227,7 @@ RETURN:
   MUST: scope when the referenced Design binds by that guard
   SEE: Guard
 - WHEN: the relation is SEE
-  MUST: mean the referenced spec or design is related context the obligation does not depend on
+  MUST: mean the referenced spec, slot, or design is named for the reader, imposing nothing beyond what the obligation's own prose states
 ERROR:
 - MUST: be rejected when its target does not resolve to an existing spec, slot, or design
   SEE: RefTarget
