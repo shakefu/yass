@@ -5,6 +5,13 @@ rules here emerge from trial-and-error using the specs, and their final home is 
 some may become language-level meta-rules, others may stay as guidance. Nothing here is
 settled; it exists so the guidance is not lost while we figure out where it belongs.
 
+## Guiding principle
+
+A specification must be fully intelligible to a reader — human or model — who has never
+seen this project, with no prior prompting and no other documents open. Tooling can make
+working with specs faster, but a spec must never *require* tooling or a companion document
+to be understood or implemented.
+
 ## Granularity: keep specs small and located
 
 The core failure mode: an LLM, unguided, will slop a single giant spec file for a whole
