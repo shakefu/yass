@@ -80,6 +80,7 @@ ERROR:
 - MUST: be rejected when it omits its description or version
 - MUST: be rejected when its version is not recognized
 - MUST: "be rejected when `related` is present and is not a sequence of strings"
+- MUST: "be rejected when it carries a key other than `description`, `version`, or `related`"
 INVARIANT:
 - MUST-NOT: have its related entries resolved or fetched by tooling
 ---
