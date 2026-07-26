@@ -134,6 +134,11 @@ INVARIANT:
 spec: Slot
 INPUT:
 - MUST: be one of INPUT, RETURN, ERROR, SIDE-EFFECT, or INVARIANT
+- SEE: Slot.INPUT
+- SEE: Slot.RETURN
+- SEE: Slot.ERROR
+- SEE: Slot.SIDE-EFFECT
+- SEE: Slot.INVARIANT
 - MUST: hold a list of Obligations
   SEE: Obligation
 RETURN:
