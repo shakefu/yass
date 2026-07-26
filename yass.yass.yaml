@@ -35,6 +35,30 @@ ERROR:
 INVARIANT:
 - MUST: preserve document order, since Preamble validity depends on position
 ---
+spec: Root
+INPUT:
+- MUST: "be a file named exactly `root.yass.yaml`"
+- CONFORMS: Document
+- MUST: carry exactly one Spec, describing the project as a whole
+  SEE: Spec
+- MAY: carry Design documents bound by that Spec
+  SEE: Design
+- MAY: appear in more than one directory of a repository, so a repository may hold several projects, each with its own project root
+RETURN:
+- MUST: define the project root as the directory that contains it
+- MUST: govern every file at or below that directory
+- MUST-NOT: govern a file that has a nearer Root at or above it
+ERROR:
+- MUST: be rejected when it carries no Spec, or more than one Spec
+  SEE: Spec
+- MUST: be rejected when no Root is present at or above a file
+INVARIANT:
+- MUST: reach every Spec and Design under its project root through a chain of References beginning at its Spec
+  SEE: Reference
+- MUST: count CONFORMS, USES, and SEE equally as edges of that chain
+  SEE: Reference
+- MUST-NOT: be located by any means other than its name, such as a repository marker or the presence of other yass files
+---
 spec: Preamble
 INPUT:
 - MUST: "be a YAML mapping that has neither a `spec` key nor a `design` key"
@@ -266,6 +290,7 @@ RETURN:
   MUST: resolve relative to the referencing file
 - WHEN: the path has no leading dot
   MUST: resolve from the project root
+  SEE: Root
 - MUST: "treat the path token as a POSIX-style relative path with `/` separators"
 - MUST: "append the literal suffix `.yass.yaml` to the path token to produce the target file path"
 - MUST: compare paths and document names with case-sensitive byte comparison

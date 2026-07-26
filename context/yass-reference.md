@@ -13,6 +13,39 @@ consumes them to drive test (TDD) and implementation generation.
   JSON Schema with no per-repo config:
   `# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json`
 
+## Project root (`root.yass.yaml`)
+
+- A file named exactly **`root.yass.yaml`** is **required**, and its **presence defines
+  the project root**: the project root is the directory that contains it. Every
+  root-relative ref path — a path token with no leading dot — resolves from there.
+- **A project root is not a repository root.** It is defined by the presence of the file
+  and by nothing else: the anchor is deliberately decoupled from the repository, so
+  nothing ties it to a VCS checkout, a package manifest, or a build directory. A project
+  root may sit at the top of a checkout, or nowhere near it.
+- **Discovery is by name alone.** There is no `.git` search and no
+  deepest-`.yass.yaml`-ancestor fallback; a project root is never inferred from layout.
+  **Absence is an error.**
+- **Layouts are arbitrary.** A repository MAY hold several projects, each with its own
+  `root.yass.yaml`, and the one that governs a given file is the **nearest at or above
+  it** — a nested root takes over its own subtree, and the outer root does not govern
+  within it.
+- **Contents:** exactly one `spec:` document, describing the **project as a whole** — what
+  it is and what it must do — written with the ordinary five slots. There is **no new
+  document type**; the project is a normal spec. A project need not produce an invocable
+  program: it may produce a library, a data format, or a language (this repository's
+  project is yass itself, which has no entry point), so read the slots structurally when
+  the subject is not function-shaped (see *Slots*). The file MAY also carry `design:`
+  documents. More than one spec, or none, is a validation error. (How to write that spec:
+  see GUIDANCE, *The root file*.)
+- **Membership is reachability.** Every spec and design under a project root MUST be
+  reachable from the root spec through a **chain of references**, and `CONFORMS`, `USES`,
+  and `SEE` all count as edges — reachability is a property of the reference graph, not of
+  any one relation. A spec that no chain reaches is either dead or evidence that the root
+  file is missing an obligation.
+- Encoded in the self-definition as the `Root` construct, which `CONFORMS: Document` — a
+  root file is an ordinary yass file (preamble first, `---`-separated stream) that has
+  been given a fixed name and a constrained payload.
+
 ## Preamble
 
 - **Required**, **exactly one**, and **MUST be the first** document of every file.
@@ -140,8 +173,8 @@ An obligation is a **YAML mapping** (a list item under a slot):
   - `::` separates the spec name from a slot (`SpecName::SLOT`); omit it to address the
     whole spec.
   - **Path resolution:** a `./` or `../` path is **relative to the referencing file**; a
-    path without a leading dot is **from the project root**. The `.yass.yaml` extension
-    is omitted.
+    path without a leading dot is **from the project root** (see *Project root* above).
+    The `.yass.yaml` extension is omitted.
   - The **slot is the finest addressable unit**. Named anchors, never line numbers.
     Slots belong to specs only: **`::SLOT` on a target that resolves to a design is a
     validation error** — a design carries no slots.
@@ -268,6 +301,10 @@ than restating it.
   `CONFORMS` (no `::SLOT`) is not inlined — it is a conformance reference to the entire spec.
   `SEE` is a pure pointer, never inlined. `USES` appends its design block's typed content
   to the emitted fragment, once per block, with provenance.
+- The **required root** and **reachability** rules (see *Project root*) are language rules
+  with no implementation: no CLI exists in this repo, so nothing yet errors on a missing
+  `root.yass.yaml` or flags an unreachable spec. They are binding on authors and are the
+  contract a validator will implement, not a description of current tooling behavior.
 - Drift detection (content hashing) is deferred to a generated index.
 - Verification is out of scope — tooling routes/retrieves, never verifies obligation
   content (keeps it language-agnostic). A `COMPATIBLE` relation was deliberately
