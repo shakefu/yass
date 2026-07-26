@@ -1,0 +1,30 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  The root file of this project, so the directory holding it is the project root. Its one
+  Spec names the project — the yass specification language itself — and reaches the
+  language definition, in which every construct of the language is specified.
+version: v1
+---
+spec: Yass
+INPUT:
+- MUST: take the form of one Spec per construct of the language, each carrying that construct's well-formedness rules
+  SEE: yass@Document
+- MUST: be written in itself, so the language definition is an ordinary yass file governed by the constructs it defines
+  SEE: yass@Document
+RETURN:
+- MUST: denote a YAML-based specification language whose files state desired behavior as obligations
+- MUST: pin the revision of the language defined under this project root to v1
+  SEE: yass@Preamble
+ERROR:
+- MUST: be rejected when a file claiming to be yass does not satisfy every construct Spec of the language definition
+  SEE: yass@Document
+SIDE-EFFECT:
+- MUST: "be mirrored by a derived JSON Schema, `yass.v1.schema.json`, so an editor validates a yass file with no per-repository configuration"
+- MUST-NOT: be defined by that derived schema, since the language definition is the normative statement of the language
+  SEE: yass@Document
+INVARIANT:
+- MUST: place every rule of the language in the construct Spec that owns it, rather than restating it here
+  SEE: yass@Document
+- MUST: produce a specification rather than a running program, so nothing under this project root has an entry point, an invocation, or an exit status
+- MUST-NOT: produce an implementation of the language, so no tooling behavior is specified under this project root
