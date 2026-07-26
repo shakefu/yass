@@ -6,8 +6,11 @@ named, typed, freeform normative content — algorithms, technology constraints,
 multi-spec lifecycle procedures — and a repurposing of the `USES` relation to
 target design blocks exclusively. Experiment rounds 06–08 found no one-shot
 correctness, clarity, or compliance differential (see `experiment/FINDINGS.md`,
-`design-blocks-proposal`); the merge is a preference-based draft adoption for
-manual/authoring evaluation, not a validated necessity. yass is pre-release
+`design-blocks-proposal`) — a null result against *that experiment's* cold
+one-shot bar, which is the experiment's measuring stick and not the language's
+standard for whether a construct earns its place. The merge is a
+preference-based draft adoption for manual/authoring evaluation; the one-shot
+measurements neither required it nor ruled it out. yass is pre-release
 (v0.0.x); this remains in-development shaping of what v1 *says*, not a
 migration. No CLI implements the resolution semantics yet.
 

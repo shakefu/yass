@@ -1,10 +1,17 @@
 # Recommendations: Authoring Guidance & Format Changes
 
+> **Scope.** An **unadopted experiment-round artifact**. Nothing in this file is a
+> rule of the yass language. The language is defined only by `yass.yass.yaml`,
+> `context/yass-reference.md`, and `context/GUIDANCE.md`. Everything below —
+> including the guiding principle — is a **proposal** offered for adoption into
+> those three files; until it lands there it binds nothing and states no
+> settled goal of the language.
+
 Distilled, actionable recommendations for writing specs and for the spec format
 itself. The first half is guidance to fold into `GUIDANCE.md`; the second half is
 changes to consider for the language and schema.
 
-## Guiding principle
+## Guiding principle (proposed)
 
 A specification must be fully intelligible to a reader — human or model — who has
 never seen this project, with no prior prompting and no other documents open.

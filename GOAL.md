@@ -1,5 +1,13 @@
 # GOAL — yass spec-improvement experiment
 
+> **Scope.** This file governs the **experiment method** — how rounds are planned,
+> run, graded, and recorded. It is **not authoritative for the yass language**.
+> Only three files are authoritative for the language: `yass.yass.yaml` (the
+> self-definition), `context/yass-reference.md` (the language reference), and
+> `context/GUIDANCE.md` (authoring guidance). Wherever this file states a goal, a
+> bar, or a constraint, read it as the goal/bar/constraint **of this experiment**,
+> not of yass.
+
 > This file is my durable north star and the reusable method. The main session
 > autocompacts at 100k, so during a run **this file plus the run's `experiment/`
 > working state is the only memory that survives** — after a compaction, re-read
@@ -13,10 +21,12 @@
 
 ## Mission
 
-**yass** is a YAML spec language whose goal is to let an LLM **one-shot a
-software project by reading only the `.yass.yaml` spec files** — no prior
-context, no yass manual, no optional tooling. The spec files must be
-self-sufficient.
+This experiment probes **yass**, a YAML spec language, against one bar: can an
+LLM **one-shot a software project by reading only the `.yass.yaml` spec files**
+— no prior context, no yass manual, no optional tooling? Cold self-sufficiency is
+the standard *this experiment* grades against, chosen because it is falsifiable
+black-box. It is this experiment's bar, not a statement of what the language is
+for; the language's own purpose is whatever the three authoritative files say.
 
 This experiment improves the yass language *by experimental verification*:
 generate synthetic specs, have a panel of LLMs implement them cold, measure
@@ -31,6 +41,10 @@ language / guidance / reference — then fix the source of truth and re-verify.
    - `context/GUIDANCE.md` — spec-authoring guidance
    - `context/yass-reference.md` — language reference
    - (and `spec/*.yass.yaml` example specs kept consistent with language changes)
+
+   Of these, only `yass.yass.yaml`, `context/yass-reference.md`, and
+   `context/GUIDANCE.md` are authoritative for the language; the schema and the
+   example specs are derived artifacts kept consistent with them.
 2. All **findings/feedback files are removed** (by deletion, not annotation)
    once their content is resolved into the source of truth:
    `context/{OPEN-FEEDBACK,GUIDANCE-FEEDBACK,SPEC-FEEDBACK,RECOMMENDATIONS,NOTES,FIXES,IDEAS,FUTURE,MAN-ALIGNMENT}.md`

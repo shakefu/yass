@@ -1,5 +1,12 @@
 # Spec Language — Future Improvements & Open Questions
 
+> **Scope.** Working design notes, not a language authority. The yass language is
+> defined only by `yass.yass.yaml`, `context/yass-reference.md`, and
+> `context/GUIDANCE.md`. Every **Decision:** line below — and every "rejected",
+> "excluded", "deferred", or "not adopted" verdict — records the *provisional*
+> position reached while drafting. Treat them as proposals to those three files,
+> not as settled language rules; nothing here binds until it lands there.
+
 Everything deliberately deferred or left undecided. Nothing here is required for v1.
 Grouped by area.
 

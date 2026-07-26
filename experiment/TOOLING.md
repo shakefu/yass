@@ -9,9 +9,10 @@ what a spec can express.
 Each entry is indexed by id in `FINDINGS.md` under **tooling-request**; the detail lives
 here. Nothing here is built yet; this preserves scope so it is not lost.
 
-## Standing constraint: the language stays scalar-prose-only
+## Why the structured-obligation cluster routed here
 
-Every capability below operates on specs whose obligation values are **scalar prose**.
+Every capability below operates on specs whose obligation values are **scalar prose**,
+which is what the language does today.
 The experiment tested — and **refuted across two rounds** — the hypothesis that
 obligations needed richer value shapes (mappings carrying code/class/priority/metadata,
 a structured error table, a `CODE` key, ordered/priority constructs) to be implemented
@@ -21,9 +22,14 @@ messages, bare error-code literals read in two places, and prose priority chains
 ids `mapping-valued-obligations`, `error-table-structured`, `error-code-refs`,
 `error-cardinality-implicit`, `priority-chains-prose`, all `wontfix`).
 
-The residual value of that whole cluster is **ergonomic and machine-checkability**, not
-correctness — and that residual is tooling, captured under `lint-anti-slop` below. The
-language does not change.
+Measured against this experiment's charter — find spec defects that cause cold one-shot
+*failures* — the residual value of that whole cluster is **ergonomic and
+machine-checkability**, not correctness, so the cluster routes to tooling, captured under
+`lint-anti-slop` below. That is a routing decision under this doc's charter, not a
+constraint on the language: whether obligation values ever grow richer shapes is settled
+in `yass.yass.yaml`, `context/yass-reference.md`, and `context/GUIDANCE.md`, on whatever
+bar those adopt. The evidence above says only that the one-shot bar does not force the
+change.
 
 ## `lint-anti-slop`
 
@@ -39,7 +45,8 @@ Original scope:
 - An auto-quote `fmt` pass that quotes prose which needs it rather than rejecting it.
 
 Owns the refuted structured-obligation cluster's **ergonomic / machine-checkability
-residue** (routed here because the language stays scalar-prose-only — see above):
+residue** (routed here because the one-shot bar surfaced no correctness case for changing
+the obligation value shape — see above):
 
 - **Error/defect registry extraction** — a `yass extract-errors` projection that reads
   the prose `ERROR` (and dispatch) obligations of a spec set and emits a machine-readable

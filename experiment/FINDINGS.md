@@ -11,6 +11,19 @@ Ingested from `context/{OPEN,GUIDANCE,SPEC}-FEEDBACK.md`,
 28 total). Recurrence: `universal`
 (≈all 7 prior cross-language impls) > `repeated` (several sources) > `single`.
 
+> **Note (which bar these dispositions were decided against):** every disposition
+> in this ledger — `resolved`, `wontfix`, `tooling`, and every "refuted" verdict —
+> was decided against **the experiment's bar**: does the defect cause a cold
+> one-shot implementation *failure*, measured black-box by the private oracle.
+> That bar is this experiment's charter, not the yass language's stated purpose;
+> the language is defined by `yass.yass.yaml`, `context/yass-reference.md`, and
+> `context/GUIDANCE.md`. A finding closed here because it produced no one-shot
+> miss may still be a genuine defect under a different bar — authoring
+> ergonomics, human readability, machine-checkability, long-lived maintenance.
+> Read the dispositions below as "did not survive the cold one-shot test," not as
+> settled language decisions; any of them may need re-examination under a
+> different standard.
+
 > **Note (post-halt cleanup):** The `spec/cli.*` example spec set referenced by
 > several entries below was removed after the experiment halted — it was a
 > cross-language implementation-equivalence test harness and is being rebuilt
