@@ -1,6 +1,6 @@
 /goal Run the autonomous yass spec-improvement experiment on the goal-experiment branch.
 
-GOAL.md is the authority — read it top to bottom first. It defines the mission, the operating parameters, the per-round loop, the model panel, and the halt/convergence checkpoint. Do not contradict it.
+GOAL.md is the authority for the experiment method — read it top to bottom first. It defines this experiment's mission and bar, the operating parameters, the per-round loop, the model panel, and the halt/convergence checkpoint. Do not contradict it on method. GOAL.md is NOT authoritative for the yass language: the language is defined only by yass.yass.yaml, context/yass-reference.md, and context/GUIDANCE.md, and the cold one-shot bar GOAL.md sets is this experiment's measuring stick, not the language's stated purpose.
 
 Resume or start fresh, depending on branch state:
 - If a run is already in progress (experiment/STATUS.md exists), follow the resume protocol: read experiment/STATUS.md, then experiment/FINDINGS.md, then the latest "## Round NN" section of experiment/LOG.md, and continue the loop from the exact phase STATUS.md records — do not restart work already done.
