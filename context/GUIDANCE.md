@@ -22,6 +22,95 @@ steerage):
     WHEN: the spec defines code behavior
     MUST: maintain one spec file per code file, and one spec definition per public symbol
 
+## The root file: say what the project is, first
+
+`root.yass.yaml` is required, and it is the **first file a reader opens** — the entry
+point into the spec set, the same way a `main` is the entry point into a program. Write it
+so a reader (or an implementing agent) learns **what the project is** before reading
+anything else: what it is called, how it is used, what it does with its input, and what it
+leaves behind. A root file that reads as a list of pointers has failed; the reader should
+be able to stop after it and still describe the project.
+
+It carries **exactly one spec** for the project, and that spec is an ordinary one: there is
+no special document type, and its five slots carry exactly the meaning they carry in any
+other spec. The only thing that changes is the subject — the project rather than a
+function — and the reference's *Slots* section already says how to read them.
+
+**Dispatch is a guarded `SEE`.** One guarded obligation per recognized subcommand, naming
+the spec that owns it: the guard is the subcommand value, the prose says it dispatches, and
+`SEE` names where that behavior is defined. This is the decision procedure in the reference
+(*Choosing a relation*) applied to a dispatcher — the handler's rules do not bind the
+dispatcher, so `CONFORMS` would be wrong, and dispatch is exactly the "genuine dependency
+stated in the obligation's own prose" case that `SEE` is for.
+
+**Membership is reachability, so the root file is a completeness check.** Every spec and
+design under the project root must be reachable from the root spec through a chain of
+references (`CONFORMS`, `USES`, and `SEE` alike). Use it as a lint you can run by eye: a
+spec that no chain of references reaches is either **dead** — nothing in the project
+invokes it — or the root file is **missing an obligation**, most often an unlisted
+subcommand or an entry point nobody declared. Decide which; never leave it unreached.
+
+**A program-wide constraint that belongs to no single spec is a design block.** Wire
+format, log line shape, exit-code policy, a startup sequence — write it once as a
+`design:` document and bind it with a **reference-only `USES`** in the root spec's
+`INVARIANT` (`- USES: ExitCodes`). That gives the constraint one home, normative force,
+and a reachability edge, without inventing a prose slot the language does not have.
+
+A worked root spec for `ledger`, a command-line project with three subcommands and an
+exit-code policy factored out as a design block:
+
+```yaml
+---
+description: >
+  ledger — the project as a whole. Invocation contract, subcommand dispatch, and
+  program-wide rules. Each subcommand's behavior lives in its own spec file.
+version: v1
+---
+spec: Ledger
+INPUT:
+- MUST: "take the subcommand as `argv[1]`, one of `add`, `list`, or `total`"
+- MUST: "treat every remaining argument as an operand of that subcommand"
+- WHEN: "`argv[1]` is absent or outside that set"
+  MUST: "be rejected per `ERROR`, dispatching no subcommand"
+- WHEN: "the subcommand is `add`"
+  MUST: read the entries to record from stdin, one per line
+RETURN:
+- WHEN: "the subcommand is `add`"
+  MUST: dispatch to the entry-recording spec and write its output unchanged to stdout
+  SEE: cmd/add@Add
+- WHEN: "the subcommand is `list`"
+  MUST: dispatch to the listing spec and write its output unchanged to stdout
+  SEE: cmd/list@List
+- WHEN: "the subcommand is `total`"
+  MUST: dispatch to the summing spec and write its output unchanged to stdout
+  SEE: cmd/total@Total
+- MUST-NOT: write anything to stdout that the dispatched spec does not state
+ERROR:
+- WHEN: "`argv[1]` is absent"
+  MUST: "write the one-line usage synopsis to stderr and exit `2`"
+- WHEN: "`argv[1]` is outside the recognized set"
+  MUST: "write `unknown subcommand` with the offending value to stderr and exit `2`"
+- MUST: "write one diagnostic line to stderr and exit `1` for any other failure"
+SIDE-EFFECT:
+- MUST: "read and write the ledger file named by `LEDGER_FILE`, and no other path"
+- MUST-NOT: open a network connection
+INVARIANT:
+- USES: ExitCodes
+---
+design: ExitCodes
+type: constraint
+content: |
+  0 — the subcommand completed and its output is complete.
+  1 — a failure attributable to the ledger file or its contents.
+  2 — a failure attributable to the invocation (arguments, usage).
+  No other status is emitted by any subcommand.
+```
+
+Note the reference forms: `cmd/add@Add` has no leading dot, so it resolves **from the
+project root** — which is the directory holding this file. That is the characteristic
+shape of a root-file reference, and the reason the root file is the one place where
+root-relative paths read naturally.
+
 ## Deliberate non-goal: no free-prose channel
 
 yass intentionally provides **no formal way to attach non-spec prose or commentary** to
