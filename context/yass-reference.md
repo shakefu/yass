@@ -301,10 +301,6 @@ than restating it.
   `CONFORMS` (no `::SLOT`) is not inlined — it is a conformance reference to the entire spec.
   `SEE` is a pure pointer, never inlined. `USES` appends its design block's typed content
   to the emitted fragment, once per block, with provenance.
-- The **required root** and **reachability** rules (see *Project root*) are language rules
-  with no implementation: no CLI exists in this repo, so nothing yet errors on a missing
-  `root.yass.yaml` or flags an unreachable spec. They are binding on authors and are the
-  contract a validator will implement, not a description of current tooling behavior.
 - Drift detection (content hashing) is deferred to a generated index.
 - Verification is out of scope — tooling routes/retrieves, never verifies obligation
   content (keeps it language-agnostic). A `COMPATIBLE` relation was deliberately
