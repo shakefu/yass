@@ -166,9 +166,18 @@ obligations, not prose:
 - **Give every cross-cutting concern a single home.** When a rule spans many specs — a wire
   format, the shape of an error line, how input is segmented, how a subcommand is
   dispatched — write it once in one spec that owns it completely, and reference that spec
-  (`CONFORMS`, or `SEE` for pure context) from the others. Do not restate the rule in
-  fragments across the specs it touches. A reader should learn the whole of a concern
-  from one place rather than reconstructing it from scattered, drift-prone mentions.
+  from the others. Do not restate the rule in fragments across the specs it touches. A
+  reader should learn the whole of a concern from one place rather than reconstructing it
+  from scattered, drift-prone mentions.
+
+- **"That spec owns rules I must obey" is whole-spec `CONFORMS`, never `SEE`.** This is the
+  commonest whole-spec reference there is — a shared wire-protocol spec owning line
+  segmentation, the error-line format, and exit policy for three stage specs that must all
+  obey it. Point at it with whole-spec `CONFORMS`, which means *must match the referenced
+  spec*. `SEE` is the wrong key: it names a spec for the reader and imposes nothing, so an
+  author who reaches for it here silently drops a real constraint and every implementer is
+  free to ignore the owning spec. Reserve `SEE` for pointers that bind nothing — a dispatch
+  target, an ordering note, related reading.
 
 ## Open: how a skill uses the test taxonomy
 
