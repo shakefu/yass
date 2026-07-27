@@ -210,23 +210,6 @@ obligations, not prose:
   free to ignore the owning spec. Reserve `SEE` for pointers that bind nothing — a dispatch
   target, an ordering note, related reading.
 
-## Open: how a skill uses the test taxonomy
-
-Moved here from TEST-TAXONOMY.md — depends on tooling (CLI commands, obligation-JSON
-projection) that is not yet spec'd. Revisit once the CLI is scoped.
-
-1. Retrieve the spec (with `CONFORMS` inlined and provenance attached) via whatever
-   tooling exists.
-2. For each slot, for each obligation, look up its row in the test taxonomy (by slot +
-   normativity + presence of `WHEN`/relation) to get the fixed test obligation(s).
-3. Emit the obligation list (this is the deterministic artifact) before writing any
-   code, so it can be reviewed against the spec.
-4. Locate the implementing symbol in the paired code file (the meta-rule: every
-   code file is paired with a `.yass.yaml`); reuse existing test infrastructure.
-5. Write tests in the target framework, one mapped to each obligation, labeled with
-   the originating `spec`/`slot`/obligation so failures point back to the spec.
-6. Report coverage per the model above.
-
 ## Open: emergent guidance
 
 As the specs get used, more steerage will surface (placeholder conventions, naming,
