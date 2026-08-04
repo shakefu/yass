@@ -1,0 +1,102 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  The `yass query` subcommand and the reference resolution it applies. Query emits an
+  addressed Spec, slot, or Design as a self-contained YAML fragment; Resolution inlines a
+  slot-targeted CONFORMS, appends the content of a bound Design, and leaves every other
+  reference where it stands. This is the command that lets an agent read one obligation set
+  instead of a whole file, so it is the reason the program exists.
+version: v1
+---
+spec: Query
+INPUT:
+- MUST: take one or more target operands
+- MUST: resolve each operand as a command-line ref target
+  CONFORMS: 01-locate@TargetResolution::RETURN
+- MUST: take the parsed model of every file a target reaches, directly or through a reference it resolves
+  CONFORMS: 02-parse@Parse::RETURN
+- MUST: rely on that model already satisfying the language definition
+- MUST-NOT: re-check a file the parser accepted
+- WHEN: a file a target reaches fails to parse
+  MUST: emit that file's validation diagnostics and exit with the findings status, rather than emit a fragment out of an invalid file
+  SEE: 03-validate@Validate
+RETURN:
+- MUST: "emit one YAML document stream, holding the fragments for the targets in operand order, with `---` between documents"
+- MUST: apply reference resolution to every Spec document it emits
+  SEE: Resolution
+- WHEN: a target addresses a Spec and names no slot
+  MUST: "emit one document carrying the `spec` key and every slot that Spec declares, in source order"
+- WHEN: a target addresses a Spec and names a slot
+  MUST: "emit one document carrying the `spec` key and that slot alone, so the fragment still identifies the queried spec"
+- WHEN: a target addresses a Design
+  MUST: "emit that Design document with its `design`, `type`, and `content` unchanged"
+- WHEN: a target names a file and no document
+  MUST: emit one fragment per Spec and Design in that file, in stream order
+- MUST: emit a stream that parses as YAML under the rules the Document construct fixes
+  SEE: ../yass@Document
+- MUST-NOT: emit a preamble, since a fragment is not a file
+  SEE: ../yass@Preamble
+- MUST-NOT: "emit a host `file:` header or any other line naming the file a fragment came from, because the filesystem is the source of that truth"
+- MUST: exit with the success status
+  USES: root@ExitPolicy
+ERROR:
+- WHEN: a target fails to resolve
+  MUST: emit the diagnostic target resolution emits and exit with the status target resolution selects
+  SEE: 01-locate@TargetResolution::ERROR
+- WHEN: a reference carried by a Spec being emitted fails to resolve
+  MUST: "emit one `ref/unresolved` diagnostic and exit with the findings status, rather than emit a fragment with a reference left dangling"
+  SEE: Resolution
+- WHEN: at least one target resolved and a later one did not
+  MUST: emit no fragment at all, so a partially served request is never mistaken for a complete one
+- MUST: "emit one `internal` diagnostic and exit with the internal-error status for any failure that stops every target from being served"
+- MUST: write every diagnostic in this slot to standard error, since a fragment is the only thing this subcommand puts on standard output
+  USES: root@OutputPolicy
+INVARIANT:
+- MUST-NOT: reword, reorder, or renumber an obligation it did not inline
+- MUST-NOT: emit the same document twice for one target
+- MUST-NOT: emit a summary, a count of obligations, or a note about what was inlined beyond the provenance comments resolution writes
+  USES: root@Brevity
+- MUST-NOT: require the reader to run this command again to understand the fragment, so a fragment stands on its own
+---
+spec: Resolution
+INPUT:
+- MUST: take one Spec document being emitted, together with the parsed model of every file its references reach
+  CONFORMS: 02-parse@Parse::RETURN
+- MUST: rely on every reference in that document having a well-formed target, since the parser accepted the file
+- MUST-NOT: re-check the grammar of a reference target
+- WHEN: a reference target is well formed but names a document that is absent
+  MUST: report it as an unresolved reference rather than skip the reference silently
+RETURN:
+- CONFORMS: ../yass@Reference::SIDE-EFFECT
+- WHEN: an obligation carries a CONFORMS whose target names a slot
+  MUST: insert that slot's obligations into the carrier's slot immediately before the carrier obligation, in the source order of the referenced slot
+- WHEN: an obligation carries a CONFORMS whose target names a whole Spec
+  MUST: leave the obligation exactly as written, because a whole-spec CONFORMS is a conformance reference rather than a transclusion
+- WHEN: an obligation carries a USES
+  MUST: append the referenced Design document to the emitted stream after the Spec document it belongs to
+- WHEN: an obligation carries a SEE
+  MUST: leave the obligation exactly as written
+- MUST: "precede each inserted obligation with a comment line holding `# CONFORMS: ` followed by the source ref target as written"
+- MUST: "precede each appended Design document with a comment line holding `# USES: ` followed by the source ref target as written"
+- WHEN: an inserted obligation carries a guard and the carrier obligation also carries a guard
+  MUST: "emit the inserted obligation with a WHEN whose value is the carrier's guard prose, one ASCII space, the word `and`, one ASCII space, and the inserted obligation's guard prose, so the conjunction is readable without the carrier in view"
+  SEE: ../yass@Guard
+- MUST: quote an inserted or emitted prose value that holds a colon followed by a space, so the fragment parses back as YAML
+  SEE: ../yass@Obligation
+ERROR:
+- WHEN: a reference target names a file, a document, or a declared slot that does not exist
+  MUST: "emit one `ref/unresolved` diagnostic naming the carrying spec and the target, and exit with the findings status"
+- WHEN: a CONFORMS target resolves to a Design
+  MUST: "emit one `ref/kind` diagnostic naming the carrying spec and the target, and exit with the findings status"
+  CONFORMS: ../yass@Reference
+- WHEN: a USES target resolves to a Spec or a slot
+  MUST: "emit one `ref/kind` diagnostic naming the carrying spec and the target, and exit with the findings status"
+  CONFORMS: ../yass@Reference
+- MUST: "emit one `ref/unresolved` diagnostic and exit with the findings status for any reference that cannot be resolved for a reason not matched above"
+INVARIANT:
+- MUST-NOT: resolve a reference carried by an obligation it inserted, because v1 resolves one level only
+  SEE: ../yass@Reference
+- MUST-NOT: deduplicate an inserted obligation, so two carriers inlining the same slot each get their own copy in place
+- MUST: append a referenced Design once per emitted fragment, however many obligations reference it
+- MUST-NOT: alter an inserted obligation apart from conjoining a carrier's guard into its own
+- MUST-NOT: detect or break a reference cycle, since resolving one level cannot enter one
