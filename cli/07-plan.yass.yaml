@@ -36,8 +36,7 @@ INVARIANT:
 - MUST: emit an address that is itself a valid RefTarget, so it can be handed straight to the retrieval command
   SEE: 03-show@Show
 - MUST: produce byte-identical output for the same project on repeated invocations
-- MUST-NOT: emit a design document, which states no behavior of its own to implement
-  SEE: 00-output@RecordGrammar
+- MUST-NOT: emit a design document, which is implemented as part of every spec that binds it rather than as a work item of its own
 - MUST-NOT: omit a spec for being unreachable from the root spec, which validate reports instead
   SEE: 06-validate@Validate
 - MUST-NOT: reorder specs by the reference graph, since file naming and document position are the ordering convention the spec set declares

@@ -22,6 +22,8 @@ RETURN:
 - MUST: replace every LF, CR, and TAB inside a field with a single ASCII space before writing it
 - MUST: write each diagnostic to stderr as one line
   SEE: Diagnostic
+- MUST: treat a validate finding as a record written to stdout rather than as a diagnostic, even though the two share one line format, because a finding is the checking command's result and a diagnostic is a report that the command could not run
+  SEE: 06-validate@Validate
 - WHEN: a command produced zero records
   MUST: write nothing at all to stdout
   SEE: ExitCode
