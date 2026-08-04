@@ -1,0 +1,34 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  The `yass root` subcommand. One Spec, printing the directory of the project root that
+  governs a path. It exists because every root-relative ref target an agent writes resolves
+  from that directory, and the agent otherwise has to guess which of several project roots
+  in a tree governs the file it is editing.
+version: v1
+---
+spec: RootCommand
+INPUT:
+- MUST: take zero or one path operand
+- WHEN: no path operand is given
+  MUST: take the process working directory as the starting path
+- CONFORMS: 01-locate@RootDiscovery::RETURN
+- MUST: rely on root discovery having found the directory
+- MUST-NOT: check the directory again for its `root.yass.yaml`
+RETURN:
+- MUST: write one line holding the absolute path of the project root directory, terminated by a single LF
+  USES: root@OutputPolicy
+- MUST-NOT: write any other line, in particular not the path that was asked about
+  USES: root@Brevity
+- MUST: exit with the success status
+  USES: root@ExitPolicy
+ERROR:
+- WHEN: no project root governs the operand
+  MUST: "emit one `root/missing` diagnostic naming the operand and exit with the not-found status"
+  SEE: 01-locate@RootDiscovery::ERROR
+- MUST-NOT: carry a guard-less residual, because root discovery either yields a directory or reports its own failure with its own status
+  SEE: 01-locate@RootDiscovery::ERROR
+INVARIANT:
+- MUST-NOT: read any file, since only the presence of a directory entry decides the answer
+- MUST-NOT: report a second project root when nested roots exist, because exactly one governs the operand
+  CONFORMS: ../yass@Root

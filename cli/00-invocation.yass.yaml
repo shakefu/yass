@@ -1,0 +1,62 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  Argument-vector parsing for the yass CLI. One Spec turns the raw arguments into a
+  recognized subcommand, its operands, and the global options, and owns every way the
+  argument vector can be malformed. Dispatch on the recognized subcommand belongs to the
+  root Spec, not here.
+version: v1
+---
+spec: Invocation
+INPUT:
+- MUST: take the argument vector after the program name, a sequence of zero or more arguments
+- MUST: "treat an argument equal to `--` as end-of-options, so every argument after it is an operand"
+- MUST: "treat an argument beginning with `-`, before end-of-options and other than `--` itself, as an option"
+- MUST: "recognize exactly the global options `--root DIR`, `--help`, `-h`, `--version`, and `-V`"
+- MUST: accept a global option before or after the subcommand token, parsing options identically in both positions
+- MUST: "take the value of `--root` from the following argument"
+- MUST: treat the first argument that is neither an option nor an option value as the subcommand token
+- MUST: "recognize exactly the subcommand tokens `root`, `validate`, `list`, `query`, `refs`, `lint`, and `help`"
+- MUST: treat every remaining argument as an operand of that subcommand, in argument order
+- WHEN: "`--root DIR` is given"
+  MUST: take DIR to be the project root directly, without ascending from any other path
+  SEE: 01-locate@RootDiscovery
+- WHEN: an argument is not valid UTF-8
+  MUST: reject the argument vector rather than replace or drop the offending bytes
+RETURN:
+- MUST: yield the subcommand token, the operands in argument order, and the project-root override when one was given
+- MUST: guarantee the yielded subcommand token is a member of the recognized set
+- MUST: guarantee every yielded operand is a plain argument, so no consumer re-examines it for an option
+- WHEN: "`--help` or `-h` is given, or the subcommand token is `help`"
+  MUST: write the usage block and exit with the success status, taking precedence over every other option and over the subcommand
+- WHEN: "`--version` or `-V` is given and no help was requested"
+  MUST: "write one line holding the program name, one ASCII space, and the version, then exit with the success status"
+- MUST: limit the usage block to one synopsis line, one line per subcommand, and one line per global option
+  USES: root@Brevity
+- MUST-NOT: put an example, a prose paragraph, or an epilogue in the usage block
+- MUST: write the usage block to standard output, because it is what was asked for
+  USES: root@OutputPolicy
+ERROR:
+- WHEN: no subcommand token is present and neither help nor version was requested
+  MUST: "emit one `cli/no-subcommand` diagnostic naming the recognized subcommands and exit with the usage status"
+- WHEN: the subcommand token is outside the recognized set
+  MUST: "emit one `cli/unknown-subcommand` diagnostic naming the token and the recognized subcommands, and exit with the usage status"
+- WHEN: an option is outside the recognized set
+  MUST: "emit one `cli/unknown-option` diagnostic naming the option and exit with the usage status"
+- WHEN: "`--root` is the last argument, so it has no following value"
+  MUST: "emit one `cli/missing-value` diagnostic naming the option and exit with the usage status"
+- WHEN: the subcommand receives fewer operands than it requires
+  MUST: "emit one `cli/missing-operand` diagnostic naming the subcommand and exit with the usage status"
+- WHEN: the subcommand receives more operands than it accepts
+  MUST: "emit one `cli/extra-operand` diagnostic naming the first excess operand and exit with the usage status"
+- WHEN: "`--root DIR` names a directory that holds no file named `root.yass.yaml`"
+  MUST: "emit one `root/missing` diagnostic naming DIR and exit with the not-found status, because a project root is defined by that file name and by nothing else"
+  CONFORMS: ../yass@Root
+- MUST: "emit one `cli/usage` diagnostic and exit with the usage status for any argument vector malformed in a way not matched above, such as an argument that is not valid UTF-8 or a global option given twice with different values"
+- MUST: write every diagnostic in this slot to standard error, because a malformed argument vector is a failure to serve the request rather than the requested answer
+  USES: root@OutputPolicy
+INVARIANT:
+- MUST-NOT: accept an abbreviated or prefixed subcommand token, so no token resolves by being unique
+- MUST-NOT: accept a clustered short option, since every short option the program recognizes stands alone
+- MUST-NOT: read an environment variable or a configuration file to supply an option value
+- MUST-NOT: reorder operands, so a subcommand sees them exactly as given
