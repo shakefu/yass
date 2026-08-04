@@ -1,0 +1,54 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  The search command. Matches a literal substring against obligation prose, guard
+  conditions, and design content, and answers with the slot-level address of every hit
+  plus the matched text, so an agent locates the spec that owns a concern without reading
+  the spec set.
+version: v1
+---
+spec: Find
+INPUT:
+- MUST: accept the loaded model
+  CONFORMS: 01-load@Load::RETURN
+- MUST: rely on every obligation's prose and every design's content being held byte-for-byte as authored, and re-read no file to confirm it
+- MUST: rely on every document in the model having parsed successfully, because loading exits before any command runs when a file fails to parse
+  SEE: 01-load@Load::ERROR
+- MUST: accept exactly one positional argument, the search pattern
+- MAY: "accept the `--slot <SLOT>` option, restricting matches to obligations declared in that slot"
+- MUST: treat the pattern as a literal substring, compared case-insensitively under simple Unicode case folding
+RETURN:
+- MUST: "emit one record per matching field, in the form `<ref> <what> <text>`"
+  USES: 00-output@RecordGrammar
+- WHEN: the pattern matches an obligation's prose
+  MUST: "emit `<path>@<Name>::<SLOT>` as `<ref>`, the obligation's normativity keyword as `<what>`, and the obligation prose as `<text>`"
+- WHEN: the pattern matches an obligation's guard condition
+  MUST: "emit `<path>@<Name>::<SLOT>` as `<ref>`, `WHEN` as `<what>`, and the guard condition as `<text>`"
+- WHEN: the pattern matches a line of a design's content
+  MUST: "emit `<path>@<Name>` as `<ref>`, `content` as `<what>`, and that whole line as `<text>`"
+- WHEN: the pattern matches both an obligation's guard and its prose
+  MUST: emit one record for each, since each is a separately addressable field
+- MUST: order records by the project-root-relative file path in byte order, then by document position, then by slot in canonical order, then by obligation position within the slot
+- MUST: emit the whole matched text on one line, however long it is
+ERROR:
+- WHEN: the number of positional arguments is not exactly one
+  MUST: report code yass.args.arity and exit 2
+- WHEN: the pattern is the empty string
+  MUST: report code yass.args.empty_pattern and exit 2
+- WHEN: "the `--slot` value is outside INPUT, RETURN, ERROR, SIDE-EFFECT, and INVARIANT"
+  MUST: report code yass.args.unknown_slot and exit 2
+- WHEN: "the `--slot` option is given with no value after it"
+  MUST: report code yass.args.missing_value and exit 2
+- WHEN: no obligation and no design content line matches the pattern
+  MUST: write nothing to stdout and exit 1
+INVARIANT:
+- CONFORMS: 00-output@Output
+- MUST: emit an address that is itself a valid RefTarget, so it can be handed straight to the retrieval command
+  SEE: 03-show@Show
+- MUST-NOT: interpret the pattern as a regular expression, a glob, or a word-boundary match
+- MUST-NOT: "search a preamble `description`, a document name, a slot name, a normativity keyword, or a reference target"
+- MUST-NOT: truncate, wrap, reflow, highlight, or summarize the matched text
+- MUST-NOT: emit a context line either side of a match
+- MUST-NOT: "restrict a design's content by the `--slot` option, since a design declares no slot"
+- MUST-NOT: fail for any reason beside those its ERROR slot names and the loading failures it inherits
+  SEE: 01-load@Load

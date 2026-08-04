@@ -1,0 +1,85 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  Root of the yass CLI project, so the directory holding it is a project root distinct
+  from the one above it. Its one Spec defines `yass`, a read-only command-line tool that
+  surfaces a yass spec set to a coding agent one document at a time, so the agent spends
+  its context on the obligations it needs rather than on the files that hold them.
+version: v1
+related:
+- ../yass.yass.yaml
+- ../context/yass-reference.md
+- ../context/GUIDANCE.md
+---
+spec: Cli
+INPUT:
+- MUST: "be invoked as `yass <command> [options] [arguments]`, with no standard input"
+- MUST: recognize list, show, find, refs, validate, and plan as its commands, matched byte-for-byte in lowercase
+- WHEN: the command is list
+  MUST: dispatch to the command that indexes every document in the project
+  SEE: 02-list@List
+- WHEN: the command is show
+  MUST: dispatch to the command that emits one document with its references resolved
+  SEE: 03-show@Show
+- WHEN: the command is find
+  MUST: dispatch to the command that searches obligation prose and design content
+  SEE: 04-find@Find
+- WHEN: the command is refs
+  MUST: dispatch to the command that reports the reference edges of one document
+  SEE: 05-refs@Refs
+- WHEN: the command is validate
+  MUST: dispatch to the command that reports every yass rule the spec set violates
+  SEE: 06-validate@Validate
+- WHEN: the command is plan
+  MUST: dispatch to the command that emits the specs in implementation order
+  SEE: 07-plan@Plan
+- MUST: "accept `--help`, `--version`, and `--root <dir>` as its global options, recognized in any argument position"
+- MUST: "treat a bare `--` as the end of options, parsing every later argument as a positional"
+- MUST: load the whole project once before dispatching, and hand the loaded model to the command
+  SEE: 01-load@Load
+- MUST-NOT: read standard input in any command
+RETURN:
+- MUST: surface a spec set one document at a time, so an agent reads the obligations it needs without opening the files that hold them
+- MUST: write the dispatched command's records to stdout and nothing else
+  CONFORMS: 00-output@Output::RETURN
+- WHEN: "`--help` is given in any position"
+  MUST: write the usage summary to stdout and exit 0 without loading the project
+- WHEN: "`--version` is given in any position"
+  MUST: "write the single line `yass <version>` to stdout and exit 0 without loading the project"
+- MUST: exit with the status the exit-code policy assigns to the outcome
+  CONFORMS: 00-output@ExitCode::RETURN
+ERROR:
+- WHEN: no argument is given
+  MUST: write the usage summary to stderr, report code yass.args.no_command, and exit 2
+- WHEN: the first non-option argument is not one of the six commands
+  MUST: report code yass.args.unknown_command and exit 2
+- WHEN: a command is given in any case other than its lowercase form, or as an abbreviation of it
+  MUST: report code yass.args.unknown_command and exit 2
+- WHEN: "an option begins with a single `-` rather than `--`"
+  MUST: report code yass.args.short_option and exit 2
+- WHEN: an option is neither a global option nor an option the dispatched command accepts
+  MUST: report code yass.args.unknown_option and exit 2
+- WHEN: "`--root` is given with no directory argument after it"
+  MUST: report code yass.args.missing_value and exit 2
+- WHEN: a positional argument is the empty string
+  MUST: report code yass.args.empty and exit 2
+- MUST: leave any failure it does not name here to loading and to the dispatched command, each of which owns its own conditions
+  SEE: 01-load@Load
+SIDE-EFFECT:
+- MUST: "read only the `root.yass.yaml` it locates and the files whose basename ends with `.yass.yaml` beneath it"
+- MUST-NOT: create, modify, or delete any file or directory
+- MUST-NOT: write to a cache, a temporary directory, or a configuration directory
+- MUST-NOT: take an advisory or mandatory lock on any file it reads
+- MUST-NOT: open a network socket or spawn a subprocess
+- MUST-NOT: read configuration from an environment variable, a dotfile, or a user configuration directory
+INVARIANT:
+- CONFORMS: 00-output@Output
+- MUST: hold every command to one line-oriented record per result, carrying no prose, header, or summary
+  SEE: 00-output@Output
+- MUST: produce byte-identical output for the same project on repeated invocations
+- MUST: keep the usage summary to at most 24 lines, one line per command and one line per global option
+- MUST-NOT: vary behavior according to whether a stream is attached to a terminal
+- MUST-NOT: emit any machine-readable encoding beside the record grammar in v1
+  SEE: 00-output@RecordGrammar
+- MUST-NOT: implement per-command help in v1, since the usage summary states each command's options
+- MUST-NOT: mutate a spec file, so every command is read-only

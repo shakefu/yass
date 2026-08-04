@@ -1,0 +1,46 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  The sequencing command. Emits every spec of the project as a bare address, one per
+  line, in the order the spec set declares them to be implemented, so an agent gets a
+  work queue it can feed straight back to the retrieval command.
+version: v1
+related:
+- ../context/GUIDANCE.md
+---
+spec: Plan
+INPUT:
+- MUST: accept the loaded model
+  CONFORMS: 01-load@Load::RETURN
+- MUST: rely on the model preserving each document's file path and its position within that file, both recorded during loading
+- MUST: rely on that guarantee holding without a violation case of its own, because loading exits before any command runs when a file cannot be parsed
+  SEE: 01-load@Load::ERROR
+- MUST-NOT: accept a positional argument
+- MUST-NOT: accept an option beside the global options
+  SEE: root@Cli
+RETURN:
+- MUST: "emit one record per spec document, each record the single field `<path>@<Name>`"
+  USES: 00-output@RecordGrammar
+- MUST: "emit the project root's spec first, since it is the entry point into the spec set"
+- MUST: emit every other spec ordered by the project-root-relative file path in byte order, then by document position within its file
+- MUST: treat that order as the implementation order the spec set declares, which its file naming and its document positions express
+- WHEN: the project holds no spec beside the root spec
+  MUST: emit the root spec alone and exit 0
+ERROR:
+- WHEN: any positional argument is given
+  MUST: report code yass.args.unexpected and exit 2
+- WHEN: an option beside the global options is given
+  MUST: report code yass.args.unknown_option and exit 2
+INVARIANT:
+- CONFORMS: 00-output@Output
+- MUST: emit an address that is itself a valid RefTarget, so it can be handed straight to the retrieval command
+  SEE: 03-show@Show
+- MUST: produce byte-identical output for the same project on repeated invocations
+- MUST-NOT: emit a design document, which states no behavior of its own to implement
+  SEE: 00-output@RecordGrammar
+- MUST-NOT: omit a spec for being unreachable from the root spec, which validate reports instead
+  SEE: 06-validate@Validate
+- MUST-NOT: reorder specs by the reference graph, since file naming and document position are the ordering convention the spec set declares
+- MUST-NOT: emit a slot, an obligation, a description, or a step number alongside an address
+- MUST-NOT: fail for any reason beside the argument failures its ERROR slot names and the loading failures it inherits
+  SEE: 01-load@Load

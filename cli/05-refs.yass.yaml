@@ -1,0 +1,59 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  The navigation command. Reports the reference edges of one document, outbound by
+  default and inbound on request, so an agent walks the spec graph one hop at a time
+  instead of loading the specs to find out what connects to what.
+version: v1
+---
+spec: Refs
+INPUT:
+- MUST: accept the loaded model
+  CONFORMS: 01-load@Load::RETURN
+- MUST: rely on the reference index holding one edge per authored reference, with its declaring document, declaring slot, relation, and target string recorded verbatim
+- MUST: rely on that guarantee holding without a violation case of its own, because loading exits before any command runs when a file cannot be parsed
+  SEE: 01-load@Load::ERROR
+- MUST: "accept exactly one positional argument, a RefTarget of the form `[<path>@]<Name>`"
+- MAY: "accept the `--to` option"
+- WHEN: "the `--to` option is absent"
+  MUST: report the edges the addressed document itself declares
+- WHEN: "the `--to` option is given"
+  MUST: report the edges other documents declare whose target resolves to the addressed document
+RETURN:
+- MUST: "emit one record per distinct edge, in the form `<relation> <ref>`"
+  USES: 00-output@RecordGrammar
+- MUST: "emit CONFORMS, USES, or SEE as `<relation>`"
+- WHEN: "the `--to` option is absent"
+  MUST: "emit the edge's target as `<ref>`, path-qualified and slot-qualified exactly as it resolves"
+- WHEN: "the `--to` option is given"
+  MUST: "emit the declaring document as `<ref>`, in the form `<path>@<Name>::<SLOT>` naming the slot the reference was declared in"
+- WHEN: an edge's target does not resolve to any document
+  MUST: emit the authored target string unchanged, leaving the dangling reference visible rather than dropped
+- MUST: order records by relation in the canonical order CONFORMS, USES, SEE, then by `<ref>` in byte order
+- MUST: emit an edge once however many obligations in the document declare it
+ERROR:
+- WHEN: the number of positional arguments is not exactly one
+  MUST: report code yass.args.arity and exit 2
+- WHEN: the argument is not well-formed against the RefTarget grammar
+  MUST: report code yass.ref.malformed and exit 2
+- WHEN: "the argument carries a `::<SLOT>` suffix"
+  MUST: report code yass.args.slot_not_accepted and exit 2
+- WHEN: a bare name matches more than one document in the project
+  MUST: "report code yass.ref.ambiguous, emit one record per candidate to stdout in the `<kind> <ref> <detail>` form the index command uses, and exit 2"
+  SEE: 02-list@List::RETURN
+- WHEN: the argument matches no document in the project
+  MUST: report code yass.ref.not_found and exit 1
+- WHEN: the addressed document has no edge in the requested direction
+  MUST: write nothing to stdout and exit 1
+INVARIANT:
+- CONFORMS: 00-output@Output
+- MUST: treat CONFORMS, USES, and SEE as equal edges of the reference graph
+- MUST: emit an address that is itself a valid RefTarget, so it can be handed straight to the retrieval command
+  SEE: 03-show@Show
+- MUST-NOT: follow an edge transitively, reporting one hop only
+- MUST-NOT: emit an edge twice because two obligations declare it
+- MUST-NOT: report an edge as invalid, which validate reports instead
+  SEE: 06-validate@Validate
+- MUST-NOT: emit a direction marker, since the invocation already fixes the direction
+- MUST-NOT: fail for any reason beside those its ERROR slot names and the loading failures it inherits
+  SEE: 01-load@Load
