@@ -1,0 +1,65 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  The `yass refs` subcommand. One Spec, reporting the reference edges that touch one target:
+  the references it carries and the references other documents carry at it. Inbound edges are
+  the thing an agent cannot get by reading a file, so they are reported in the same call as
+  the outbound ones rather than behind a flag.
+version: v1
+---
+spec: Refs
+INPUT:
+- MUST: take exactly one target operand
+- MUST: resolve it as a command-line ref target
+  CONFORMS: 01-locate@TargetResolution::RETURN
+- MUST: take the project file set, since an inbound edge can be carried by any file in the project
+  CONFORMS: 01-locate@FileSet::RETURN
+- MUST: take the parsed model of every file in that set
+  CONFORMS: 02-parse@Parse::RETURN
+- MUST: rely on that model already satisfying the language definition
+- MUST-NOT: re-check a file the parser accepted
+- WHEN: a file in the set fails to parse
+  MUST: emit that file's validation diagnostics and exit with the findings status, rather than report edges over an incomplete project
+  SEE: 03-validate@Validate
+RETURN:
+- MUST: emit one record per reference edge that touches the target
+  USES: root@RecordFormat
+- MUST: "give every record exactly three fields, in the order direction, relation, peer"
+- MUST: "set the direction field to `out` for a reference the target carries, and to `in` for a reference another document carries at the target"
+- MUST: "set the relation field to `CONFORMS`, `USES`, or `SEE`, uppercase as the language writes it"
+  CONFORMS: ../yass@Keyword
+- WHEN: "the direction is `out`"
+  MUST: "set the peer field to that reference's target, rewritten as a root-relative ref target with the `.yass.yaml` suffix removed"
+- WHEN: "the direction is `in`"
+  MUST: "set the peer field to the referencing document as a root-relative ref target, with `::SLOT` naming the slot whose obligation carries the reference"
+- MUST: "emit every `out` record before every `in` record"
+- MUST: order records within a direction by byte-wise ascending peer, then by relation
+- MUST: emit one record per edge, so two obligations carrying the same relation at the same target produce two records
+- WHEN: the target names a slot
+  MUST: "restrict `out` records to references carried by that slot"
+- WHEN: the target names a slot
+  MUST: "restrict `in` records to references whose target names that slot"
+- WHEN: the target names a file and no document
+  MUST: report the edges of every Spec and Design in that file, in stream order
+- WHEN: no edge touches the target
+  MUST: write nothing and exit with the success status
+  USES: root@Brevity
+- MUST: exit with the success status
+  USES: root@ExitPolicy
+ERROR:
+- WHEN: the target fails to resolve
+  MUST: emit the diagnostic target resolution emits and exit with the status target resolution selects
+  SEE: 01-locate@TargetResolution::ERROR
+- WHEN: a reference anywhere in the project file set fails to resolve
+  MUST: "emit one `ref/unresolved` diagnostic naming the carrying spec and the target, and exit with the findings status, because an unresolvable edge makes the inbound set unreliable"
+- MUST: "emit one `internal` diagnostic and exit with the internal-error status for any failure that stops the project from being scanned completely"
+- MUST: write every diagnostic in this slot to standard error
+  USES: root@OutputPolicy
+INVARIANT:
+- MUST-NOT: emit an obligation's prose, a guard, or a normativity keyword, so the report stays an index rather than content
+  USES: root@Brevity
+- MUST-NOT: follow an edge transitively, so only edges with the target at one end are reported
+- MUST-NOT: report an edge to a preamble related entry, which is a separate channel the program never resolves
+  CONFORMS: ../yass@Preamble::INVARIANT
+- MUST-NOT: look outside the project file set for an inbound edge, so a reference from another project is not reported
+  SEE: 01-locate@FileSet

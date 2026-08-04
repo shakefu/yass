@@ -1,0 +1,101 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  Locating things for the yass CLI. Three Specs: finding the project root that governs a
+  path, collecting the spec files a project-wide command reads, and resolving a ref target
+  given as a command-line operand to a file, a document, and a slot. Every command that
+  touches the filesystem or a target goes through one of them, so path and target rules have
+  one home.
+version: v1
+---
+spec: RootDiscovery
+INPUT:
+- MUST: take one starting path, defaulting to the process working directory when a command supplies none
+- MUST: "resolve the starting path to an absolute path with symbolic links resolved and `.` and `..` removed, before ascending"
+- WHEN: the starting path names a file
+  MUST: begin the search at the directory holding that file
+- WHEN: the starting path names a directory
+  MUST: begin the search at that directory
+RETURN:
+- MUST: "yield the nearest directory at or above the starting path that holds a file named exactly `root.yass.yaml`"
+  CONFORMS: ../yass@Root
+- MUST: yield that directory as the project root governing the starting path, so a nested project root takes over its own subtree
+- MUST: yield the project root as an absolute path
+- MUST: stop ascending at the first match, so no directory above it is examined
+ERROR:
+- WHEN: "the ascent reaches the filesystem root without finding a file named `root.yass.yaml`"
+  MUST: "emit one `root/missing` diagnostic naming the starting path and exit with the not-found status"
+- WHEN: a directory on the ascent cannot be read
+  MUST: "emit one `io/unreadable` diagnostic naming that directory and exit with the internal-error status"
+- MUST-NOT: carry a guard-less residual, because the ascent terminates only by finding the file, by failing to read a directory, or by reaching the filesystem root, and each of those is matched above
+INVARIANT:
+- MUST: "compare the name `root.yass.yaml` byte-for-byte, so a differently cased name is not a project root"
+- MUST-NOT: "locate a project root by any signal other than that file name, such as a version-control directory, a package manifest, a build directory, or the deepest `.yass.yaml` ancestor"
+  CONFORMS: ../yass@Root
+- MUST-NOT: treat the absence of a project root as recoverable by inventing one at the working directory
+---
+spec: FileSet
+INPUT:
+- MUST: take the project root directory
+  CONFORMS: RootDiscovery::RETURN
+- MUST: rely on the project root holding a `root.yass.yaml`, since discovery yields no directory without one
+- MUST-NOT: re-check for that file
+- WHEN: the project root does not hold that file after all
+  MUST: "emit one `internal` diagnostic and exit with the internal-error status, rather than fall back to a different directory"
+RETURN:
+- MUST: "yield every file at or below the project root whose name ends with `.yass.yaml`"
+- MUST: "yield the project root's own `root.yass.yaml` as a member of the set"
+- MUST: "exclude every file governed by a nearer project root, by not descending into a subdirectory that holds its own `root.yass.yaml`"
+  CONFORMS: ../yass@Root
+- MUST: order the set by byte-wise ascending path relative to the project root
+- MUST-NOT: "exclude a file for any other reason, including a version-control ignore rule, a name beginning with `.`, or a directory that looks like build output"
+ERROR:
+- WHEN: a directory in the traversal cannot be read
+  MUST: "emit one `io/unreadable` diagnostic naming that directory and exit with the internal-error status"
+- MUST-NOT: carry a guard-less residual, because the traversal either reads a directory or fails to read it, and both are matched above
+INVARIANT:
+- MUST-NOT: descend through a symbolic link that names a directory, so the traversal cannot cycle
+- MUST: read through a symbolic link that names a file, so a linked spec file is a member of the set
+- MUST: yield the same set for the same tree regardless of the order the filesystem reports directory entries
+---
+spec: TargetResolution
+INPUT:
+- MUST: take one target string given as a command-line operand
+- MUST: parse it with the ref-target grammar the language defines
+  SEE: ../yass@RefTarget
+- MUST: "accept the form `path@Name::SLOT`, in which `path@` and `::SLOT` are each optional"
+- MUST: "treat a target with no `@` as a path addressing every Spec and Design document of the file it names, which is an extension available only to a command-line operand"
+- MUST-NOT: "let that extension apply inside a spec file, where a bare name still addresses a document of the same file"
+  SEE: ../yass@RefTarget
+- WHEN: "the path begins with `./` or `../`"
+  MUST: resolve it relative to the process working directory, because a command-line operand has no referencing file to resolve against
+- WHEN: the path has no leading dot
+  MUST: resolve it from the project root
+  SEE: ../yass@RefTarget
+- MUST: "append the literal suffix `.yass.yaml` to the path token to produce the file path"
+- MUST-NOT: search an alternative basename or extension when that file is absent
+RETURN:
+- MUST: yield the absolute file path, the document name when one was given, and the slot when one was given
+- MUST: yield the addressed documents in stream order when the target named no document
+- MUST: compare the path, the document name, and the slot byte-for-byte and case-sensitively
+- MUST: yield a normalized root-relative rendering of the target, so a command can echo it in a record or a diagnostic
+ERROR:
+- WHEN: the target does not match the ref-target grammar
+  MUST: "emit one `ref/syntax` diagnostic naming the target and exit with the usage status"
+- WHEN: the slot token is outside the recognized set
+  MUST: "emit one `ref/slot-unknown` diagnostic naming the token and exit with the usage status"
+  SEE: ../yass@Slot
+- WHEN: the file the path names does not exist
+  MUST: "emit one `ref/unresolved` diagnostic naming the target and exit with the not-found status"
+- WHEN: the file holds no Spec or Design with the given name
+  MUST: "emit one `ref/unresolved` diagnostic naming the target and exit with the not-found status"
+- WHEN: a slot is given and the named document is a Design
+  MUST: "emit one `ref/slot-on-design` diagnostic naming the target and exit with the not-found status, because a Design carries no slots"
+  CONFORMS: ../yass@Design
+- WHEN: a slot is given and the named Spec does not declare it
+  MUST: "emit one `ref/slot-undeclared` diagnostic naming the target and exit with the not-found status"
+- MUST: "emit one `ref/unresolved` diagnostic naming the target and exit with the not-found status for any target that fails to resolve for a reason not matched above, such as a path that names a directory"
+INVARIANT:
+- MUST: "exit with the usage status for a target the grammar or the slot vocabulary rejects, and with the not-found status for a well-formed target that addresses nothing"
+- MUST-NOT: fall back to searching the project for a document whose name matches, so a target resolves by path or not at all
+- CONFORMS: ../yass@RefTarget::INVARIANT
