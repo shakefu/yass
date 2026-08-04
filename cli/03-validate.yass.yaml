@@ -1,0 +1,84 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  The `yass validate` subcommand. One Spec, checking addressed files against every construct
+  of the yass language definition and reporting one diagnostic per violated rule. It restates
+  no language rule: each check is a whole-spec CONFORMS at the construct Spec that owns the
+  rule, so the language definition stays the single source of what is well formed.
+version: v1
+---
+spec: Validate
+INPUT:
+- MUST: take zero or more path operands
+- WHEN: no path operand is given
+  MUST: take the project file set
+  CONFORMS: 01-locate@FileSet::RETURN
+- WHEN: a path operand names a directory
+  MUST: "take every `*.yass.yaml` file at or below it, under the same exclusions the project file set applies"
+  SEE: 01-locate@FileSet
+- WHEN: a path operand names a file
+  MUST: take that file whether or not the project file set would have included it
+- MUST: take each file at most once, even when two operands address it
+RETURN:
+- MUST: emit one diagnostic per violated obligation of the yass language definition
+  USES: root@Diagnostic
+- MUST: "set the severity of every diagnostic it emits to `error`"
+- MUST: check every addressed file before exiting, rather than stop at the first violation
+- MUST: order diagnostics by ascending root-relative file path, then by document position within the file, then by the order violations were found within the document
+- MUST: exit with the findings status when it emitted at least one diagnostic
+  USES: root@ExitPolicy
+- MUST: exit with the success status and write nothing at all when it emitted none
+  USES: root@Brevity
+- MUST: reject exactly the file-level forms the Document construct rejects
+  CONFORMS: ../yass@Document
+- MUST: reject exactly the root-file forms the Root construct rejects, for a file named `root.yass.yaml`
+  CONFORMS: ../yass@Root
+- MUST: reject exactly the preamble forms the Preamble construct rejects
+  CONFORMS: ../yass@Preamble
+- MUST: reject exactly the spec-document forms the Spec construct rejects
+  CONFORMS: ../yass@Spec
+- MUST: reject exactly the design-document forms the Design construct rejects
+  CONFORMS: ../yass@Design
+- MUST: reject exactly the slot forms the Slot construct rejects
+  CONFORMS: ../yass@Slot
+- MUST: reject exactly the obligation forms the Obligation construct rejects
+  CONFORMS: ../yass@Obligation
+- MUST: reject exactly the normativity forms the Normativity construct rejects
+  CONFORMS: ../yass@Normativity
+- MUST: reject exactly the guard forms the Guard construct rejects
+  CONFORMS: ../yass@Guard
+- MUST: reject exactly the reference forms the Reference construct rejects
+  CONFORMS: ../yass@Reference
+- MUST: reject exactly the ref-target forms the RefTarget construct rejects
+  CONFORMS: ../yass@RefTarget
+- MUST: hold every keyword to the structural positions and the casing the Keyword construct fixes
+  CONFORMS: ../yass@Keyword
+- MUST: "derive each diagnostic's code from the construct Spec that owns the violated rule, as the lower-cased construct name, a `/`, and a slug for the rule that is the same slug on every run"
+  USES: root@Diagnostic
+- MUST: resolve every reference in an addressed file against the project, so an unresolvable target, a relation at the wrong target kind, and an undeclared slot are all reported
+  SEE: ../yass@Reference
+- WHEN: a reference in an addressed file points into a file outside the addressed set
+  MUST: read that file far enough to decide whether the target resolves
+- WHEN: a reference in an addressed file points into a file outside the addressed set
+  MUST-NOT: report a violation found in that file, because it was not addressed
+ERROR:
+- WHEN: a path operand does not exist
+  MUST: "emit one `io/missing` diagnostic naming it and exit with the not-found status"
+- WHEN: "a path operand exists but is neither a directory nor a file whose name ends with `.yass.yaml`"
+  MUST: "emit one `io/not-a-spec-file` diagnostic naming it and exit with the usage status"
+- WHEN: an addressed file cannot be read
+  MUST: "emit one `io/unreadable` diagnostic naming it and exit with the internal-error status"
+- MUST: "emit one `internal` diagnostic and exit with the internal-error status for any failure that stops the addressed set from being checked completely"
+- MUST: write every diagnostic in this slot to standard error, unlike the findings in RETURN, which are the requested answer
+  USES: root@OutputPolicy
+INVARIANT:
+- MUST-NOT: judge whether an obligation's prose is correct, complete, or consistent with another obligation
+- MUST-NOT: fetch or open a preamble related entry while checking it
+  CONFORMS: ../yass@Preamble::INVARIANT
+- MUST-NOT: report a missing schema modeline, which the language states as a SHOULD and lint reports as an advisory
+  SEE: 08-lint@Lint
+- MUST-NOT: report an advisory, so a validation diagnostic always names a violated rule of the language definition
+  SEE: 08-lint@Lint
+- MUST-NOT: modify a file to repair a violation
+- MUST: be the only place the program decides whether a file is well formed, so every other command relies on this decision
+  SEE: 02-parse@Parse

@@ -1,0 +1,47 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  Reading a yass file into the model every other command consumes. One Spec: bytes on disk
+  become an ordered stream of a Preamble followed by Spec and Design documents, each already
+  known to satisfy the language definition. Its RETURN is the producer boundary the listing,
+  query, reference, and lint commands rely on without re-validating.
+version: v1
+---
+spec: Parse
+INPUT:
+- MUST: take one file path, named on the command line or drawn from the project file set
+  CONFORMS: 01-locate@FileSet::RETURN
+- MUST: read the file's bytes and decode them as UTF-8
+- CONFORMS: ../yass@Document
+RETURN:
+- MUST: yield the file's documents in stream order, since Preamble validity depends on position
+- MUST: yield the first document as the file's Preamble, carrying its description, its version, and its related entries when present
+  SEE: ../yass@Preamble
+- MUST: "yield every later document as a Spec or a Design, tagged by whether it carries a `spec` key or a `design` key"
+- MUST: yield each Spec's name and its declared slots in the order the source document declares them
+  SEE: ../yass@Slot
+- MUST: yield each obligation with its normativity keyword when present, its guard when present, its references keyed by relation, and its prose
+  SEE: ../yass@Obligation
+- MUST: "yield each Design's name, its `type`, and its `content` unchanged"
+  SEE: ../yass@Design
+- MUST: yield the file's first line, so lint can check for the schema modeline
+- MUST: guarantee every yielded document satisfies the language definition's rules for its construct, so a consumer never re-validates one
+  SEE: 03-validate@Validate
+- MUST: yield the position of each document and of each obligation, so a diagnostic can name a location
+ERROR:
+- WHEN: the file does not satisfy the Document construct
+  MUST: emit the diagnostics validation would emit for that file and exit with the findings status
+  SEE: 03-validate@Validate
+- WHEN: the file cannot be read or its bytes are not valid UTF-8
+  MUST: "emit one `io/unreadable` diagnostic naming the path and exit with the internal-error status"
+- MUST-NOT: carry a guard-less residual, because a read either fails, or yields bytes that satisfy the Document construct or do not, and each of those is matched above
+SIDE-EFFECT:
+- MUST-NOT: write, move, or reformat the file it read
+- MUST: read each file at most once per invocation, even when several targets reach it
+INVARIANT:
+- MUST-NOT: yield a partial model for a file that failed validation, so no command ever serves content out of an invalid file
+- MUST-NOT: interpret, rewrite, or normalize the prose of an obligation
+- MUST-NOT: resolve a reference, which belongs to the query command's resolution step
+  SEE: 06-query@Resolution
+- MUST-NOT: fetch or open a preamble related entry
+  CONFORMS: ../yass@Preamble::INVARIANT

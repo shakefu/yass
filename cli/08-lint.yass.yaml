@@ -1,0 +1,65 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  The `yass lint` subcommand. One Spec, reporting advisories about a spec set that is already
+  valid: a Design nothing binds, a document no reference chain reaches from the root Spec, a
+  missing schema modeline, an empty slot, a Spec with no slot. Every advisory is structural.
+  Lint never reads what an obligation says, because judging obligation content would tie the
+  program to an implementation language.
+version: v1
+---
+spec: Lint
+INPUT:
+- MUST: take no operand, so lint always examines the whole project
+- MUST: take the project file set
+  CONFORMS: 01-locate@FileSet::RETURN
+- MUST: take the parsed model of every file in that set
+  CONFORMS: 02-parse@Parse::RETURN
+- MUST: rely on that model already satisfying the language definition
+- MUST-NOT: re-check a file the parser accepted
+- WHEN: a file in the set fails to parse
+  MUST: emit that file's validation diagnostics and exit with the findings status, because an advisory over an invalid set is unreliable
+  SEE: 03-validate@Validate
+RETURN:
+- MUST: emit one diagnostic per advisory
+  USES: root@Diagnostic
+- MUST: "set the severity of every diagnostic it emits to `warn`"
+- WHEN: a Design is the target of no USES reference anywhere in the project file set
+  MUST: "emit one `lint/design-unreferenced` advisory naming it, because a Design nothing binds is declared normative content with no force"
+  SEE: ../yass@Design
+- WHEN: a Spec or Design under the project root is not reachable from the root file's Spec through a chain of CONFORMS, USES, and SEE references
+  MUST: "emit one `lint/unreachable` advisory naming it"
+  CONFORMS: ../yass@Root::INVARIANT
+- WHEN: "a file's first line is not the schema modeline `# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json`"
+  MUST: "emit one `lint/modeline` advisory naming the file"
+- WHEN: a Spec declares a slot whose obligation list is empty
+  MUST: "emit one `lint/slot-empty` advisory naming the spec and the slot"
+- WHEN: a Spec declares no slot at all
+  MUST: "emit one `lint/spec-empty` advisory naming it"
+- MUST: count a reference edge toward reachability regardless of its relation, so CONFORMS, USES, and SEE weigh the same
+  CONFORMS: ../yass@Root::INVARIANT
+- MUST: order advisories the way validation orders diagnostics
+  SEE: 03-validate@Validate::RETURN
+- MUST: exit with the findings status when it emitted at least one advisory
+  USES: root@ExitPolicy
+- MUST: exit with the success status and write nothing at all when it emitted none
+  USES: root@Brevity
+ERROR:
+- WHEN: the project root's `root.yass.yaml` carries no Spec or more than one
+  MUST: "emit one `root/spec-count` diagnostic and exit with the findings status, because reachability then has no single starting point"
+  CONFORMS: ../yass@Root::ERROR
+- WHEN: no project root governs the working directory
+  MUST: "emit one `root/missing` diagnostic and exit with the not-found status"
+  SEE: 01-locate@RootDiscovery::ERROR
+- MUST: "emit one `internal` diagnostic and exit with the internal-error status for any failure that stops the project from being examined completely"
+- MUST: write every diagnostic in this slot to standard error, unlike the advisories in RETURN, which are the requested answer
+  USES: root@OutputPolicy
+INVARIANT:
+- MUST-NOT: emit an advisory that repeats a diagnostic validation would emit, so the two reports never overlap
+  SEE: 03-validate@Validate
+- MUST-NOT: judge whether an obligation is correct, complete, or consistent, so no advisory depends on reading prose
+- MUST-NOT: judge whether a slot states a residual, since that is a property of what obligations say
+  SEE: ../yass@Slot.ERROR
+- MUST-NOT: modify a file to clear an advisory
+- MUST-NOT: report an advisory about a file governed by a nearer project root
+  SEE: 01-locate@FileSet

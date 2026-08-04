@@ -1,0 +1,73 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  The `yass list` subcommand. One Spec, emitting an inventory of a spec set: one record per
+  file and one record per Spec or Design document, each keyed by a ref target the agent can
+  pass straight back to `yass query`. It is the index an agent reads first, so it carries a
+  truncated file description and the slot names of a Spec, and no obligation prose at all.
+version: v1
+---
+spec: List
+INPUT:
+- MUST: take zero or more path operands
+- WHEN: no path operand is given
+  MUST: take the project file set
+  CONFORMS: 01-locate@FileSet::RETURN
+- WHEN: a path operand names a directory
+  MUST: "take every `*.yass.yaml` file at or below it, under the same exclusions the project file set applies"
+  SEE: 01-locate@FileSet
+- WHEN: a path operand names a file
+  MUST: take that file
+- MUST: take the parsed model of each addressed file
+  CONFORMS: 02-parse@Parse::RETURN
+- MUST: rely on that model already satisfying the language definition
+- MUST-NOT: re-check a file the parser accepted
+- WHEN: an addressed file fails to parse
+  MUST: emit that file's validation diagnostics and exit with the findings status, rather than list a partial inventory
+  SEE: 03-validate@Validate
+RETURN:
+- MUST: emit one record per addressed file and one record per Spec or Design document those files hold
+  USES: root@RecordFormat
+- MUST: "give every record exactly three fields, in the order reference, kind, detail"
+- MUST: "set the kind field to `file`, `spec`, or `design`"
+- WHEN: "the kind is `file`"
+  MUST: "set the reference field to the file's root-relative path with the `.yass.yaml` suffix removed"
+- WHEN: "the kind is `file`"
+  MUST: set the detail field to the truncated preamble description
+- WHEN: "the kind is `spec` or `design`"
+  MUST: "set the reference field to `path@Name`, where path is the file's root-relative path with the `.yass.yaml` suffix removed"
+- WHEN: "the kind is `spec`"
+  MUST: "set the detail field to the names of the slots the Spec declares, in source order, joined by a single `,` with no space"
+- WHEN: "the kind is `spec` and the Spec declares no slot"
+  MUST: "set the detail field to a single `-`"
+- WHEN: "the kind is `design`"
+  MUST: "set the detail field to the Design's `type` value"
+- MUST: emit a file's record immediately before the records of the documents that file holds
+- MUST: order files by byte-wise ascending root-relative path, and documents by stream order within their file
+- MUST: emit a reference field that is a ref target the query subcommand accepts unchanged
+  SEE: 06-query@Query
+- MUST: exit with the success status
+  USES: root@ExitPolicy
+- WHEN: the addressed set holds no file
+  MUST: write nothing and exit with the success status
+  USES: root@Brevity
+- MUST: "replace each run of whitespace in the description with one ASCII space `0x20`, then trim a leading and a trailing space, before truncating"
+- MUST: truncate the description to at most 100 Unicode scalar values
+- WHEN: truncation dropped at least one scalar value
+  MUST: "make the hundredth emitted scalar value a single `…` U+2026, so a truncated description is distinguishable from a short one"
+- WHEN: the description is empty after collapsing and trimming
+  MUST: "set the detail field to a single `-`"
+ERROR:
+- WHEN: a path operand does not exist
+  MUST: "emit one `io/missing` diagnostic naming it and exit with the not-found status"
+- WHEN: "a path operand exists but is neither a directory nor a file whose name ends with `.yass.yaml`"
+  MUST: "emit one `io/not-a-spec-file` diagnostic naming it and exit with the usage status"
+- MUST: "emit one `internal` diagnostic and exit with the internal-error status for any failure that stops the addressed set from being listed completely"
+- MUST: write every diagnostic in this slot to standard error
+  USES: root@OutputPolicy
+INVARIANT:
+- MUST-NOT: emit a header row, a count, a total, or a blank line between files
+  USES: root@Brevity
+- MUST-NOT: emit an obligation, a guard, or a reference, so listing never carries spec content beyond the truncated description
+- MUST-NOT: emit a preamble record for a file whose preamble the parser rejected, since such a file is never listed at all
+- MUST-NOT: filter, group, or sort by kind, since the record's own kind field lets the reader do it
