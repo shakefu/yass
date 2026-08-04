@@ -1,0 +1,76 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  The conformance subcommand. `yass validate` checks files against the language
+  definition and emits one coded diagnostic per rule violation, so an agent that has just
+  written a spec learns what is wrong with it in one line per problem.
+version: v1
+---
+spec: Validate
+INPUT:
+- MUST: "be invoked as `yass validate [PATH...]`"
+- MUST: take the project root directory and the target file paths the resolution record names
+  CONFORMS: 01-resolve@Resolve::RETURN
+- MUST-NOT: rely on the resolution record's parse, uniqueness, or slot-declaration guarantees, because establishing those guarantees is exactly what this command does
+- WHEN: a guarantee of the resolution record about a file's contents does not hold
+  MUST: emit the diagnostic for that violation and continue, since a violated guarantee is this command's subject rather than a failure
+- WHEN: the resolution record's project root guarantee does not hold
+  MUST: "report the inconsistency on standard error and exit with status 5"
+- WHEN: no PATH is given
+  MUST: "validate every file whose name ends in `.yass.yaml` at or below the project root"
+- WHEN: a PATH names a directory
+  MUST: "validate every file whose name ends in `.yass.yaml` at or below that directory"
+- WHEN: a PATH names a file
+  MUST: validate that file alone, whatever its name
+- MUST: read each file as a byte stream and decide its UTF-8 well-formedness itself
+- MUST: continue to the next file after a file fails, so one broken file does not hide the rest
+RETURN:
+- MUST: emit one diagnostic record per rule violation
+  CONFORMS: 00-output@Output
+  USES: 00-output@DiagnosticCodes
+- MUST: emit a diagnostic for every rule the language definition states as a rejection, and for no other condition
+  CONFORMS: ../yass@Document
+- MUST: check the stream rules — encoding, document separation, anchors and aliases, duplicate keys, and the presence of a spec or design key on every document after the first
+  SEE: ../yass@Document
+- MUST: check the preamble rules — presence, position, uniqueness, required keys, the exact version string, the closed key set, and the shape of `related`
+  CONFORMS: ../yass@Preamble
+- MUST: check the spec rules — the name grammar, the keyword collision, the closed slot key set, and name uniqueness within the file
+  CONFORMS: ../yass@Spec
+- MUST: check the design rules — the name grammar, the required `type` and `content` keys, their string types, the closed key set, and the absence of slot keys
+  CONFORMS: ../yass@Design
+- MUST: check the obligation rules — exactly one normativity keyword unless reference-only, a guard never standing alone, a scalar at every scalar position, and no repeated relation key
+  CONFORMS: ../yass@Obligation
+- MUST: check the reference rules — target grammar, resolution, the relation and target-kind pairing, and that a named slot is declared by the referenced spec in its source document
+  CONFORMS: ../yass@Reference
+- MUST: "check the root-file rules — that a file named `root.yass.yaml` carries exactly one Spec, and that a project root exists at or above every validated file"
+  CONFORMS: ../yass@Root
+- MUST: "write the LOCATION of a diagnostic as the physical line the offending construct starts on, and the CODE from the diagnostic code table"
+- MUST: order diagnostics by file path compared byte-for-byte, then by ascending line
+- WHEN: a file breaks a rule more than once
+  MUST: emit one diagnostic per occurrence rather than one per rule
+- WHEN: no violation is found in any validated file
+  MUST: write nothing to standard output and exit with status 0
+ERROR:
+- WHEN: at least one diagnostic was emitted
+  MUST: exit with status 1 after writing all of them
+- WHEN: a PATH does not exist
+  MUST: "report `unresolved` naming that PATH on standard error and exit with status 3"
+- WHEN: a file's stream will not parse far enough to locate its documents
+  MUST: "emit the E001 diagnostic for it, emit no further diagnostic for that file, and continue with the next file"
+- WHEN: a file cannot be read as bytes
+  MUST: "report the read failure naming that file on standard error and exit with status 5"
+- MUST: "report the failing operation on standard error and exit with status 5 for any failure not matched by a guarded obligation in this slot"
+SIDE-EFFECT:
+- MUST-NOT: rewrite, reformat, or requote a file it validates
+- MUST-NOT: write a diagnostic to standard error, since a diagnostic is this command's product
+  SEE: 00-output@Output
+INVARIANT:
+- MUST-NOT: judge whether an obligation's prose is correct, complete, achievable, or well worded, since verification is out of scope and staying out of it is what keeps the tool independent of the language a spec describes
+- MUST-NOT: treat the derived JSON Schema as the authority for any rule, since the language definition is the normative statement of the language
+  SEE: ../root@Yass
+- MUST-NOT: resolve or fetch a preamble `related` entry, whatever it looks like
+  SEE: ../yass@Preamble
+- MUST-NOT: emit a lint finding, so the two commands partition the checks between them
+  SEE: 06-lint@Lint
+- MUST-NOT: emit a diagnostic under a code the diagnostic code table does not define
+  USES: 00-output@DiagnosticCodes

@@ -1,0 +1,63 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  The enumeration subcommand. `yass list` reports every file, spec, and design in a tree
+  as one record per line — ref, kind, a one-field detail, and a truncated file
+  description — so an agent finds where a symbol is specified without opening a file.
+version: v1
+---
+spec: List
+INPUT:
+- MUST: "be invoked as `yass list [--filter GLOB] [PATH...]`"
+- MUST: take the project root the resolution record names, relying on its upward-walk discovery without repeating it
+  CONFORMS: 01-resolve@Resolve::RETURN
+- WHEN: a guarantee of the resolution record does not hold
+  MUST: "report the inconsistency on standard error and exit with status 5"
+- WHEN: no PATH is given
+  MUST: "list every file whose name ends in `.yass.yaml` at or below the project root"
+- WHEN: a PATH names a directory
+  MUST: "list every file whose name ends in `.yass.yaml` at or below that directory"
+- WHEN: a PATH names a file
+  MUST: list that file alone, whatever its name
+- MUST-NOT: descend into a directory that holds its own `root.yass.yaml`, since a nested project root governs its own subtree and the outer root does not govern within it
+  SEE: ../yass@Root
+- MUST-NOT: follow a symbolic link that leaves the tree being listed
+- WHEN: "`--filter GLOB` is given"
+  MUST: "emit only records whose REF field matches GLOB over its whole length, with `*` matching any run of characters and `?` matching exactly one"
+- WHEN: "`--filter` is given more than once"
+  MUST: "emit a record whose REF matches any one of the given patterns"
+RETURN:
+- MUST: emit one file record for each listed file, followed by one record for each of its spec and design documents in document order
+  CONFORMS: 00-output@Output
+- MUST: "write each REF as a project-root-relative `path@Name`, or as the bare path for a file record, with the `.yass.yaml` suffix removed"
+- MUST: "write `file`, `spec`, or `design` as the KIND field"
+- MUST: set a file record's DETAIL field to the count of spec and design documents the file carries, excluding its preamble
+- MUST: set a file record's DESCRIPTION field from the file's preamble description, whitespace-collapsed and truncated
+  SEE: ../yass@Preamble
+- MUST: "set a spec record's DETAIL field to that spec's declared slot names joined by `,`, in the order INPUT, RETURN, ERROR, SIDE-EFFECT, INVARIANT"
+  SEE: ../yass@Slot
+- MUST: "set a design record's DETAIL field to that design's `type` value verbatim, whitespace-collapsed"
+  SEE: ../yass@Design
+- MUST: "write `-` for the DESCRIPTION field of a spec or design record, since only a file carries a description"
+- MUST: order files ascending by project-root-relative path compared byte-for-byte
+- WHEN: no file matches the PATH arguments and the filter
+  MUST: write nothing to standard output and exit with status 0
+ERROR:
+- WHEN: a PATH does not exist
+  MUST: "report `unresolved` naming that PATH on standard error and exit with status 3"
+- WHEN: "`--filter` is given a GLOB that is empty"
+  MUST: "report the empty pattern on standard error and exit with status 2"
+- WHEN: a listed file is not well-formed YAML, or cannot be decoded as UTF-8
+  MUST: "emit its file record with `-` for DETAIL and DESCRIPTION, emit no document record for it, continue with the remaining files, and exit with status 1"
+  SEE: 05-validate@Validate
+- WHEN: a listed file carries no preamble as its first document
+  MUST: "emit its file record with `-` for DESCRIPTION, still emit its document records, and exit with status 1"
+  SEE: ../yass@Preamble
+- WHEN: a listed file cannot be read at all
+  MUST: "report the read failure naming that file on standard error and exit with status 5"
+- MUST: "report the failing operation on standard error and exit with status 5 for any failure not matched by a guarded obligation in this slot"
+INVARIANT:
+- MUST-NOT: report a rule violation, since naming what is wrong with a file belongs to validation and this command reports only that a file could not be read as documents
+  SEE: 05-validate@Validate
+- MUST-NOT: emit a record for a preamble as though it were a document, because a preamble has no name and the file's own record carries its description
+  SEE: ../yass@Preamble

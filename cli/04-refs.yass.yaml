@@ -1,0 +1,66 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  The reference-graph subcommand. `yass refs` reports the edges of one document — what it
+  points at, and what points at it — so an agent sees the blast radius of a change, and
+  finds the specs that constrain the one it is editing, without reading the tree.
+version: v1
+---
+spec: Refs
+INPUT:
+- MUST: "be invoked as `yass refs [--in] [--out] TARGET`"
+- WHEN: no TARGET is given, or more than one is given
+  MUST: "report the argument count on standard error and exit with status 2"
+- MUST: take TARGET as the resolution record names it
+  CONFORMS: 01-resolve@Resolve::RETURN
+- MUST: rely on the existence, uniqueness, and slot-declaration guarantees of the resolution record without re-checking any of them
+- WHEN: a guarantee of the resolution record does not hold
+  MUST: "report the inconsistency on standard error and exit with status 5"
+- WHEN: neither `--in` nor `--out` is given
+  MUST: emit both incoming and outgoing edges
+- WHEN: "`--in` is given and `--out` is not"
+  MUST: emit incoming edges only
+- WHEN: "`--out` is given and `--in` is not"
+  MUST: emit outgoing edges only
+- WHEN: both `--in` and `--out` are given
+  MUST: emit both, exactly as though neither had been given
+- MUST: "read every file whose name ends in `.yass.yaml` at or below the project root to find incoming edges"
+- MUST-NOT: search for an incoming edge outside the project root, so an edge a document of another project carries is not reported
+  SEE: ../yass@Root
+- WHEN: "the resolution record names a target file outside the project root, which a path token climbing with `../` may do"
+  MUST: read that file for the addressed document's outgoing edges, and report incoming edges only from within the project root
+  SEE: 01-resolve@Resolve
+RETURN:
+- MUST: emit one refs record per edge
+  CONFORMS: 00-output@Output
+- MUST: "count CONFORMS, USES, and SEE equally as edges"
+  SEE: ../yass@Root
+- MUST: emit an outgoing edge for every reference the addressed document carries, in whichever slot and obligation carries it
+- MUST: emit an incoming edge for every reference under the project root whose resolved target is the addressed document
+- MUST: "write the REF field of an edge as the other end, project-root-relative, keeping any `::SLOT` the reference stated"
+- WHEN: the addressed document is a Design
+  MUST: emit no outgoing edge, because a design's content is opaque and carries no reference
+  SEE: ../yass@Design
+- WHEN: TARGET addressed a slot
+  MUST: restrict outgoing edges to references carried by that slot, and incoming edges to references naming that slot
+- WHEN: TARGET addressed a whole spec
+  MUST: emit an incoming edge for a reference naming any slot of that spec as well as for one naming the spec alone
+- WHEN: two obligations carry the same relation to the same target
+  MUST: emit one record per obligation, since the count of edges is what a caller is asking for
+- WHEN: the addressed document neither carries nor receives an edge
+  MUST: write nothing to standard output and exit with status 0
+- MUST: emit outgoing edges before incoming edges, each group ordered by the file and document position of the obligation that carries it
+ERROR:
+- WHEN: TARGET does not resolve
+  MUST: "report `unresolved` naming TARGET on standard error and exit with status 3"
+- WHEN: a file under the project root is not well-formed YAML
+  MUST: "report that file on standard error, emit the edges of every file that did parse, and exit with status 1"
+  SEE: 05-validate@Validate
+- WHEN: a reference under the project root does not resolve
+  MUST: emit no edge for it and continue, since an unresolved reference is a validation finding and not an edge
+  SEE: 05-validate@Validate
+- MUST: "report the failing operation on standard error and exit with status 5 for any failure not matched by a guarded obligation in this slot"
+INVARIANT:
+- MUST-NOT: report an edge transitively, so an edge is reported only when an obligation states it directly
+- MUST-NOT: infer an edge from a name appearing inside obligation prose or inside a design's content
+  SEE: ../yass@Design
