@@ -1,0 +1,143 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  The output contract every subcommand obeys: one record per line, tab-separated, no
+  decoration, deterministic order, product on standard output and operational failure on
+  standard error. Owns the record grammar and the diagnostic code table so no subcommand
+  restates either.
+version: v1
+---
+spec: Output
+INPUT:
+- MUST: take the records or fragment a subcommand produced, together with the global `--json` setting
+- WHEN: "`--json` is not given"
+  MUST: render each record as one tab-separated line
+  USES: RecordFormat
+- WHEN: "`--json` is given"
+  MUST: "render each record as one JSON object on one line, whose keys are the field names the record grammar fixes, in the order it fixes them"
+  USES: RecordFormat
+- WHEN: "`--json` is given and the product is a query fragment rather than a record"
+  MUST: "render each fragment as one JSON object on one line carrying the queried target and the fragment text"
+  SEE: 02-query@Query
+RETURN:
+- MUST: "write every line encoded as UTF-8 and terminated by exactly one LF `0x0A`, including the last"
+- MUST: "separate the fields of a record with exactly one ASCII tab `0x09`"
+- MUST: "write `-` for a field that has no value, so every record of one kind carries the same field count"
+- MUST: "replace each run of whitespace inside a field value with one ASCII space `0x20` before writing it"
+- MUST: "truncate a description field to its first 80 Unicode scalar values and append `…` when any were removed"
+- WHEN: a subcommand produced no record
+  MUST: write nothing at all to standard output
+- MUST-NOT: write a header line, a column ruler, a record count, a summary line, or a trailing blank line
+- MUST-NOT: pad a field to a fixed width, align columns, or quote a field value
+SIDE-EFFECT:
+- MUST: write the product of a subcommand — records, fragments, and diagnostics — to standard output
+- MUST: write an operational failure that stopped a subcommand from producing its product to standard error as one line
+- MUST-NOT: split one record across the two streams
+- MUST-NOT: emit an ANSI escape sequence, whether or not standard output is a terminal
+INVARIANT:
+- MUST: order records ascending by file path compared byte-for-byte, then by document position within a file, then by the order the source document states them
+- MUST-NOT: let a tab or a line feed reach a field value
+- MUST-NOT: vary its output with terminal width, locale, or any environment variable
+- MUST-NOT: "treat the line number in a diagnostic location as a reference anchor, since it names a physical position for an editor and a ref target addresses nothing finer than a slot"
+  SEE: ../yass@RefTarget
+---
+design: RecordFormat
+type: line-grammar
+content: |
+  A record is one line: fields separated by one tab (0x09), terminated by one LF. A field
+  never contains a tab or an LF. `-` means the field has no value.
+
+  list -- four fields: REF, KIND, DETAIL, DESCRIPTION
+    file    <path>          file    <document count>            <preamble description>
+    spec    <path>@<name>   spec    <declared slots, comma-joined>   -
+    design  <path>@<name>   design  <the design `type` value>        -
+
+  refs -- three fields: DIR, RELATION, REF
+    DIR       `out` for an edge the addressed document carries,
+              `in` for an edge that points at the addressed document.
+    RELATION  CONFORMS, USES, or SEE.
+    REF       the other end of the edge, written root-relative as <path>@<name> with
+              an optional ::SLOT.
+
+  diagnostic -- three fields: LOCATION, CODE, MESSAGE
+    LOCATION  <path>:<line>, the physical line the finding starts on.
+    CODE      an identifier from DiagnosticCodes.
+    MESSAGE   one clause, lower case, no trailing period, naming the offending
+              construct.
+
+  root -- one field: PATH
+    The absolute path of the project root directory.
+
+  REF and LOCATION paths are relative to the project root, with `/` separators and the
+  `.yass.yaml` suffix removed from a REF and kept in a LOCATION.
+
+  Under --json, one JSON object per line, keys in the field order above and lower-cased:
+    list        {"ref":…, "kind":…, "detail":…, "description":…}
+    refs        {"dir":…, "relation":…, "ref":…}
+    diagnostic  {"location":…, "code":…, "message":…}
+    root        {"path":…}
+    fragment    {"target":…, "yaml":…}
+  A field written `-` in the tab-separated form is JSON null.
+---
+design: DiagnosticCodes
+type: code-table
+content: |
+  E-codes are validation errors: the file breaks a rule the language definition states as
+  a rejection. W-codes are lint findings: the file is well-formed but the spec set has a
+  problem the language definition does not reject.
+
+  Stream
+    E001  stream is not well-formed YAML
+    E002  file is not valid UTF-8, or begins with a UTF-8 BOM
+    E003  document after the first has neither a `spec` key nor a `design` key
+    E004  YAML anchor, alias, or explicit tag used
+    E005  duplicate key within a mapping
+
+  Preamble
+    E010  no preamble, or the first document is not a preamble
+    E011  preamble omits `description` or `version`
+    E012  preamble `version` is not the exact string `v1`
+    E013  preamble carries a key other than `description`, `version`, or `related`
+    E014  preamble `related` is present and is not a sequence of strings
+    E015  more than one preamble in the file
+
+  Spec
+    E020  spec name is missing, or does not match the name grammar
+    E021  spec name case-insensitively matches a slot or normativity keyword
+    E022  spec carries a key that is not `spec` and not a recognized slot
+    E023  two documents in the file share a name
+
+  Design
+    E030  design name is missing, or does not match the name grammar
+    E031  design omits `type` or `content`
+    E032  design `type` or `content` is not a string
+    E033  design carries a key other than `design`, `type`, or `content`
+
+  Obligation
+    E040  slot value is not a sequence of mappings
+    E041  obligation carries neither a normativity keyword nor a reference
+    E042  obligation carries more than one normativity keyword
+    E043  obligation carries a WHEN guard with no normativity keyword
+    E044  obligation value at a scalar position is a mapping, a sequence, or null,
+          characteristically unquoted prose containing a colon and a space
+    E045  obligation carries the same reference relation key more than once
+
+  Reference
+    E050  ref target is not well-formed per the path@SpecName::SLOT grammar
+    E051  ref target names a file, spec, or design that does not exist
+    E052  CONFORMS target resolves to a design rather than a spec or slot
+    E053  USES target resolves to a spec or slot rather than a design
+    E054  ::SLOT names a slot outside the recognized set
+    E055  ::SLOT is appended to a target that resolves to a design
+    E056  ::SLOT names a slot the referenced spec does not declare in its source document
+
+  Root
+    E070  root file carries no Spec, or more than one Spec
+    E071  no file named root.yass.yaml at or above the file
+
+  Lint
+    W001  design document that no USES reference names
+    W002  spec or design that no chain of CONFORMS, USES, and SEE edges reaches from the
+          root file's Spec
+    W003  file whose first line is not the schema modeline
+    W004  spec that declares no slot

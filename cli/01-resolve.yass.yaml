@@ -1,0 +1,91 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  Locating things. Resolve turns a starting directory plus one command-line argument into
+  a project root, a file, and the document or slot it addresses; every other subcommand
+  consumes what it yields. Root is the subcommand that reports the project root alone.
+version: v1
+---
+spec: Resolve
+INPUT:
+- MUST: take a starting directory and one command-line argument
+- CONFORMS: ../yass@RefTarget
+- MUST: "find the project root by walking upward from the starting directory and taking the first directory that contains a file named exactly `root.yass.yaml`"
+  CONFORMS: ../yass@Root
+- MUST-NOT: "locate a project root by any other means, including a `.git` directory, a package manifest, a build directory, or the presence of other `.yass.yaml` files"
+  SEE: ../yass@Root
+- MUST: "treat an argument containing `@` as a RefTarget, splitting it into a path token, a document name, and an optional `::SLOT`"
+- MUST: "treat an argument containing no `@` as a bare path token addressing a whole file"
+- MUST-NOT: "treat an argument containing no `@` as a same-file document name, because a command-line argument has no referencing file for `same file` to mean anything"
+- WHEN: "the path token begins with `./` or `../`"
+  MUST: resolve it relative to the starting directory rather than the project root
+- WHEN: the path token has no leading dot
+  MUST: resolve it from the project root
+- MUST: "append the literal suffix `.yass.yaml` to the path token to produce the target file path"
+- MUST-NOT: search an alternative basename or extension when that path does not exist
+- MUST: compare path tokens, document names, and slot names byte-for-byte and case-sensitively
+RETURN:
+- MUST: yield a resolution record naming the project root directory, the absolute target file path, the addressed document, and the addressed slot when one was given
+- MUST: guarantee the project root directory exists and holds a file named `root.yass.yaml`
+- MUST: guarantee the target file exists and parsed as a YAML document stream
+- MUST: guarantee the named document exists in that file and is the only document there with that name
+- WHEN: a slot was addressed
+  MUST: guarantee the addressed document is a Spec and declares that slot in its source document
+- WHEN: no document name was given
+  MUST: address the file as a whole, and guarantee its first document is a preamble
+- MAY: yield a target file outside the project root, because a path token that climbs with `../` is allowed to leave it
+- MUST-NOT: guarantee anything about the correctness of the file beyond parsing and the addressing above, since checking rules belongs to validation
+  SEE: 05-validate@Validate
+ERROR:
+- WHEN: no file named `root.yass.yaml` is at or above the starting directory
+  MUST: "report `no project root at or above DIR` and exit with status 4"
+- WHEN: "the argument is not well-formed per the `path@SpecName::SLOT` grammar"
+  MUST: "report `malformed target` naming the argument and exit with status 2"
+  SEE: ../yass@RefTarget
+- WHEN: "the `::SLOT` token names a slot outside INPUT, RETURN, ERROR, SIDE-EFFECT, and INVARIANT"
+  MUST: "report the unrecognized slot and exit with status 2"
+  SEE: ../yass@Slot
+- WHEN: the target file does not exist
+  MUST: "report `unresolved` naming the argument and the path it produced, and exit with status 3"
+- WHEN: the named document does not exist in the target file
+  MUST: "report `unresolved` naming the argument, and exit with status 3"
+- WHEN: two documents in the target file share the named name
+  MUST: "report the ambiguity naming the file and exit with status 3, resolving to neither"
+- WHEN: the addressed document is a Design and a slot was addressed
+  MUST: "report that a design carries no slots and exit with status 3"
+  SEE: ../yass@Design
+- WHEN: the addressed document is a Spec that does not declare the addressed slot
+  MUST: "report the undeclared slot naming the spec, and exit with status 3"
+- WHEN: the target file exists but cannot be read, or is not well-formed YAML
+  MUST: "report the read or parse failure naming the file, and exit with status 5"
+- MUST: "report the failing operation and exit with status 5 for any failure not matched by a guarded obligation in this slot"
+INVARIANT:
+- MUST-NOT: resolve, fetch, or otherwise act on a preamble `related` entry
+  SEE: ../yass@Preamble
+- MUST-NOT: carry resolution results across invocations, so no cache can go stale against the file tree
+- MUST-NOT: follow a symbolic link that leaves the directory tree being walked
+---
+spec: Root
+INPUT:
+- MUST: "be invoked as `yass root [PATH]`"
+- WHEN: PATH is omitted
+  MUST: use the starting directory
+- WHEN: more than one PATH is given
+  MUST: "report the extra argument and exit with status 2"
+- MUST: take the project root the resolution record names
+  CONFORMS: Resolve::RETURN
+- MUST: rely on the upward-walk discovery and the existence of the project root directory without repeating either check
+- WHEN: a guarantee of the resolution record does not hold
+  MUST: "report the inconsistency on standard error and exit with status 5"
+RETURN:
+- MUST: write one root record holding the absolute path of the directory that contains the governing `root.yass.yaml`
+  CONFORMS: 00-output@Output
+- MUST: name the nearest such directory at or above PATH, so a nested project root wins over an outer one
+  SEE: ../yass@Root
+- MUST: exit with status 0 once that record is written
+ERROR:
+- WHEN: PATH does not exist
+  MUST: "report `unresolved` naming PATH and exit with status 3"
+- WHEN: no file named `root.yass.yaml` is at or above PATH
+  MUST: "write no record and exit with status 4"
+- MUST: "report the failing operation and exit with status 5 for any failure not matched by a guarded obligation in this slot"

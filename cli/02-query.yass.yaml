@@ -1,0 +1,73 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  The retrieval subcommand. `yass query` emits exactly the addressed document — a spec, a
+  slot of a spec, a design, or a file's preamble — with its slot-targeted CONFORMS
+  references inlined and its USES designs appended, so an agent reads one obligation set
+  instead of opening every file the references touch.
+version: v1
+---
+spec: Query
+INPUT:
+- MUST: "be invoked as `yass query [--raw] TARGET [TARGET...]`"
+- WHEN: no TARGET is given
+  MUST: "report the missing argument and exit with status 2"
+- MUST: take each TARGET as the resolution record names it
+  CONFORMS: 01-resolve@Resolve::RETURN
+- MUST: rely on the existence, uniqueness, parse, and slot-declaration guarantees of the resolution record without re-checking any of them
+- WHEN: a guarantee of the resolution record does not hold
+  MUST: "report the inconsistency on standard error, emit no fragment, and exit with status 5"
+- MUST: resolve every TARGET before emitting anything, so a failure on any one leaves standard output empty
+- WHEN: "TARGET names no document, addressing a file alone"
+  MUST: emit that file's preamble document as the fragment, which is how a file's description is read
+  SEE: ../yass@Preamble
+- WHEN: "TARGET names a slot with `::SLOT`"
+  MUST: "emit only that slot, under the addressed document's `spec` key, so the fragment states what was queried"
+- WHEN: "`--raw` is given"
+  MUST: emit the addressed document exactly as its source file states it, resolving no reference and inserting no comment
+- MUST: emit one fragment per TARGET, in the order the TARGETs were given
+RETURN:
+- MUST: "emit each fragment as a YAML document opened by a `---` line, so the whole output parses as one document stream"
+  CONFORMS: ../yass@Document
+- MUST: "let the emitted `spec` or `design` key be the sole identification of what was queried"
+- MUST-NOT: "emit a host `file:` header naming the source file, because the filesystem is the source of truth and a second name can contradict it"
+- MUST-NOT: emit the source file's preamble alongside a spec or design fragment
+- WHEN: an obligation carries a CONFORMS whose target names a slot
+  MUST: insert that slot's obligations immediately before the carrier obligation, in the order the referenced slot states them
+  SEE: ../yass@Reference
+- MUST: "precede each inserted obligation with the comment `# CONFORMS: TARGET`, naming the ref that produced it"
+- WHEN: an obligation carries a CONFORMS whose target names a whole spec
+  MUST: leave it in place uninlined, because a whole-spec CONFORMS is a conformance reference and has no single slot to splice
+  SEE: ../yass@Reference
+- WHEN: an obligation carries a USES
+  MUST: "append the referenced design document to the fragment, preceded by the comment `# USES: TARGET`"
+- WHEN: two or more obligations of the fragment carry a USES naming the same design
+  MUST: append that design exactly once
+- WHEN: an obligation carries a SEE
+  MUST: leave it in place, inlining nothing, because SEE imposes nothing beyond the obligation's own prose
+  SEE: ../yass@Reference
+- WHEN: an inserted obligation carries its own WHEN and the carrier obligation also carried a WHEN
+  MUST: "write the inserted obligation's guard as the carrier's guard text, then ` and `, then its own guard text, so it applies only when both hold"
+  SEE: ../yass@Reference
+- MUST: resolve references one level only, leaving every reference carried by an inserted obligation or an appended design unresolved
+- MUST: preserve the order of the addressed document's own obligations, inserting and appending without reordering them
+ERROR:
+- WHEN: a TARGET does not resolve
+  MUST: "report `unresolved` naming that TARGET on standard error, emit no fragment for any TARGET, and exit with status 3"
+- WHEN: a reference carried by the addressed document does not resolve, although the document itself resolved
+  MUST: "report the broken reference naming its carrier and its target on standard error, emit no fragment, and exit with status 3"
+  SEE: 05-validate@Validate
+- WHEN: a CONFORMS carried by the addressed document resolves to a design, or a USES resolves to a spec
+  MUST: "report the relation and target-kind mismatch on standard error, emit no fragment, and exit with status 3"
+  SEE: ../yass@Reference
+- MUST: "report the failing operation on standard error and exit with status 5 for any failure not matched by a guarded obligation in this slot"
+SIDE-EFFECT:
+- MUST: write every fragment to standard output
+  CONFORMS: 00-output@Output
+- MUST-NOT: rewrite, reformat, requote, or reorder anything in the addressed document beyond the insertions and appendices this spec requires
+INVARIANT:
+- MUST-NOT: emit any comment other than the provenance comments this spec requires, so the resolved fragment gains no prose channel
+  SEE: ../yass@Design
+- MUST: emit a fragment that re-parses as well-formed YAML under the YAML 1.2 core schema
+  SEE: ../yass@Document
+- MUST-NOT: emit a fragment whose obligations differ in meaning from the source document plus the references this spec resolved

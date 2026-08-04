@@ -1,0 +1,54 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  The graph-hygiene subcommand. `yass lint` reports what is well-formed but wrong about a
+  spec set as a whole — a design nothing binds, a document no reference chain reaches, a
+  missing schema modeline, a spec with no obligations — each as one coded line.
+version: v1
+---
+spec: Lint
+INPUT:
+- MUST: "be invoked as `yass lint [PATH...]`"
+- MUST: take the diagnostics validation produced, together with the document set it validated
+  CONFORMS: 05-validate@Validate::RETURN
+- MUST: rely on structural well-formedness having been established, re-checking no rule the language definition states as a rejection
+- WHEN: validation emitted at least one diagnostic
+  MUST: write those diagnostics, run no lint check at all, and exit with status 1
+- WHEN: no PATH is given
+  MUST: "report findings for every file at or below the project root"
+- WHEN: a PATH is given
+  MUST: report findings only for the files that PATH selects
+- MUST: "read every file whose name ends in `.yass.yaml` at or below the project root even when PATH narrows the reported findings, because reachability and reference counting are properties of the whole graph"
+  SEE: ../yass@Root
+RETURN:
+- MUST: emit one diagnostic record per finding
+  CONFORMS: 00-output@Output
+  USES: 00-output@DiagnosticCodes
+- MUST: "emit W001 for a design document that no USES reference names, because an unreferenced design block is declared normative content nothing binds to"
+  SEE: ../yass@Design
+- MUST: "emit W002 for a spec or design that no chain of CONFORMS, USES, and SEE edges reaches from the Spec of the governing root file"
+  SEE: ../yass@Root
+- MUST: "emit W003 for a file whose first line is not the schema modeline, since an editor then validates it with no schema"
+- MUST: "emit W004 for a spec that declares no slot, because it states no obligation and can bind nothing"
+  SEE: ../yass@Spec
+- MUST: "emit W002 for the root file's own Spec never, since it is the origin of the reachability chain rather than a member of it"
+  SEE: ../yass@Root
+- MUST: order findings by file path compared byte-for-byte, then by ascending line
+- WHEN: no finding is produced for any selected file
+  MUST: write nothing to standard output and exit with status 0
+ERROR:
+- WHEN: at least one finding was emitted
+  MUST: exit with status 1 after writing all of them
+- WHEN: a PATH does not exist
+  MUST: "report `unresolved` naming that PATH on standard error and exit with status 3"
+- WHEN: a file outside the PATH selection is unreadable, so the graph cannot be completed
+  MUST: "report that file on standard error and exit with status 5, because a partial graph yields false reachability findings"
+- MUST: "report the failing operation on standard error and exit with status 5 for any failure not matched by a guarded obligation in this slot"
+INVARIANT:
+- MUST-NOT: emit a finding that validation already emits, so the two commands partition the checks between them
+  SEE: 05-validate@Validate
+- MUST-NOT: judge the wording, ordering, granularity, or completeness of an obligation, since verification is out of scope
+- MUST-NOT: emit a finding under a code the diagnostic code table does not define
+  USES: 00-output@DiagnosticCodes
+- MUST-NOT: cross a project root boundary when computing reachability, so a nested project's documents are reached from that project's own root Spec
+  SEE: ../yass@Root

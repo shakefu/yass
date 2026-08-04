@@ -1,0 +1,110 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  Root file of the yass CLI project, so this directory is its project root. Its one Spec
+  describes `yass`, a read-only command-line tool that answers an agent's questions about
+  a yass spec set — where a spec lives, what it obliges once its references are resolved,
+  what points at it, and whether it is well-formed — and reaches the Spec of every
+  subcommand. This project is separate from the language definition above it, which
+  forbids specifying tooling behavior under its own root.
+version: v1
+related:
+- https://textla.dev/yass/v1.schema.json
+- https://www.rfc-editor.org/rfc/rfc2119
+---
+spec: YassCli
+INPUT:
+- MUST: "be invoked as `yass [GLOBAL-OPTION...] SUBCOMMAND [ARGUMENT...]`"
+- MUST: "recognize exactly the subcommands `query`, `list`, `refs`, `validate`, `lint`, and `root`"
+- MUST: "recognize exactly the global options `-C DIR`, `--json`, `--version`, and `-h`/`--help`, accepted before the subcommand"
+- MUST: "treat `-C DIR` as the starting directory the invocation resolves paths and the project root from"
+- WHEN: "`-C DIR` is not given"
+  MUST: use the process working directory as the starting directory
+- MUST: "treat `--json` as selecting the machine-readable rendering of whatever the subcommand emits"
+  SEE: 00-output@Output
+- WHEN: "the subcommand is `query`"
+  MUST: dispatch to the spec that defines it, which emits the addressed document with its references resolved
+  SEE: 02-query@Query
+- WHEN: "the subcommand is `list`"
+  MUST: dispatch to the spec that defines it, which enumerates the documents of a file or tree
+  SEE: 03-list@List
+- WHEN: "the subcommand is `refs`"
+  MUST: dispatch to the spec that defines it, which reports the reference edges of one document
+  SEE: 04-refs@Refs
+- WHEN: "the subcommand is `validate`"
+  MUST: dispatch to the spec that defines it, which checks files against the language definition
+  SEE: 05-validate@Validate
+- WHEN: "the subcommand is `lint`"
+  MUST: dispatch to the spec that defines it, which checks the reference graph for dead and unreachable documents
+  SEE: 06-lint@Lint
+- WHEN: "the subcommand is `root`"
+  MUST: dispatch to the spec that defines it, which reports the project root governing a path
+  SEE: 01-resolve@Root
+- WHEN: no subcommand is given
+  MUST: "write the top-level usage text to standard error and exit with status 2"
+- WHEN: the first non-option argument is not one of the recognized subcommands
+  MUST: "write `unknown subcommand: NAME` and the top-level usage text to standard error, and exit with status 2"
+- WHEN: an option outside the recognized global set is given before the subcommand
+  MUST: "write `unknown option: NAME` and the top-level usage text to standard error, and exit with status 2"
+- WHEN: "`-h` or `--help` is given with a subcommand"
+  MUST: "write that subcommand's usage text to standard output and exit with status 0, running the subcommand's behavior not at all"
+- WHEN: "`-h` or `--help` is given with no subcommand"
+  MUST: "write the top-level usage text to standard output and exit with status 0"
+- WHEN: "`--version` is given"
+  MUST: "write one line holding the tool version and the yass language version it implements, and exit with status 0"
+- MUST-NOT: read standard input under any subcommand, so every input is named on the command line
+RETURN:
+- MUST: write the dispatched subcommand's product to standard output
+  CONFORMS: 00-output@Output
+- MUST: exit with status 0 when the subcommand completed and reported no finding
+- MUST: "hold usage text to a synopsis line, one line per option, one line per subcommand or argument, and the exit-code table"
+- MUST-NOT: "put explanatory prose, tutorials, or more than one worked example in usage text, because output the caller pays for by the token states behavior and nothing else"
+ERROR:
+- WHEN: no file named `root.yass.yaml` is at or above the starting directory
+  MUST: "write `no project root at or above DIR` to standard error and exit with status 4"
+  SEE: 01-resolve@Resolve
+- WHEN: an argument names a file, spec, design, or slot that does not exist
+  MUST: "write `unresolved: TARGET` to standard error and exit with status 3"
+- WHEN: an argument is not well-formed per the target grammar
+  MUST: "write `malformed target: TARGET` to standard error and exit with status 2"
+  SEE: ../yass@RefTarget
+- WHEN: the dispatched subcommand reported at least one finding
+  MUST: exit with status 1 after writing every finding to standard output
+- WHEN: a named file cannot be read, or standard output cannot be written
+  MUST: "write one line to standard error naming the failing operation and exit with status 5"
+- MUST: "write one line to standard error naming the failing operation, and exit with status 5, for any failure not matched by a guarded obligation in this slot"
+SIDE-EFFECT:
+- MUST: exit with exactly one status drawn from the exit-code policy
+- MUST-NOT: create, modify, delete, or rename any file or directory
+- MUST-NOT: open a network connection, including to fetch a preamble `related` entry
+  SEE: ../yass@Preamble
+- MUST-NOT: emit ANSI escape sequences, spinners, progress bars, or a banner on either stream
+INVARIANT:
+- USES: ExitCodes
+- MUST: produce byte-identical output for the same starting directory, arguments, and file tree
+- MUST-NOT: verify, judge, rewrite, or reformat the content of an obligation, restricting itself to routing and retrieval so it stays independent of the language a spec describes
+- MUST-NOT: be required in order to read, understand, or implement a yass spec, since a spec must stand alone for a reader who has never seen the project
+- MUST: treat the language definition as the normative statement of every rule it checks, and the derived JSON Schema as advisory
+  SEE: ../root@Yass
+- MUST-NOT: introduce a free-prose channel into a spec file, since the only comments yass emits are tooling-generated provenance
+  SEE: ../yass@Design
+---
+design: ExitCodes
+type: exit-code-policy
+content: |
+  0  ok           the command completed and reported no finding
+  1  findings     the command completed and reported at least one diagnostic or
+                  unparseable file
+  2  usage        no subcommand, unknown subcommand, unknown option, missing or extra
+                  argument, or a target that is malformed per the target grammar
+  3  unresolved   a named file, spec, design, or slot does not exist
+  4  no-root      no file named root.yass.yaml at or above the starting directory
+  5  environment  a file could not be read, an output stream could not be written, or a
+                  guarantee this tool relied on internally did not hold
+
+  Exactly one status is written per invocation. When more than one condition applies,
+  the higher number wins: 5 > 4 > 3 > 2 > 1 > 0.
+
+  A status of 1 means the tool worked and the spec set has a problem. A status of 2
+  through 5 means the tool did not get far enough to answer, and standard output carries
+  no product.
