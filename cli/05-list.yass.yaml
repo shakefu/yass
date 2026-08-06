@@ -1,0 +1,89 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  The index subcommand. `yass list` reports every file, spec, and design of a tree as one
+  record per line — a ref target, a kind, a one-field detail, and a truncated file
+  description — so an agent gets the whole map of a spec set at structural cost only, with no
+  obligation prose. It is the command an agent reads first.
+version: v1
+---
+spec: List
+INPUT:
+- MUST: "be invoked as `yass list [--filter GLOB] [PATH...]`"
+- WHEN: no PATH is given
+  MUST: take the project file set
+  CONFORMS: 01-locate@FileSet::RETURN
+- WHEN: a PATH names a directory
+  MUST: "take every regular file at or below it whose basename ends with `.yass.yaml`, under the same exclusions the project file set applies"
+  SEE: 01-locate@FileSet
+- WHEN: a PATH names a file
+  MUST: take that file whether or not the project file set would have included it
+- MUST: take each file at most once, even when two PATHs address it
+- MUST: take the loaded model of each addressed file
+  CONFORMS: 02-load@Load::RETURN
+- MUST: rely on the model recording each document's kind, name, position, and declared slots, and re-read no file to confirm any of them
+- WHEN: the model records no entry for an addressed file
+  MUST: report code yass.internal and exit with the environment status
+- WHEN: "`--filter GLOB` is given"
+  MUST: "emit only records whose REF field matches GLOB over its whole length, with `*` matching any run of characters including none, `?` matching exactly one character, and every other character matching itself"
+- WHEN: "`--filter` is given more than once"
+  MUST: emit a record whose REF matches any one of the given patterns
+- WHEN: "`--filter` excludes a file's own record but matches one of its document records"
+  MUST: emit the file record anyway, so a document record is never orphaned from the file that holds it
+RETURN:
+- MUST: emit one file record per addressed file, followed by one record per spec and design document that file holds
+  USES: root@RecordFormat
+- MUST: "give every record exactly four fields, in the order REF, KIND, DETAIL, DESCRIPTION"
+- MUST: "set KIND to `file`, `spec`, or `design`"
+- WHEN: "KIND is `file`"
+  MUST: "set REF to the file's project-root-relative path with the `.yass.yaml` suffix removed"
+- WHEN: "KIND is `spec` or `design`"
+  MUST: "set REF to `path@Name`, where path is that same suffix-stripped root-relative path"
+- WHEN: "KIND is `file`"
+  MUST: set DETAIL to the count of spec and design documents the file holds, excluding its preamble, written in decimal
+- WHEN: "KIND is `spec`"
+  MUST: "set DETAIL to the slot names that spec declares, joined by a single `,` with no space, in the canonical order INPUT, RETURN, ERROR, SIDE-EFFECT, INVARIANT"
+- WHEN: "KIND is `spec` and the spec declares no slot"
+  MUST: "set DETAIL to a single `-`"
+- WHEN: "KIND is `design`"
+  MUST: "set DETAIL to that design's `type` value"
+  SEE: ../yass@Design
+- WHEN: "KIND is `file`"
+  MUST: set DESCRIPTION to the file's preamble description, whitespace-collapsed, trimmed, and truncated to at most 100 Unicode scalar values
+  SEE: ../yass@Preamble
+- WHEN: truncation dropped at least one scalar value
+  MUST: "make the hundredth emitted scalar value a single `…` U+2026, so a truncated description is distinguishable from one that is merely short"
+- WHEN: "KIND is `spec` or `design`"
+  MUST: "set DESCRIPTION to a single `-`, since only a file carries a description"
+- MUST: emit a file's own record immediately before the records of the documents it holds
+- MUST: order files by byte-wise ascending project-root-relative path, and documents by stream order within their file
+- MUST: emit a REF that is a valid ref target the query subcommand accepts unchanged
+  SEE: 04-query@Query
+- WHEN: no file matches the PATHs and the filter
+  MUST: write nothing at all and exit with the ok status, because an empty result is an answer
+  USES: root@Brevity
+ERROR:
+- WHEN: a PATH does not exist
+  MUST: report code yass.io.missing naming it and exit with the unresolved status
+- WHEN: "a PATH exists but is neither a directory nor a file whose basename ends with `.yass.yaml`"
+  MUST: report code yass.io.not_a_spec_file naming it and exit with the usage status
+- WHEN: an addressed file yielded a parse failure
+  MUST: "emit its file record with `-` for DETAIL and for DESCRIPTION, emit no document record for it, continue with the remaining files, and exit with the findings status"
+  SEE: 02-load@Load::RETURN
+- WHEN: an addressed file parsed but carries no preamble as its first document
+  MUST: "emit its file record with `-` for DESCRIPTION, still emit its document records, continue, and exit with the findings status"
+  SEE: ../yass@Preamble
+- WHEN: an addressed file cannot be read at all
+  MUST: report code yass.io.unreadable naming it and exit with the environment status
+- MUST: report code yass.internal and exit with the environment status for any failure not matched by a guarded obligation in this slot
+- MUST: write every diagnostic in this slot to standard error, since the records are the only thing this subcommand puts on standard output
+  USES: root@OutputPolicy
+INVARIANT:
+- MUST-NOT: name which rule a file violates, since naming a violation belongs to validation and this command reports only that a file yielded no documents
+  SEE: 08-validate@Validate
+- MUST-NOT: emit a record for a preamble as though it were a document, because a preamble has no name and the file's own record carries its description
+  SEE: ../yass@Preamble
+- MUST-NOT: read an obligation, a guard, a reference, or a design's content
+- MUST-NOT: omit a document for being unreachable from the root spec, which lint reports instead
+  SEE: 09-lint@Lint
+- MUST-NOT: filter, group, or sort by kind, since the record's own KIND field lets the reader do it
