@@ -1,0 +1,83 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  The graph-hygiene subcommand. `yass lint` reports what is well formed but wrong about a
+  spec set as a whole — a design nothing binds, a document no reference chain reaches, a
+  missing schema modeline, an empty slot, a spec with no slot — each as one coded advisory.
+  It runs its own checks and never runs validation first, so a spec set that is being
+  authored can still be linted; a file that would not parse is reported as an advisory of its
+  own, because reachability computed over a partial graph can be wrong.
+version: v1
+---
+spec: Lint
+INPUT:
+- MUST: "be invoked as `yass lint [PATH...]`"
+- MUST: take the project file set and the loaded model of every file in it, whatever PATH selects, because reachability and reference counting are properties of the whole graph
+  CONFORMS: 01-locate@FileSet::RETURN
+- MUST: take the loaded model of every file in that set
+  CONFORMS: 02-load@Load::RETURN
+- MUST-NOT: rely on any well-formedness guarantee of that model beyond the fact that a file parsed, and re-check no rule the language definition states as a rejection
+  SEE: 08-validate@Validate
+- WHEN: the model records no entry for a file of the project file set
+  MUST: report code yass.internal and exit with the environment status
+- WHEN: no PATH is given
+  MUST: report advisories for every file of the project file set
+- WHEN: a PATH is given
+  MUST: report advisories only for the files that PATH selects, while still building the graph from the whole project file set
+- MUST-NOT: run validation, refuse to run because a file is invalid, or suppress an advisory because a file violates a rule, so lint stays usable on a spec set being written
+  SEE: 08-validate@Validate
+RETURN:
+- MUST: emit one diagnostic per advisory
+  USES: root@DiagnosticFormat
+- MUST: "set the SEVERITY of every diagnostic it emits to `warn`"
+- WHEN: a design is the target of no USES reference anywhere in the project file set
+  MUST: emit code yass.lint.design_unreferenced, because a design nothing binds is declared normative content with no force
+  SEE: ../yass@Design
+- WHEN: a spec or design under the project root is reached by no chain of CONFORMS, USES, and SEE edges beginning at the root file's spec
+  MUST: emit code yass.lint.unreachable
+  CONFORMS: ../yass@Root::INVARIANT
+- MUST: count a reference edge toward reachability regardless of its relation, so CONFORMS, USES, and SEE weigh the same
+  CONFORMS: ../yass@Root::INVARIANT
+- MUST-NOT: emit yass.lint.unreachable for the root file's own spec, since it is the origin of the chain rather than a member of it
+- WHEN: "a file's first line is not the schema modeline `# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json`"
+  MUST: emit code yass.lint.modeline, since an editor then validates the file against no schema
+- WHEN: a spec declares a slot whose obligation list is empty
+  MUST: emit code yass.lint.slot_empty naming the spec and the slot
+- WHEN: a spec declares no slot at all
+  MUST: emit code yass.lint.spec_empty, because it states no obligation and can bind nothing
+  SEE: ../yass@Spec
+- WHEN: a file of the project file set yielded a parse failure
+  MUST: emit code yass.lint.unparsed naming that file, and emit every other advisory anyway, because a partial graph can yield a false reachability advisory and the reader must know the graph was partial
+  SEE: 02-load@Load::RETURN
+- MUST: order advisories by byte-wise ascending project-root-relative file path, then by ascending line, then by code in byte order
+- WHEN: no advisory is produced for any selected file
+  MUST: write nothing at all and exit with the ok status
+  USES: root@Brevity
+ERROR:
+- WHEN: at least one advisory was emitted
+  MUST: exit with the findings status after writing all of them
+- WHEN: a PATH does not exist
+  MUST: report code yass.io.missing naming it and exit with the unresolved status
+- WHEN: "a PATH exists but is neither a directory nor a regular file"
+  MUST: report code yass.io.not_a_spec_file naming it and exit with the usage status
+- WHEN: "the project root's `root.yass.yaml` carries no spec, or more than one, so reachability has no single origin"
+  MUST: report code yass.root.spec_count, emit every advisory that does not depend on reachability, and exit with the findings status
+  CONFORMS: ../yass@Root::ERROR
+- WHEN: a file of the project file set cannot be read at all
+  MUST: report code yass.io.unreadable naming it and exit with the environment status
+- MUST: report code yass.internal and exit with the environment status for any failure not matched by a guarded obligation in this slot
+SIDE-EFFECT:
+- MUST: write every advisory of the RETURN slot to standard output, because an advisory is this command's product
+  USES: root@OutputPolicy
+- MUST: write every diagnostic of the ERROR slot to standard error, because each names a failure to examine the project rather than a result of examining it
+- MUST-NOT: modify a file to clear an advisory
+INVARIANT:
+- MUST-NOT: emit an advisory that repeats a diagnostic validation emits, so the two commands partition the checks between them and a reader runs both without reading anything twice
+  SEE: 08-validate@Validate
+- MUST-NOT: judge the wording, ordering, granularity, or completeness of an obligation, so no advisory depends on reading prose
+- MUST-NOT: judge whether a slot states a residual, since that is a property of what obligations say rather than of the graph
+  SEE: ../yass@Slot.ERROR
+- MUST-NOT: cross a project root boundary when computing reachability, so a nested project's documents are reached from that project's own root spec
+  SEE: ../yass@Root
+- MUST-NOT: emit an advisory under a code no obligation of this project defines
+  USES: root@DiagnosticFormat

@@ -1,0 +1,42 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  The `yass root` subcommand. One Spec, reporting the absolute path of the project root that
+  governs a path and nothing else. It is the smallest command in the program and the one that
+  proves the discovery path end to end, so it is implemented first.
+version: v1
+---
+spec: RootCommand
+INPUT:
+- MUST: "be invoked as `yass root [PATH]`"
+- WHEN: PATH is omitted
+  MUST: take the starting directory invocation yielded
+  CONFORMS: 00-invocation@Invocation::RETURN
+- MUST: take the project root that discovery yields for PATH
+  CONFORMS: 01-locate@RootDiscovery::RETURN
+- MUST: rely on discovery having established that the yielded directory exists and holds a `root.yass.yaml`, and re-check neither
+- WHEN: the yielded directory does not exist or does not hold that file
+  MUST: report code yass.internal and exit with the environment status
+- MUST-NOT: load any file, since the answer is a directory path and no document is read
+  SEE: 02-load@Load
+RETURN:
+- MUST: write one root record holding the absolute path of the directory that contains the governing `root.yass.yaml`
+  USES: root@RecordFormat
+- MUST: name the nearest such directory at or above PATH, so a nested project root wins over an outer one
+  CONFORMS: ../yass@Root
+- MUST: exit with the ok status once that record is written
+ERROR:
+- WHEN: PATH does not exist
+  MUST: report code yass.io.missing naming PATH and exit with the unresolved status
+- WHEN: no file named `root.yass.yaml` is at or above PATH
+  MUST: report code yass.root.not_found naming PATH, write no record, and exit with the no-root status
+  SEE: 01-locate@RootDiscovery::ERROR
+- WHEN: a directory on the ascent cannot be read
+  MUST: report code yass.io.unreadable naming that directory and exit with the environment status
+- MUST: report code yass.internal and exit with the environment status for any failure not matched by a guarded obligation in this slot
+- MUST: write every diagnostic in this slot to standard error, since the root record is the only thing this command puts on standard output
+  USES: root@OutputPolicy
+INVARIANT:
+- MUST-NOT: emit more than one record, since exactly one project root governs a path
+- MUST-NOT: emit a relative path, a trailing separator, or any text beside the path itself
+  USES: root@Brevity

@@ -1,0 +1,72 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  The search subcommand. `yass find` matches a literal substring against obligation prose,
+  guard conditions, and design content, and answers with the slot-level ref target of every
+  hit plus the matched text — so an agent locates the spec that owns a concern without
+  reading the spec set, and can hand the answer straight back to `yass query`.
+version: v1
+---
+spec: Find
+INPUT:
+- MUST: "be invoked as `yass find [--slot SLOT] PATTERN`, taking exactly one PATTERN operand"
+- MUST: take the project file set
+  CONFORMS: 01-locate@FileSet::RETURN
+- MUST: take the loaded model of every file in that set
+  CONFORMS: 02-load@Load::RETURN
+- MUST: rely on the model holding every obligation's prose and every design's content byte-for-byte as authored, and re-read no file to confirm it
+- WHEN: the model records no entry for a file of the project file set
+  MUST: report code yass.internal and exit with the environment status
+- MUST: treat PATTERN as a literal substring, compared case-insensitively under simple Unicode case folding
+- WHEN: "`--slot SLOT` is given"
+  MUST: restrict obligation matches to obligations declared in that slot
+- WHEN: "`--slot SLOT` is given"
+  MUST-NOT: "restrict a design's content by it, since a design declares no slot, and emit design matches unrestricted"
+  SEE: ../yass@Design
+RETURN:
+- MUST: emit one record per matching field
+  USES: root@RecordFormat
+- MUST: "give every record exactly three fields, in the order REF, WHAT, TEXT"
+- WHEN: PATTERN matches an obligation's prose
+  MUST: "set REF to `path@Name::SLOT`, WHAT to that obligation's normativity keyword, and TEXT to the obligation prose"
+- WHEN: PATTERN matches an obligation's guard condition
+  MUST: "set REF to `path@Name::SLOT`, WHAT to `WHEN`, and TEXT to the guard condition"
+- WHEN: PATTERN matches an obligation that is reference-only, so it carries neither prose nor a guard
+  MUST: emit no record for it, because it holds no text to match
+  SEE: ../yass@Obligation
+- WHEN: PATTERN matches a line of a design's content
+  MUST: "set REF to `path@Name`, WHAT to `content`, and TEXT to that whole line"
+- WHEN: PATTERN matches both an obligation's guard and its prose
+  MUST: emit one record for each, since each is a separately addressable field
+- WHEN: PATTERN matches one field more than once
+  MUST: emit exactly one record for that field, since the field is the unit of retrieval and not the match
+- MUST: emit the whole matched text on one line, however long it is, after the whitespace collapsing every record obeys
+- MUST: order records by byte-wise ascending project-root-relative file path, then by document position within the file, then by slot in canonical order, then by obligation position within the slot
+- MUST: emit a REF that is a valid ref target the query subcommand accepts unchanged
+  SEE: 04-query@Query
+- WHEN: no obligation and no design content line matches PATTERN
+  MUST: write nothing at all and exit with the ok status, because an empty result is an answer and not a finding
+  USES: root@Brevity
+- MUST: exit with the ok status when every file of the project file set parsed
+ERROR:
+- WHEN: PATTERN is the empty string
+  MUST: report code yass.args.empty and exit with the usage status
+- WHEN: "the `--slot` value is outside INPUT, RETURN, ERROR, SIDE-EFFECT, and INVARIANT"
+  MUST: report code yass.ref.slot_unknown naming the value and exit with the usage status
+  SEE: ../yass@Slot
+- WHEN: a file of the project file set yielded a parse failure
+  MUST: report that failure's code naming the file and its line, emit the matches of every file that did parse, and exit with the findings status
+  SEE: 02-load@Load::RETURN
+- WHEN: a file of the project file set cannot be read at all
+  MUST: report code yass.io.unreadable naming it and exit with the environment status
+- MUST: report code yass.internal and exit with the environment status for any failure not matched by a guarded obligation in this slot
+- MUST: write every diagnostic in this slot to standard error, since the records are the only thing this subcommand puts on standard output
+  USES: root@OutputPolicy
+INVARIANT:
+- MUST-NOT: interpret PATTERN as a regular expression, a glob, or a word-boundary match
+- MUST-NOT: "search a preamble `description`, a document name, a slot name, a normativity keyword, a relation key, or a reference target, since `yass list` surfaces descriptions and `yass refs` surfaces targets"
+  SEE: 05-list@List
+- MUST-NOT: truncate, wrap, reflow, highlight, or summarize the matched text
+- MUST-NOT: emit a context line either side of a match
+- MUST-NOT: search outside the project root, so a file governed by a nearer project root is never matched
+  SEE: ../yass@Root
