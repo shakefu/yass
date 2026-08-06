@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+#
+# script/test — build and test the yass CLI.
+#
+# The CLI is a Go module rooted at cli/. This builds it and runs its tests.
+
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+if ! command -v go >/dev/null 2>&1; then
+  echo "script/test: go toolchain not found; skipping cli tests" >&2
+  exit 0
+fi
+
+cd cli
+
+echo "==> gofmt"
+unformatted=$(gofmt -l .)
+if [ -n "$unformatted" ]; then
+  echo "not gofmt'd:" >&2
+  echo "$unformatted" >&2
+  exit 1
+fi
+
+echo "==> go vet"
+go vet ./...
+
+echo "==> go test"
+go test ./...
+
+echo "==> go build"
+go build -o /dev/null .
