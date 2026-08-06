@@ -16,6 +16,32 @@ Steerage for an agent implementing the specs in this directory.
 Implement `yass`, a read-only CLI, from the specs in this directory. Start at
 `root.yass.yaml`; the numeric file prefixes are implementation order.
 
+## What to read
+
+The specs are meant to be self-sufficient, and this build is the test of that claim. Read:
+
+- every `.yass.yaml` file in this directory, `root.yass.yaml` first;
+- this file;
+- the resources the preambles name in `related` — `../yass.yass.yaml`, which is the
+  normative definition of the language the specs are written in, and the two guides under
+  `../context/`.
+
+Read nothing else in this repository. In particular, do not open an earlier or parallel
+implementation of this CLI — another branch, a worktree, an abandoned attempt in the working
+tree — and do not go to the commit history, the changelog, or the CI configuration for
+hints about how a previous build went. Do not search the web for one either. A build that
+borrows from a previous attempt measures the borrowing, not the specs, and what the specs
+alone support is the only thing being measured here.
+
+Two consequences worth stating, because they are the cases where the rule bites:
+
+- A spec that reads ambiguously is a finding. Resolve it, implement your reading, and record
+  the ambiguity and the choice in `NOTES.md`. Do not go looking for how someone else read it.
+- The spec tree in this directory is legitimate test data — it is the project the CLI is
+  pointed at. Reading it as *input* is the job. Reading around it for prior art is not.
+
+If you do consult anything outside the set above, name it in `NOTES.md`.
+
 ## Language
 
 **Use Go**, unless you have a reason not to.
