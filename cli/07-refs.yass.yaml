@@ -1,0 +1,79 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  The reference-graph subcommand. `yass refs` reports the edges of one document — what it
+  points at, and what points at it — so an agent sees the blast radius of a change and finds
+  the specs that constrain the one it is editing, without reading the tree.
+version: v1
+---
+spec: Refs
+INPUT:
+- MUST: "be invoked as `yass refs [--in] [--out] TARGET`, taking exactly one TARGET operand"
+- MUST: take TARGET as target resolution binds it
+  CONFORMS: 02-load@TargetResolution::RETURN
+- MUST: rely on the existence, uniqueness, kind, and slot-declaration guarantees target resolution establishes, and re-check none of them
+- WHEN: a guarantee target resolution established does not hold
+  MUST: report code yass.internal and exit with the environment status
+- MUST: take the project file set and the loaded model of every file in it, to find incoming edges
+  CONFORMS: 01-locate@FileSet::RETURN
+- WHEN: "neither `--in` nor `--out` is given"
+  MUST: emit both incoming and outgoing edges
+- WHEN: "`--in` is given and `--out` is not"
+  MUST: emit incoming edges only
+- WHEN: "`--out` is given and `--in` is not"
+  MUST: emit outgoing edges only
+- WHEN: "both `--in` and `--out` are given"
+  MUST: emit both, exactly as though neither had been given
+- WHEN: TARGET names a whole file rather than a document
+  MUST: report code yass.args.missing_operand and exit with the usage status, because an edge belongs to a document and a file is not one
+- WHEN: target resolution bound a file outside the project root, which a path token climbing with `../` may do
+  MUST: read that file for the addressed document's outgoing edges, and search for incoming edges only within the project root
+  SEE: 02-load@TargetResolution
+RETURN:
+- MUST: emit one record per edge
+  USES: root@RecordFormat
+- MUST: "give every record exactly three fields, in the order DIR, RELATION, REF"
+- MUST: "set DIR to `out` for an edge the addressed document carries, and to `in` for an edge that points at the addressed document"
+- MUST: "set RELATION to CONFORMS, USES, or SEE, counting the three equally as edges"
+  CONFORMS: ../yass@Root::INVARIANT
+- MUST: "set REF to the other end of the edge, written project-root-relative as `path@Name` with any `::SLOT` the reference stated kept"
+- MUST: emit an outgoing edge for every reference the addressed document carries, in whichever slot and obligation carries it
+- MUST: emit an incoming edge for every reference under the project root whose resolved target is the addressed document
+- WHEN: the addressed document is a design
+  MUST: emit no outgoing edge, because a design's content is opaque and no reference is recognized inside it
+  CONFORMS: ../yass@Design::INVARIANT
+- WHEN: TARGET addressed a slot
+  MUST: restrict outgoing edges to references carried by that slot, and incoming edges to references naming that slot
+- WHEN: TARGET addressed a whole spec
+  MUST: emit an incoming edge for a reference naming any slot of that spec as well as for one naming the spec alone
+- WHEN: two obligations carry the same relation to the same target
+  MUST: emit one record per obligation, since the number of edges is what a caller is asking for
+- MUST: emit every outgoing edge before every incoming edge, each group ordered by the file, document, slot, and obligation position of the obligation that carries it
+- WHEN: the addressed document neither carries nor receives an edge
+  MUST: write nothing at all and exit with the ok status, because an empty result is an answer
+  USES: root@Brevity
+- MUST: emit a REF that is a valid ref target the query subcommand accepts unchanged
+  SEE: 04-query@Query
+ERROR:
+- WHEN: TARGET does not resolve
+  MUST: emit the diagnostic target resolution emits and exit with the status target resolution selects
+  SEE: 02-load@TargetResolution::ERROR
+- WHEN: a file under the project root yielded a parse failure, so its edges cannot be read
+  MUST: report that failure's code naming the file and its line, emit the edges of every file that did parse, and exit with the findings status
+  SEE: 02-load@Load::RETURN
+- WHEN: a reference under the project root does not resolve
+  MUST: emit no edge for it and continue, because an unresolved reference is a validation finding rather than an edge
+  SEE: 08-validate@Validate
+- WHEN: a file under the project root cannot be read at all
+  MUST: report code yass.io.unreadable naming it and exit with the environment status
+- MUST: report code yass.internal and exit with the environment status for any failure not matched by a guarded obligation in this slot
+- MUST: write every diagnostic in this slot to standard error, since the records are the only thing this subcommand puts on standard output
+  USES: root@OutputPolicy
+INVARIANT:
+- MUST-NOT: report an edge transitively, so an edge is reported only where an obligation states it directly
+- MUST-NOT: infer an edge from a name appearing inside obligation prose or inside a design's content
+  SEE: ../yass@Design
+- MUST-NOT: search for an incoming edge outside the project root, so an edge carried by a document of another project is never reported
+  SEE: ../yass@Root
+- MUST-NOT: name which rule a reference violates, which belongs to validation
+  SEE: 08-validate@Validate
