@@ -1,0 +1,109 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  Turning files into the model every command reads, and binding a command-line target to a
+  document of that model. Loading is deliberately permissive: it stops only at failures that
+  leave a file with no documents at all, and hands every other document through even when it
+  violates a yass rule — so retrieval, indexing, and search keep working on a spec set that
+  is being authored, and validation stays the one place a rule violation is named.
+version: v1
+---
+spec: Load
+INPUT:
+- MUST: take an ordered set of file paths, drawn from the project file set or named on the command line
+  CONFORMS: 01-locate@FileSet::RETURN
+- MUST: rely on every path in that set naming an existing regular file, since the file set yields no other, and re-check that property only for a path a command took from the command line instead
+- WHEN: a path taken from the project file set does not exist when parsing reaches it
+  MUST: report code yass.internal and exit with the environment status
+- MUST: read each file's bytes and decode them as UTF-8
+- MUST: parse each file as a YAML 1.2 stream under the core schema
+- MUST: "treat `yes`, `no`, `on`, and `off` as plain strings rather than booleans"
+  CONFORMS: ../yass@Document
+- MUST: read each file at most once per invocation, however many targets reach it
+RETURN:
+- MUST: yield one model holding an entry for every path it was given, in the order it was given them
+- MUST: yield each entry as either the file's parsed documents or a parse failure, never as both and never as neither
+- WHEN: the file parsed
+  MUST: yield its documents in stream order, each tagged as a preamble, a spec, or a design by whether it is the first document and by whether it carries a spec key or a design key
+- WHEN: the file did not parse
+  MUST: "yield a parse failure carrying the code yass.document.not_yaml, or yass.document.encoding when the bytes are not valid UTF-8 or begin with a BOM, and the 1-based line the parser stopped on"
+- MUST: record for each document its file path, its position within the file, its kind, and its name when it carries one
+- MUST: record for each spec document the slots it declares in authored order and, per slot, each obligation's normativity keyword, guard condition, prose, and references keyed by relation, in authored order
+- MUST: "record for each design document its `type` and its `content`"
+- MUST: "record for each preamble its `description`, its `version`, and its `related` list"
+- MUST: record each file's first line, so lint can check for the schema modeline
+- MUST: record the 1-based line each document and each obligation starts on, so a diagnostic can name a location
+- MUST: "address every named document by the ref target `path@Name`, where path is the project-root-relative path with the `.yass.yaml` suffix removed"
+- MUST: preserve every obligation's prose byte-for-byte as authored
+- MUST: yield a document even when it violates a rule of the yass language definition, so validation is the one place a violation is named
+  SEE: 08-validate@Validate
+ERROR:
+- WHEN: a file cannot be opened or read
+  MUST: report code yass.io.unreadable naming the path and exit with the environment status
+- MUST-NOT: carry a guard-less residual, because a file is either unreadable, or yields bytes that parse into documents or do not, and each of those is matched here or answered in RETURN
+INVARIANT:
+- MUST: be the only place this program reads a spec file, so no command reaches the filesystem for content of its own
+- MUST-NOT: exit for a file that parsed but violates a yass rule, since deciding well-formedness belongs to validation alone
+  SEE: 08-validate@Validate
+- MUST-NOT: resolve a reference, which belongs to the query command's resolution step
+  SEE: 04-query@Resolution
+- MUST-NOT: reorder documents, slots, or obligations while loading
+- MUST-NOT: interpret, rewrite, reflow, or normalize the prose of an obligation
+- MUST-NOT: "resolve, fetch, or open a preamble `related` entry"
+  CONFORMS: ../yass@Preamble::INVARIANT
+- MUST-NOT: create, modify, or delete any file, or cache the model on disk, in a temporary directory, or in a configuration directory
+---
+spec: TargetResolution
+INPUT:
+- MUST: take one target string given as a command-line operand, and the loaded model
+  CONFORMS: Load::RETURN
+- MUST: rely on the model recording every document's path, name, kind, and declared slots, and re-read no file to confirm any of them
+- WHEN: the model records no entry for the file a target names
+  MUST: report code yass.internal and exit with the environment status
+- MUST: parse the target with the ref-target grammar the language defines
+  CONFORMS: ../yass@RefTarget
+- MUST: "accept the form `path@Name::SLOT`, in which `path@` and `::SLOT` are each optional"
+- MUST: "treat a target with no `@` as a path addressing the file it names as a whole, which is an extension available only to a command-line operand"
+- MUST-NOT: "let that extension apply inside a spec file, where a bare name still addresses a document of the same file"
+  SEE: ../yass@RefTarget
+- WHEN: "the path token begins with `./` or `../`"
+  MUST: resolve it relative to the starting directory, because a command-line operand has no referencing file to resolve against
+- WHEN: the path token has no leading dot
+  MUST: resolve it from the project root
+  CONFORMS: ../yass@RefTarget
+- MUST: "append the literal suffix `.yass.yaml` to the path token to produce the file path"
+- MUST-NOT: search an alternative basename or extension when that file is absent
+RETURN:
+- MUST: yield the absolute file path, the addressed document when a name was given, and the addressed slot when one was given
+- MUST: yield every spec and design document of the file in stream order when the target named no document
+- MUST: compare the path token, the document name, and the slot token byte-for-byte and case-sensitively
+- MUST: yield a normalized root-relative rendering of the target, so a command can echo it in a record or a diagnostic
+- MAY: yield a file outside the project root, because a path token that climbs with `../` is allowed to leave it
+ERROR:
+- WHEN: the target does not match the ref-target grammar
+  MUST: report code yass.ref.syntax naming the target and exit with the usage status
+- WHEN: "the `::SLOT` token names a slot outside INPUT, RETURN, ERROR, SIDE-EFFECT, and INVARIANT"
+  MUST: report code yass.ref.slot_unknown naming the token and exit with the usage status
+  SEE: ../yass@Slot
+- WHEN: the file the path token names does not exist
+  MUST: report code yass.ref.unresolved naming the target and exit with the unresolved status
+- WHEN: the file exists but yielded a parse failure, so it holds no addressable document
+  MUST: report that failure's code naming the file and its line, and exit with the unresolved status
+  SEE: Load::RETURN
+- WHEN: the file holds no spec and no design with the given name
+  MUST: report code yass.ref.unresolved naming the target and exit with the unresolved status
+- WHEN: two documents of the file carry the given name
+  MUST: report code yass.ref.unresolved naming the target and the file, and exit with the unresolved status, resolving to neither
+- WHEN: a slot was given and the named document is a design
+  MUST: report code yass.ref.slot_on_design naming the target and exit with the unresolved status, because a design carries no slots
+  CONFORMS: ../yass@Design
+- WHEN: a slot was given and the named spec does not declare it
+  MUST: report code yass.ref.slot_undeclared naming the target and exit with the unresolved status
+- MUST: report code yass.ref.unresolved naming the target and exit with the unresolved status for any target that fails to resolve for a reason not matched above, such as a path token that names a directory
+- MUST: write every diagnostic in this slot to standard error, because a target that will not resolve is a failure to serve the request
+  USES: root@OutputPolicy
+INVARIANT:
+- MUST: exit with the usage status for a target the grammar or the slot vocabulary rejects, and with the unresolved status for a well-formed target that addresses nothing
+- MUST-NOT: fall back to searching the project for a document whose name matches, so a target resolves by path or not at all
+- MUST-NOT: carry a resolution across invocations, so no cache can go stale against the file tree
+  CONFORMS: ../yass@RefTarget::INVARIANT

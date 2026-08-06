@@ -1,0 +1,72 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  Locating the project on disk. Two Specs: finding the project root that governs a starting
+  path, and collecting the spec files that root holds. Every command that touches the
+  filesystem goes through one of them, so path rules have one home and no command restates
+  the discovery or traversal policy.
+version: v1
+---
+spec: RootDiscovery
+INPUT:
+- MUST: take one starting path, which is the starting directory invocation yielded when a command supplies none
+  CONFORMS: 00-invocation@Invocation::RETURN
+- MUST: rely on the starting path being a plain argument invocation already parsed, and re-examine it for an option not at all
+- WHEN: the starting path is not a plain argument after all
+  MUST: report code yass.internal and exit with the environment status
+- MUST: "resolve the starting path to an absolute path, with symbolic links resolved and `.` and `..` removed, before ascending"
+- WHEN: the starting path names a directory
+  MUST: begin the search at that directory
+- WHEN: the starting path names a file
+  MUST: begin the search at the directory holding that file
+RETURN:
+- MUST: "yield the nearest directory at or above the starting path that holds a file named exactly `root.yass.yaml`"
+  CONFORMS: ../yass@Root
+- MUST: inspect the starting directory itself before its parent
+- MUST: stop ascending at the first match, so no directory above it is examined and a nested project root takes over its own subtree
+- MUST: yield the project root as an absolute path
+- MUST: compute the project root exactly once per invocation, and hand the same value to every spec that needs it
+ERROR:
+- WHEN: "the ascent reaches the filesystem root without finding a file named `root.yass.yaml`"
+  MUST: report code yass.root.not_found naming the starting path and exit with the no-root status
+- WHEN: the starting path does not exist
+  MUST: report code yass.io.missing naming it and exit with the unresolved status
+- WHEN: a directory on the ascent cannot be read
+  MUST: report code yass.io.unreadable naming that directory and exit with the environment status
+- MUST-NOT: carry a guard-less residual, because the ascent terminates only by finding the file, by failing to read a directory, by the starting path being absent, or by reaching the filesystem root, and each of those is matched above
+INVARIANT:
+- MUST: "compare the name `root.yass.yaml` byte-for-byte, so a differently cased name is not a project root"
+- MUST-NOT: "locate a project root by any signal other than that file name, such as a version-control directory, a package manifest, a build directory, or the deepest `.yass.yaml` ancestor"
+  CONFORMS: ../yass@Root
+- MUST-NOT: descend into a child directory or move sideways during the ascent
+- MUST-NOT: treat the absence of a project root as recoverable by inventing one at the starting directory
+- MUST-NOT: "expand `~`, a glob, or an environment variable inside a starting path"
+---
+spec: FileSet
+INPUT:
+- MUST: take the project root directory
+  CONFORMS: RootDiscovery::RETURN
+- MUST: "rely on the project root existing and holding a `root.yass.yaml`, since discovery yields no directory without one, and re-check neither property"
+- WHEN: the project root does not exist or does not hold that file when traversal begins
+  MUST: report code yass.internal and exit with the environment status, rather than fall back to another directory
+RETURN:
+- MUST: "yield every regular file at or below the project root whose basename ends with the literal suffix `.yass.yaml`"
+- MUST: "require at least one character before the `.yass.yaml` suffix, so the bare basename `.yass.yaml` is not a member"
+- MUST: "yield the project root's own `root.yass.yaml` as a member of the set"
+- MUST: yield each path relative to the project root
+- MUST: "emit `/` as the path separator on every platform"
+- MUST: "exclude every file governed by a nearer project root, by not descending into a subdirectory that holds its own `root.yass.yaml`"
+  CONFORMS: ../yass@Root
+- MUST: order the set by byte-wise ascending path relative to the project root
+- MUST: yield the same set for the same tree regardless of the order the filesystem reports directory entries
+- MUST-NOT: "exclude a file for any other reason, including a version-control ignore rule, a name beginning with `.`, or a directory that looks like build output"
+ERROR:
+- WHEN: a directory in the traversal cannot be read
+  MUST: report code yass.io.unreadable naming that directory and exit with the environment status
+- MUST-NOT: carry a guard-less residual, because the traversal either reads a directory or fails to read it, and both are matched above
+INVARIANT:
+- MUST: "compare the `.yass.yaml` suffix byte-for-byte and case-sensitively on every platform"
+- MUST-NOT: "match a file whose basename ends in `.yaml` without the `.yass` infix"
+- MUST-NOT: descend through a symbolic link that names a directory, so the traversal cannot cycle
+- MUST: read through a symbolic link that names a regular file, so a linked spec file is a member of the set
+- MUST: "yield at least one member, because the project root holds a `root.yass.yaml` and that basename ends with the suffix, so no command needs an empty-set case"

@@ -1,0 +1,246 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  The root file of the yass CLI project, so the directory holding it is this project's root,
+  separate from the language definition above it — which forbids specifying tooling behavior
+  under its own root. Its one Spec defines `yass`, a read-only command-line program that
+  serves an existing yass spec set to a coding agent: it reports where a project root is,
+  emits one addressed document with its references resolved, indexes what a spec set holds,
+  searches obligation prose, reports the reference edges of a document, checks files against
+  the language definition, and reports graph hygiene. It never writes a spec file and never
+  judges what an obligation says. Every command answers with the smallest output that carries
+  the answer, because the reader's context is the scarce resource.
+version: v1
+related:
+- ../yass.yass.yaml
+- ../context/yass-reference.md
+- ../context/GUIDANCE.md
+---
+spec: YassCli
+INPUT:
+- MUST: "be invoked as `yass [GLOBAL-OPTION...] SUBCOMMAND [OPERAND...]`, taking global options only before the subcommand token so the token is an unambiguous boundary"
+  CONFORMS: 00-invocation@Invocation::RETURN
+- MUST: rely on invocation having recognized the subcommand token and every global option, so dispatch always receives a member of the recognized set
+- MUST-NOT: re-examine the argument vector after invocation has parsed it
+- WHEN: the parsed invocation names a subcommand outside the recognized set
+  MUST: report code yass.internal and exit with the environment status, because invocation rejects such a token before dispatch
+  SEE: 00-invocation@Invocation::ERROR
+- WHEN: "the subcommand is `root`"
+  MUST: dispatch to the command that reports the project root governing a path
+  SEE: 03-root@RootCommand
+- WHEN: "the subcommand is `query`"
+  MUST: dispatch to the command that emits one addressed document with its references resolved
+  SEE: 04-query@Query
+- WHEN: "the subcommand is `list`"
+  MUST: dispatch to the command that indexes the documents of a tree
+  SEE: 05-list@List
+- WHEN: "the subcommand is `find`"
+  MUST: dispatch to the command that searches obligation prose and design content
+  SEE: 06-find@Find
+- WHEN: "the subcommand is `refs`"
+  MUST: dispatch to the command that reports the reference edges of one document
+  SEE: 07-refs@Refs
+- WHEN: "the subcommand is `validate`"
+  MUST: dispatch to the command that checks files against the language definition
+  SEE: 08-validate@Validate
+- WHEN: "the subcommand is `lint`"
+  MUST: dispatch to the command that reports graph hygiene
+  SEE: 09-lint@Lint
+RETURN:
+- MUST: serve a spec set that already exists, so an agent reads the part it asked for instead of opening the files that hold it
+- MUST: write whatever the dispatched command yields, and nothing of its own
+- MUST: exit with the status the dispatched command selects
+  USES: ExitPolicy
+- MUST: be usable with no configuration file, no environment variable, and no per-repository setup
+ERROR:
+- WHEN: no project root governs the addressed path
+  MUST: report code yass.root.not_found and exit with the no-root status
+  SEE: 01-locate@RootDiscovery::ERROR
+- WHEN: an addressed path exists but cannot be read
+  MUST: report code yass.io.unreadable naming the path and exit with the environment status
+- MUST: report code yass.internal and exit with the environment status for any failure not matched by a guarded obligation of the dispatched command's own ERROR slot
+SIDE-EFFECT:
+- MUST-NOT: create, modify, delete, or rename any file or directory
+- MUST-NOT: "open a network connection, including to resolve a preamble `related` entry"
+  CONFORMS: ../yass@Preamble::INVARIANT
+- MUST-NOT: "read a file other than a `root.yass.yaml` met on the ascent, a path named on the command line, or a file whose basename ends with `.yass.yaml` under the governing project root"
+- MUST-NOT: read standard input under any subcommand, so every input is named on the command line
+- MUST-NOT: prompt, page, or hand output to a pager
+INVARIANT:
+- USES: ExitPolicy
+- USES: OutputPolicy
+- USES: RecordFormat
+- USES: DiagnosticFormat
+- USES: Brevity
+- MUST: define its own project root, so the language definition's project root does not govern this project and its no-entry-point invariant does not apply here
+  SEE: ../yass@Root
+- MUST: state every rule it checks in the command that checks it, so this project is implementable from the files under this project root alone
+- MUST: treat the language definition as the normative statement of every rule it checks, and the derived JSON Schema as advisory
+  SEE: ../root@Yass
+- MUST: produce byte-identical output for the same file tree, the same starting directory, and the same argument vector, so an agent can diff two runs
+- MUST-NOT: judge whether an obligation is correct, complete, achievable, or well worded, so the program stays independent of the language a spec describes
+- MUST-NOT: be required in order to read, understand, or implement a yass spec, since a spec set must be intelligible on its own
+- MUST-NOT: "introduce a free-prose channel into a spec file, since the only comments yass emits are tooling-generated provenance"
+  SEE: ../yass@Design
+---
+design: ExitPolicy
+type: exit-code-policy
+content: |
+  0  ok           the command completed and reported no finding
+  1  findings     the command served its request and reported at least one finding about
+                  the spec set: a validation diagnostic, a lint advisory, or a file it
+                  could not parse
+  2  usage        the argument vector is malformed: no subcommand, unknown subcommand,
+                  unknown option, missing option value, missing or excess operand, an
+                  empty operand, or a target that fails the ref-target grammar or names
+                  an unrecognized slot
+  3  unresolved   the request is well formed but names something absent: a missing path,
+                  or a target that resolves to no document
+  4  no-root      no file named root.yass.yaml at or above the starting path
+  5  environment  a path could not be read, an output stream could not be written, or a
+                  guarantee this program relied on internally did not hold
+
+  Exactly one status is returned per invocation, and no other status is ever returned.
+  When more than one condition applies, the higher number wins: 5 > 4 > 3 > 2 > 1 > 0.
+
+  2, 3, and 4 divide cleanly. 2 means the request could not be understood. 3 means it was
+  understood and the thing is absent. 4 means there is no project to understand it against.
+
+  A status of 1 means the program worked and the spec set has a problem, so standard output
+  carries the findings. A status of 2 through 5 means the program did not get far enough to
+  answer, so standard output is empty.
+
+  A command that ran and matched nothing exits 0, not 1: an empty result is an answer, and
+  1 is reserved for a finding about the spec set. A signal is not caught, so no status
+  outside this table is ever selected by this program.
+---
+design: OutputPolicy
+type: constraint
+content: |
+  - Standard output carries what was asked for. Validation diagnostics and lint advisories
+    go there: they are the result of the request, not a side channel.
+  - Standard error carries only a failure of the program to serve the request — a malformed
+    argument vector, an unresolvable target, an unreadable path, an internal fault. One
+    event is never written to both streams, and one record is never split across them.
+  - All output is UTF-8 with LF line endings, no BOM, and no Unicode normalization of text
+    taken from a spec file.
+  - No ANSI escape, no colour, no cursor control, on either stream, whether or not the
+    stream is a terminal, and with no option to turn any on.
+  - No locale-dependent and no time-dependent text.
+  - Text taken from a spec file is emitted byte-for-byte, apart from the whitespace
+    collapsing and truncation a command's own obligations require.
+  - Standard output is line-buffered, so a consumer reading incrementally sees whole records.
+  - When a write to standard output fails because the reading end of the pipe is closed,
+    stop writing immediately and exit 0. Any other write failure exits with the environment
+    status without attempting further output.
+---
+design: RecordFormat
+type: line-grammar
+content: |
+  Record output is line-oriented so a consumer splits it, never needing a regex or a parser.
+  It is the output form of every command except `query`, which emits a YAML stream instead.
+
+  Segmentation, completely:
+  - One record per line. A record is terminated by exactly one LF `0x0A`, the last record
+    included. A second trailing LF is never written, so a blank line never appears.
+  - Fields within a record are separated by exactly one ASCII TAB `0x09`. Two adjacent TABs
+    never appear, because an absent field is written `-`.
+  - A field never holds a TAB, a CR, or an LF. Each run of whitespace within a field value
+    is collapsed to one ASCII space `0x20`, then leading and trailing spaces are trimmed,
+    before the field is written.
+  - A field that has nothing to report holds a single `-`. A field whose value is empty
+    after collapsing and trimming holds a single `-` as well, so `-` is the only spelling
+    of an absent field.
+  - A literal `-` that is the whole of a real value is indistinguishable from an absent
+    field. No field of any record defined by this project can take `-` as a real value, so
+    the ambiguity never arises.
+  - Every record emitted by one command carries the same field count, in one fixed order,
+    however many records that command emits.
+  - A command with nothing to report writes zero bytes: no header line, no column ruler, no
+    separator, no count, no total, no summary, no trailing blank line.
+  - A field is never quoted, escaped, padded to a fixed width, or aligned across records.
+
+  Field layouts, by command:
+
+    root        1 field
+                PATH        absolute path of the project root directory
+
+    list        4 fields
+                REF         `path` for a file record, `path@Name` for a document record
+                KIND        `file`, `spec`, or `design`
+                DETAIL      file: count of spec and design documents, excluding the preamble
+                            spec: declared slot names, comma-joined, canonical order
+                            design: the design `type` value
+                DESCRIPTION file: truncated preamble description; otherwise `-`
+
+    find        3 fields
+                REF         `path@Name::SLOT` for an obligation, `path@Name` for a design
+                WHAT        the obligation's normativity keyword, `WHEN` for a guard match,
+                            or `content` for a design content match
+                TEXT        the whole matched text, on one line, however long
+
+    refs        3 fields
+                DIR         `out` for an edge the addressed document carries,
+                            `in` for an edge that points at the addressed document
+                RELATION    CONFORMS, USES, or SEE
+                REF         the other end of the edge, `path@Name` with any `::SLOT` kept
+
+  A REF is written root-relative with `/` separators and the `.yass.yaml` suffix removed, so
+  it can be passed back to `yass query` unchanged.
+
+  Canonical slot order, wherever a slot sequence is emitted:
+  INPUT, RETURN, ERROR, SIDE-EFFECT, INVARIANT.
+
+  Canonical relation order, wherever a relation sequence is emitted:
+  CONFORMS, USES, SEE.
+---
+design: DiagnosticFormat
+type: line-grammar
+content: |
+  A diagnostic is the record form shared by `yass validate` and `yass lint`. It carries five
+  fields, in this order, under the same segmentation rules every other record obeys.
+
+    SEVERITY  `error` for a validation diagnostic, `warn` for a lint advisory
+    CODE      `yass.<area>.<name>`, or the bare token `yass.internal`
+    LOCATION  the most precise ref target known — `path`, `path@Name`, or `path@Name::SLOT`
+              — root-relative with the `.yass.yaml` suffix removed, so the field can be
+              passed back to `yass query` unchanged
+    LINE      the 1-based line the offending construct starts on, for an editor to jump to,
+              or `-` when no line is known. A line is never a ref anchor: a ref target
+              addresses nothing finer than a slot.
+    MESSAGE   one clause, lower case, no trailing period, naming what is wrong
+
+  Code grammar: `yass`, then `.`, then an area token, then `.`, then a name token; each
+  token drawn from `a-z`, `0-9`, and `_`. The sole exception is `yass.internal`, which has
+  no name token. A code is stable across releases once published, so an agent may branch on
+  it; one code names one condition at every site that raises it; and no code is emitted that
+  no obligation of this project defines.
+
+  Areas: `args`, `io`, `root`, `document`, `preamble`, `spec`, `design`, `slot`,
+  `obligation`, `ref`, `lint`.
+
+  A message names what is wrong and never how to fix it. It carries no remedy, no
+  alternative spelling, no quoted source, no restatement of the code, and no explanation of
+  the rule.
+---
+design: Brevity
+type: constraint
+content: |
+  Output is read by an agent whose context budget is the scarce resource. Emit the answer;
+  emit nothing else.
+
+  - A success with nothing to report writes nothing at all.
+  - No banner, version line, header, column title, rule, box drawing, progress indicator,
+    elapsed time, or count of anything.
+  - No sentence that restates the request, names the path just read, or announces what the
+    program is about to do.
+  - No advice, no suggested fix, no "did you mean", no pointer to documentation. The single
+    exception is the residual of a closed set: the diagnostic for an absent or unrecognized
+    subcommand names the recognized subcommands, because the set is short and the agent
+    cannot otherwise recover.
+  - Help is a synopsis line, one line per subcommand, and one line per global option, plus
+    the exit-code table. No examples, no paragraphs, no epilogue.
+  - There is no per-subcommand help in v1, because the synopsis states each subcommand's
+    operands and options.
+  - An obligation's prose is emitted only inside a fragment the agent asked for, or as the
+    matched text of a search the agent asked for.

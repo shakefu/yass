@@ -1,0 +1,162 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  The conformance subcommand. `yass validate` checks addressed files against every construct
+  of the yass language definition and emits one coded diagnostic per rule violation, so an
+  agent that has just written a spec learns what is wrong with it in one line per problem.
+  Every check is stated here as its own guarded obligation carrying its own code, so this
+  command is implementable from this file alone; the CONFORMS on each group names the
+  construct Spec that remains the normative statement of the rule.
+version: v1
+---
+spec: Validate
+INPUT:
+- MUST: "be invoked as `yass validate [PATH...]`"
+- WHEN: no PATH is given
+  MUST: take the project file set
+  CONFORMS: 01-locate@FileSet::RETURN
+- WHEN: a PATH names a directory
+  MUST: "take every regular file at or below it whose basename ends with `.yass.yaml`, under the same exclusions the project file set applies"
+  SEE: 01-locate@FileSet
+- WHEN: a PATH names a file
+  MUST: take that file whatever its basename
+- MUST: take each file at most once, even when two PATHs address it
+- MUST: take the loaded model of each addressed file
+  CONFORMS: 02-load@Load::RETURN
+- MUST-NOT: rely on any well-formedness guarantee of that model beyond the fact that the file parsed, because establishing well-formedness is exactly what this command does
+  SEE: 02-load@Load::INVARIANT
+- WHEN: the model records no entry for an addressed file
+  MUST: report code yass.internal and exit with the environment status
+- MUST: check every addressed file before exiting, rather than stop at the first violation
+- MUST: resolve every reference of an addressed file against the whole project, reading a file outside the addressed set far enough to decide whether a target resolves
+- MUST-NOT: report a violation found in a file outside the addressed set, because it was not addressed
+RETURN:
+- MUST: emit one diagnostic per violated rule
+  USES: root@DiagnosticFormat
+- MUST: "set the SEVERITY of every diagnostic it emits to `error`"
+- MUST: order diagnostics by byte-wise ascending project-root-relative file path, then by ascending line, then by code in byte order
+- WHEN: a file breaks one rule more than once
+  MUST: emit one diagnostic per occurrence rather than one per rule
+- WHEN: no violation is found in any addressed file
+  MUST: write nothing at all and exit with the ok status
+  USES: root@Brevity
+- CONFORMS: ../yass@Document
+- WHEN: a file's bytes are not valid UTF-8, or begin with a UTF-8 BOM
+  MUST: emit code yass.document.encoding
+- WHEN: a file's stream is not well-formed YAML
+  MUST: emit code yass.document.not_yaml
+- WHEN: a file uses a YAML anchor, an alias, or an explicit tag
+  MUST: emit code yass.document.yaml_feature
+- WHEN: a mapping in a file carries the same key more than once, including a repeated normativity keyword or a repeated relation key on one obligation
+  MUST: emit code yass.document.duplicate_key
+- WHEN: "a document after the first carries neither a `spec` key nor a `design` key"
+  MUST: emit code yass.document.unknown_kind
+- WHEN: two documents of one file carry the same name, whether spec or design
+  MUST: emit code yass.document.name_duplicate, because spec and design names share one file-wide namespace
+- CONFORMS: ../yass@Preamble
+- WHEN: "a file's first document carries a `spec` key or a `design` key, so the file has no preamble"
+  MUST: emit code yass.preamble.missing
+- WHEN: "a preamble omits `description` or `version`"
+  MUST: emit code yass.preamble.incomplete
+- WHEN: "a preamble's `version` is not the exact string `v1` byte-for-byte"
+  MUST: emit code yass.preamble.version
+- WHEN: "a preamble carries a key other than `description`, `version`, and `related`"
+  MUST: emit code yass.preamble.unknown_key
+- WHEN: "a preamble's `related` is present and is not a sequence of strings"
+  MUST: emit code yass.preamble.related_shape
+- CONFORMS: ../yass@Root
+- WHEN: "a file named exactly `root.yass.yaml` carries no spec document, or more than one"
+  MUST: emit code yass.root.spec_count
+- WHEN: no file named `root.yass.yaml` is at or above an addressed file
+  MUST: emit code yass.root.not_found
+- CONFORMS: ../yass@Spec
+- WHEN: "a document carries a `spec` key whose value is absent, empty, or not a string"
+  MUST: emit code yass.spec.unnamed
+- WHEN: "a spec name does not match the regex `^[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*$`, which rejects a leading dot, a trailing dot, consecutive dots, and every character outside the name charset"
+  MUST: emit code yass.spec.name_grammar
+- WHEN: a spec name case-insensitively matches a slot keyword or a normativity keyword
+  MUST: emit code yass.spec.name_keyword
+- CONFORMS: ../yass@Design
+- WHEN: "a document carries a `design` key whose value is absent, empty, or not a string"
+  MUST: emit code yass.design.unnamed
+- WHEN: a design name does not match the spec name regex
+  MUST: emit code yass.design.name_grammar
+- WHEN: a design name case-insensitively matches a slot keyword or a normativity keyword
+  MUST: emit code yass.design.name_keyword
+- WHEN: "a design omits `type` or `content`"
+  MUST: emit code yass.design.incomplete
+- WHEN: "a design's `type` or `content` value is not a string"
+  MUST: emit code yass.design.value_type
+- WHEN: "a design carries a key other than `design`, `type`, and `content`, which includes any slot key"
+  MUST: emit code yass.design.unknown_key
+- CONFORMS: ../yass@Slot
+- WHEN: "a spec document carries a key that is neither `spec` nor one of INPUT, RETURN, ERROR, SIDE-EFFECT, and INVARIANT"
+  MUST: emit code yass.slot.unknown
+- WHEN: a slot's value is not a YAML sequence
+  MUST: emit code yass.slot.not_a_list
+- CONFORMS: ../yass@Obligation
+- WHEN: an item of a slot's sequence is not a YAML mapping
+  MUST: emit code yass.obligation.not_a_mapping
+- WHEN: an obligation carries a key that is not a normativity keyword, not WHEN, and not a relation key
+  MUST: emit code yass.obligation.unknown_key
+  CONFORMS: ../yass@Normativity
+- WHEN: an obligation carries more than one distinct normativity keyword
+  MUST: emit code yass.obligation.multiple_normativity
+- WHEN: an obligation carries neither a normativity keyword nor a relation key
+  MUST: emit code yass.obligation.empty
+- WHEN: an obligation carries a WHEN guard and no normativity keyword
+  MUST: emit code yass.obligation.guard_alone
+  CONFORMS: ../yass@Guard
+- WHEN: "an obligation's value at a scalar position is a mapping, a sequence, or null, characteristically unquoted prose holding a colon followed by a space"
+  MUST: emit code yass.obligation.not_scalar
+- CONFORMS: ../yass@Reference
+- WHEN: a relation key's value is not a single string
+  MUST: emit code yass.ref.not_a_string
+- WHEN: "a reference target is not well formed against the `path@Name::SLOT` grammar, including a path token holding a backslash or a character outside `[A-Za-z0-9._/-]`, a name token holding a character outside `[A-Za-z0-9._-]`, and a slot token holding a character outside `[A-Z-]`"
+  MUST: emit code yass.ref.syntax
+  CONFORMS: ../yass@RefTarget
+- WHEN: a reference target names a file, a spec, or a design that does not exist
+  MUST: emit code yass.ref.unresolved
+- WHEN: a CONFORMS target resolves to a design
+  MUST: emit code yass.ref.conforms_design
+- WHEN: a USES target resolves to a spec or a slot
+  MUST: emit code yass.ref.uses_spec
+- WHEN: "a `::SLOT` token names a slot outside the recognized set"
+  MUST: emit code yass.ref.slot_unknown
+- WHEN: "a `::SLOT` token is appended to a target that resolves to a design"
+  MUST: emit code yass.ref.slot_on_design
+- WHEN: "a `::SLOT` token names a slot the referenced spec does not declare in its source document"
+  MUST: emit code yass.ref.slot_undeclared
+ERROR:
+- WHEN: at least one diagnostic was emitted
+  MUST: exit with the findings status after writing all of them
+- WHEN: a PATH does not exist
+  MUST: report code yass.io.missing naming it and exit with the unresolved status
+- WHEN: "a PATH exists but is neither a directory nor a regular file"
+  MUST: report code yass.io.not_a_spec_file naming it and exit with the usage status
+- WHEN: an addressed file yielded a parse failure
+  MUST: emit that failure's code as a diagnostic for the file, emit no further diagnostic for that file because its documents cannot be read, and continue with the next file
+  SEE: 02-load@Load::RETURN
+- WHEN: an addressed file cannot be read at all
+  MUST: report code yass.io.unreadable naming it and exit with the environment status
+- MUST: report code yass.internal and exit with the environment status for any failure not matched by a guarded obligation in this slot
+SIDE-EFFECT:
+- MUST: write every diagnostic of the RETURN slot to standard output, because a diagnostic is this command's product
+  USES: root@OutputPolicy
+- MUST: write every diagnostic of the ERROR slot to standard error, because each names a failure to check rather than a result of checking
+- MUST-NOT: rewrite, reformat, requote, or repair a file it validates
+INVARIANT:
+- MUST: be the only place this program names which rule a file violates, so every other command reports only that a file yielded no documents
+- MUST-NOT: judge whether an obligation's prose is correct, complete, achievable, or well worded, since verification is out of scope and staying out of it is what keeps the program independent of the language a spec describes
+- MUST-NOT: emit an advisory, so a validation diagnostic always names a rule the language definition states as a rejection
+  SEE: 09-lint@Lint
+- MUST-NOT: report a missing schema modeline, which the language states as a SHOULD and lint reports as an advisory
+  SEE: 09-lint@Lint
+- MUST-NOT: report an unreachable document, which the language states as a Root invariant and lint reports as an advisory
+  SEE: 09-lint@Lint
+- MUST-NOT: treat the derived JSON Schema as the authority for any rule, since the language definition is the normative statement of the language
+  SEE: ../root@Yass
+- MUST-NOT: "resolve, fetch, or open a preamble `related` entry while checking its shape"
+  CONFORMS: ../yass@Preamble::INVARIANT
+- MUST-NOT: emit a diagnostic under a code no obligation of this project defines
+  USES: root@DiagnosticFormat
