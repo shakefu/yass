@@ -12,13 +12,14 @@ repos:
 - repo: builtin
   hooks:
   - id: trailing-whitespace
-    exclude: ^(CHANGELOG\.md|RELEASES\.md|CLAUDE\.md|AGENTS\.md|llms\.txt|\.claude/.*|\.cursor/.*|\.github/copilot-instructions\.md)$
+    exclude: ^(CHANGELOG\.md|RELEASES\.md|CLAUDE\.md|AGENTS\.md|llms\.txt|\.claude/.*|\.cursor/.*|\.github/copilot-instructions\.md|third_party/.*)$
   - id: check-added-large-files
+    exclude: ^third_party/
   - id: check-case-conflict
   - id: end-of-file-fixer
-    exclude: ^(CHANGELOG\.md|RELEASES\.md|CLAUDE\.md|AGENTS\.md|llms\.txt|\.claude/.*|\.cursor/.*|\.github/copilot-instructions\.md)$
+    exclude: ^(CHANGELOG\.md|RELEASES\.md|CLAUDE\.md|AGENTS\.md|llms\.txt|\.claude/.*|\.cursor/.*|\.github/copilot-instructions\.md|third_party/.*)$
   - id: fix-byte-order-marker
-    exclude: ^(CHANGELOG\.md|RELEASES\.md|CLAUDE\.md|AGENTS\.md|llms\.txt|\.claude/.*|\.cursor/.*|\.github/copilot-instructions\.md)$
+    exclude: ^(CHANGELOG\.md|RELEASES\.md|CLAUDE\.md|AGENTS\.md|llms\.txt|\.claude/.*|\.cursor/.*|\.github/copilot-instructions\.md|third_party/.*)$
   - id: check-json
   - id: check-json5
   - id: check-toml
@@ -28,7 +29,7 @@ repos:
   - id: check-merge-conflict
   - id: check-xml
   - id: mixed-line-ending
-    exclude: ^(CHANGELOG\.md|RELEASES\.md|CLAUDE\.md|AGENTS\.md|llms\.txt|\.claude/.*|\.cursor/.*|\.github/copilot-instructions\.md)$
+    exclude: ^(CHANGELOG\.md|RELEASES\.md|CLAUDE\.md|AGENTS\.md|llms\.txt|\.claude/.*|\.cursor/.*|\.github/copilot-instructions\.md|third_party/.*)$
   - id: check-symlinks
   - id: detect-private-key
   - id: check-executables-have-shebangs
