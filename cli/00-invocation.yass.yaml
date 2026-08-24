@@ -4,7 +4,9 @@ description: >
   Argument-vector parsing for the yass CLI. One Spec turns the raw arguments into a
   recognized subcommand, its options, and its operands, and owns every way the argument
   vector can be malformed — so argument handling has one home and no command restates it.
-  Dispatch on the recognized subcommand belongs to the root Spec, not here.
+  An argument vector naming no subcommand is well formed and yields the default one, so a
+  reader who runs the program with no idea how to drive it is answered rather than
+  rejected. Dispatch on the recognized subcommand belongs to the root Spec, not here.
 version: v1
 ---
 spec: Invocation
@@ -12,7 +14,10 @@ INPUT:
 - MUST: take the argument vector after the program name, a sequence of zero or more arguments
 - MUST: "recognize exactly the global options `-C DIR`, `--help`, `-h`, `--version`, and `-V`, accepted only before the subcommand token"
 - MUST: treat the first argument that is neither a global option nor a global option value as the subcommand token
-- MUST: "recognize exactly the subcommand tokens `root`, `query`, `list`, `find`, `refs`, `validate`, and `lint`"
+- WHEN: no argument remains to be taken as the subcommand token, and neither help nor version was requested
+  MUST: "yield the subcommand token `overview`, so an argument vector naming no subcommand is well formed and carries no operand"
+  SEE: 11-overview@Overview
+- MUST: "recognize exactly the subcommand tokens `overview`, `root`, `query`, `list`, `find`, `refs`, `validate`, `lint`, and `docs`"
 - MUST: parse every argument after the subcommand token as that subcommand's option or operand, against the option set the synopsis fixes for it
   USES: Synopsis
 - MUST: "treat an argument equal to `--` as end-of-options, so every argument after it is an operand even when it begins with `-`"
@@ -28,7 +33,7 @@ INPUT:
   MUST: reject the argument vector rather than replace or drop the offending bytes
 RETURN:
 - MUST: yield the starting directory, the subcommand token, that subcommand's parsed options, and its operands in argument order
-- MUST: guarantee the yielded subcommand token is a member of the recognized set, so dispatch has no out-of-set case to handle
+- MUST: guarantee the yielded subcommand token is a member of the recognized set, whether it was named or defaulted, so dispatch has no out-of-set case to handle
 - MUST: guarantee every yielded operand is a plain argument, so no consumer re-examines it for an option
 - WHEN: "`--help` or `-h` is given"
   MUST: write the synopsis to standard output and exit with the ok status, taking precedence over every other option and over the subcommand token
@@ -38,9 +43,8 @@ RETURN:
 - MUST: write the synopsis and the version line to standard output, because each is what was asked for
   USES: root@OutputPolicy
 ERROR:
-- WHEN: no subcommand token is present and neither help nor version was requested
-  MUST: report code yass.args.no_subcommand, naming the recognized subcommands, and exit with the usage status
-  USES: root@Brevity
+- MUST-NOT: report a diagnostic for an argument vector that names no subcommand, since the default subcommand makes it well formed
+  SEE: 11-overview@Overview
 - WHEN: the subcommand token is outside the recognized set
   MUST: report code yass.args.unknown_subcommand, naming the token and the recognized subcommands, and exit with the usage status
 - WHEN: "an option is given before the subcommand token that is outside the global set, including a subcommand's own option such as `--raw`"
@@ -75,8 +79,9 @@ content: |
   This block is both the option table Invocation parses against and the exact text
   `--help` writes. Nothing is added to it and nothing is left out.
 
-  usage: yass [-C DIR] [--version] [--help] SUBCOMMAND [ARGS...]
+  usage: yass [-C DIR] [--version] [--help] [SUBCOMMAND [ARGS...]]
 
+    overview                       orient a reader in this program and this project
     root [PATH]                    report the project root governing PATH
     query [--raw] TARGET...        emit each addressed document, references resolved
     list [--filter GLOB] [PATH...] index the documents of a tree
@@ -84,6 +89,7 @@ content: |
     refs [--in] [--out] TARGET     report the reference edges of one document
     validate [PATH...]             check files against the yass language definition
     lint [PATH...]                 report graph hygiene of the project
+    docs [NAME]                    index the carried language documents, or write one
 
     -C DIR                         start path resolution and root discovery at DIR
     --version, -V                  write the version and exit
@@ -99,4 +105,5 @@ content: |
 
   A TARGET is `path@Name::SLOT`, in which `path@` and `::SLOT` are each optional; a TARGET
   with no `@` addresses a whole file. A PATH is a filesystem path. Options for a subcommand
-  are written after it; global options are written before it.
+  are written after it; global options are written before it. An invocation naming no
+  SUBCOMMAND runs `overview`.

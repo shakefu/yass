@@ -97,6 +97,23 @@ func (s *stream) line(text string) {
 	}
 }
 
+// raw writes text byte-for-byte, adding nothing and terminating nothing, then
+// flushes. It is how a served document reaches standard output: a document is
+// prose rather than a sequence of fields, so the record grammar does not govern
+// it and no terminator is imposed on it.
+func (s *stream) raw(text string) {
+	if s.broken || s.failed {
+		return
+	}
+	if _, err := s.w.WriteString(text); err != nil {
+		s.note(err)
+		return
+	}
+	if err := s.w.Flush(); err != nil {
+		s.note(err)
+	}
+}
+
 func (s *stream) note(err error) {
 	if errors.Is(err, syscall.EPIPE) {
 		s.broken = true
