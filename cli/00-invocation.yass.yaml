@@ -1,0 +1,109 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  Argument-vector parsing for the yass CLI. One Spec turns the raw arguments into a
+  recognized subcommand, its options, and its operands, and owns every way the argument
+  vector can be malformed — so argument handling has one home and no command restates it.
+  An argument vector naming no subcommand is well formed and yields the default one, so a
+  reader who runs the program with no idea how to drive it is answered rather than
+  rejected. Dispatch on the recognized subcommand belongs to the root Spec, not here.
+version: v1
+---
+spec: Invocation
+INPUT:
+- MUST: take the argument vector after the program name, a sequence of zero or more arguments
+- MUST: "recognize exactly the global options `-C DIR`, `--help`, `-h`, `--version`, and `-V`, accepted only before the subcommand token"
+- MUST: treat the first argument that is neither a global option nor a global option value as the subcommand token
+- WHEN: no argument remains to be taken as the subcommand token, and neither help nor version was requested
+  MUST: "yield the subcommand token `overview`, so an argument vector naming no subcommand is well formed and carries no operand"
+  SEE: 11-overview@Overview
+- MUST: "recognize exactly the subcommand tokens `overview`, `root`, `query`, `list`, `find`, `refs`, `validate`, `lint`, and `docs`"
+- MUST: parse every argument after the subcommand token as that subcommand's option or operand, against the option set the synopsis fixes for it
+  USES: Synopsis
+- MUST: "treat an argument equal to `--` as end-of-options, so every argument after it is an operand even when it begins with `-`"
+- MUST: "treat an argument beginning with `-`, before end-of-options and other than `--` itself, as an option"
+- MUST: "take the value of an option written `-C DIR` or `--slot SLOT` from the following argument, and the value of an option written `-C=DIR` or `--slot=SLOT` from the text after the first `=`"
+- MUST: treat every remaining argument as an operand of the subcommand, in argument order
+- WHEN: "`-C DIR` is given"
+  MUST: take DIR as the starting directory that path resolution and project-root discovery begin from
+  SEE: 01-locate@RootDiscovery
+- WHEN: "`-C DIR` is not given"
+  MUST: take the process working directory as the starting directory
+- WHEN: an argument is not valid UTF-8
+  MUST: reject the argument vector rather than replace or drop the offending bytes
+RETURN:
+- MUST: yield the starting directory, the subcommand token, that subcommand's parsed options, and its operands in argument order
+- MUST: guarantee the yielded subcommand token is a member of the recognized set, whether it was named or defaulted, so dispatch has no out-of-set case to handle
+- MUST: guarantee every yielded operand is a plain argument, so no consumer re-examines it for an option
+- WHEN: "`--help` or `-h` is given"
+  MUST: write the synopsis to standard output and exit with the ok status, taking precedence over every other option and over the subcommand token
+  USES: Synopsis
+- WHEN: "`--version` or `-V` is given and no help was requested"
+  MUST: "write one line holding the program name, one ASCII space, the program version, one ASCII space, and the yass language version it implements, then exit with the ok status"
+- MUST: write the synopsis and the version line to standard output, because each is what was asked for
+  USES: root@OutputPolicy
+ERROR:
+- MUST-NOT: report a diagnostic for an argument vector that names no subcommand, since the default subcommand makes it well formed
+  SEE: 11-overview@Overview
+- WHEN: the subcommand token is outside the recognized set
+  MUST: report code yass.args.unknown_subcommand, naming the token and the recognized subcommands, and exit with the usage status
+- WHEN: "an option is given before the subcommand token that is outside the global set, including a subcommand's own option such as `--raw`"
+  MUST: report code yass.args.unknown_option naming the option and exit with the usage status
+- WHEN: an option is given after the subcommand token that the synopsis does not list for that subcommand
+  MUST: report code yass.args.unknown_option naming the option and exit with the usage status
+- WHEN: an option requiring a value is the last argument, so it has no following value
+  MUST: report code yass.args.missing_value naming the option and exit with the usage status
+- WHEN: the subcommand receives fewer operands than the synopsis requires
+  MUST: report code yass.args.missing_operand naming the subcommand and exit with the usage status
+- WHEN: the subcommand receives more operands than the synopsis accepts
+  MUST: report code yass.args.extra_operand naming the first excess operand and exit with the usage status
+- WHEN: an operand is the empty string
+  MUST: report code yass.args.empty and exit with the usage status
+- WHEN: a global option that takes a value is given more than once
+  MUST: take the last occurrence and report nothing, because a later value overriding an earlier one is the ordinary shell idiom
+- MUST: report code yass.args.unknown_option and exit with the usage status for any argument that is neither a recognized option, an option value, the subcommand token, nor an operand the synopsis accepts
+- MUST: write every diagnostic in this slot to standard error, because a malformed argument vector is a failure to serve the request rather than the requested answer
+  USES: root@OutputPolicy
+INVARIANT:
+- MUST-NOT: accept an abbreviated or prefixed subcommand token, so no token resolves by being unique
+- MUST-NOT: "accept a subcommand token in any casing other than the lowercase form the synopsis states"
+- MUST-NOT: accept a clustered short option, since every short option this program recognizes stands alone
+- MUST-NOT: read an environment variable, a dotfile, or a configuration directory to supply an option value
+- MUST-NOT: reorder operands, so a subcommand sees them exactly as given
+- MUST-NOT: emit a machine-readable rendering of any output, since the record grammar is the only encoding in v1
+  SEE: root@RecordFormat
+---
+design: Synopsis
+type: usage-text
+content: |
+  This block is both the option table Invocation parses against and the exact text
+  `--help` writes. Nothing is added to it and nothing is left out.
+
+  usage: yass [-C DIR] [--version] [--help] [SUBCOMMAND [ARGS...]]
+
+    overview                       orient a reader in this program and this project
+    root [PATH]                    report the project root governing PATH
+    query [--raw] TARGET...        emit each addressed document, references resolved
+    list [--filter GLOB] [PATH...] index the documents of a tree
+    find [--slot SLOT] PATTERN     search obligation prose and design content
+    refs [--in] [--out] TARGET     report the reference edges of one document
+    validate [PATH...]             check files against the yass language definition
+    lint [PATH...]                 report graph hygiene of the project
+    docs [NAME]                    index the carried language documents, or write one
+
+    -C DIR                         start path resolution and root discovery at DIR
+    --version, -V                  write the version and exit
+    --help, -h                     write this text and exit
+
+    --raw                          emit the document as authored, resolving nothing
+    --filter GLOB                  emit only records whose REF matches GLOB
+    --slot SLOT                    restrict matches to obligations of that slot
+    --in                           report incoming edges only
+    --out                          report outgoing edges only
+
+    0 ok   1 findings   2 usage   3 unresolved   4 no-root   5 environment
+
+  A TARGET is `path@Name::SLOT`, in which `path@` and `::SLOT` are each optional; a TARGET
+  with no `@` addresses a whole file. A PATH is a filesystem path. Options for a subcommand
+  are written after it; global options are written before it. An invocation naming no
+  SUBCOMMAND runs `overview`.

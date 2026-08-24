@@ -2,17 +2,18 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://textla.dev/yass/v1.schema.json",
   "title": "yass v1 document",
-  "description": "Per-document schema for a yass v1 .yass.yaml stream. Each YAML document validates as either a preamble or a spec. Stream-level rules (exactly one preamble first, name uniqueness, ref resolution) are out of scope and remain in `yass validate`.",
+  "description": "Per-document schema for a yass v1 .yass.yaml stream. Each YAML document validates as a preamble, a spec, or a design. Stream-level rules (exactly one preamble first, name uniqueness, ref resolution, relation target kinds) are out of scope and remain in `yass validate`.",
   "oneOf": [
     { "$ref": "#/$defs/preamble" },
-    { "$ref": "#/$defs/spec" }
+    { "$ref": "#/$defs/spec" },
+    { "$ref": "#/$defs/design" }
   ],
 
   "$defs": {
     "preamble": {
       "title": "Preamble",
       "type": "object",
-      "not": { "required": ["spec"] },
+      "not": { "anyOf": [ { "required": ["spec"] }, { "required": ["design"] } ] },
       "required": ["description", "version"],
       "additionalProperties": false,
       "properties": {
@@ -40,6 +41,18 @@
       }
     },
 
+    "design": {
+      "title": "Design",
+      "type": "object",
+      "required": ["design", "type", "content"],
+      "additionalProperties": false,
+      "properties": {
+        "design": { "type": "string", "pattern": "^[A-Za-z0-9._-]+$" },
+        "type": { "type": "string" },
+        "content": { "type": "string" }
+      }
+    },
+
     "slot": {
       "title": "Slot",
       "type": "array",
@@ -50,6 +63,12 @@
       "title": "RefTarget",
       "type": "string",
       "pattern": "^([A-Za-z0-9_./-]+@)?[A-Za-z0-9._-]+(::[A-Z][A-Z-]*)?$"
+    },
+
+    "refTargetNoSlot": {
+      "title": "RefTarget (design target; no ::SLOT — a design carries no slots)",
+      "type": "string",
+      "pattern": "^([A-Za-z0-9_./-]+@)?[A-Za-z0-9._-]+$"
     },
 
     "obligation": {
@@ -64,7 +83,7 @@
         "MAY": { "type": "string" },
         "WHEN": { "type": "string" },
         "CONFORMS": { "$ref": "#/$defs/refTarget" },
-        "USES": { "$ref": "#/$defs/refTarget" },
+        "USES": { "$ref": "#/$defs/refTargetNoSlot" },
         "SEE": { "$ref": "#/$defs/refTarget" }
       },
       "oneOf": [

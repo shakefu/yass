@@ -1,0 +1,135 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  The `yass overview` subcommand, and the answer to an invocation carrying no subcommand at
+  all. One Spec, writing the orientation block a reader needs on first contact: what yass
+  is, what the project under the starting directory is, the notation a spec file uses, the
+  commands that read a spec set, and where the language corpus is. It is the one command
+  that spends lines deliberately, because a reader arriving with no orientation spends far
+  more of them opening files to construct one.
+version: v1
+---
+spec: Overview
+INPUT:
+- MUST: "be invoked as `yass overview`, and equivalently as `yass` carrying no subcommand token"
+  CONFORMS: 00-invocation@Invocation::RETURN
+- MUST: take the starting directory invocation yielded
+- MUST: attempt project-root discovery from the starting directory, taking the absence of a root as a fact to report rather than as a failure to serve the request
+  SEE: 01-locate@RootDiscovery
+- WHEN: a project root governs the starting directory
+  MUST: load that project's file set, to count its files and its spec and design documents and to take the preamble description of its root file
+  CONFORMS: 02-load@Load::RETURN
+- MUST-NOT: accept an operand or an option of its own, so the block is the same block however it was reached
+RETURN:
+- MUST: write the orientation block, in the order and the wording the block fixes
+  USES: OrientationBlock
+- WHEN: a project root governs the starting directory
+  MUST: write the project section naming that root's absolute path, the preamble description of its root file, and the count of spec files and of spec and design documents the root governs
+- WHEN: no project root governs the starting directory
+  MUST: write the project section as the single fact that no project root governs the starting directory, and write every other section unchanged
+- MUST: exit with the ok status once the block is written
+- MUST: write the block to standard output, because it is what was asked for
+  USES: root@OutputPolicy
+ERROR:
+- WHEN: a spec file of the project fails to parse
+  MUST: count it among the files, leave its documents out of the document count, and report no diagnostic, since orientation is not a check of the spec set
+  SEE: 08-validate@Validate
+- WHEN: the project's root file carries no preamble description
+  MUST: write the project section with no description line, and report no diagnostic
+- WHEN: a directory on the ascent, or a spec file of the project, cannot be read
+  MUST: report code yass.io.unreadable naming the path, write no block, and exit with the environment status
+- MUST: report code yass.internal and exit with the environment status for any failure not matched by a guarded obligation in this slot
+- MUST: write every diagnostic in this slot to standard error, since the block is the only thing this command puts on standard output
+  USES: root@OutputPolicy
+INVARIANT:
+- MUST-NOT: select the no-root status, since the block answers without a project and an answered request leaves standard output non-empty
+  USES: root@ExitPolicy
+- MUST-NOT: select the findings status, since a finding about a spec set is the answer of validate and of lint and never of this command
+- MUST: hold the notation summary to exactly what a reader needs in order to read a spec file, leaving what an author needs in order to write one to the corpus
+  SEE: 10-docs@Corpus
+- MUST-NOT: restate the option table, the operand grammar, or the exit-code table, since the synopsis owns them and one concern has one home
+  SEE: 00-invocation@Synopsis
+---
+design: OrientationBlock
+type: output-template
+content: |
+  Seven sections, written in this order, separated by exactly one empty line, with no
+  empty line before the first section and none after the last. Section 2 is computed for
+  the invocation; every other section is fixed text, emitted exactly as it stands here.
+
+  The samples below are inset by two columns from this block's own text, and that inset is
+  not part of an emitted line: a sample sitting at the inset is written at column zero.
+
+  Fixed text is written within 88 columns, counted in Unicode scalar values, so the block
+  survives a narrow terminal without reflow. A wrapped description line is broken at
+  spaces to fit that width wherever the words allow it.
+
+  1 — what this program is:
+
+    yass — Yet Another Spec Syntax. A spec file carries the behaviour a project must
+    implement, written as obligations that can be checked against code. This program is
+    read-only: it serves a spec set that already exists, and never writes one.
+
+  2 — the project. When a project root governs the starting directory, three parts, each
+  value starting at the eleventh column:
+
+    project    «absolute path of the project root»
+               «preamble description of the root file»
+    holds      «count» spec files, «count» documents
+
+  The description is collapsed to one line under the field rules, truncated to 240
+  Unicode scalar values, then broken at spaces onto lines indented to the eleventh column
+  so the text aligns under itself. A root file carrying no description contributes no
+  description line, and the other two are written unchanged. The document count counts
+  the spec and design documents the root governs, excluding the preamble of each file. A
+  noun is written singular when its count is one. The `holds` line is written whatever
+  the counts are, `0 spec files, 0 documents` included.
+
+  When no project root governs the starting directory, the whole section is one line, and
+  no count is written:
+
+    project    none — no root.yass.yaml at or above the starting directory
+
+  3 — the notation, so a spec file can be read without spending a corpus document on it:
+
+    A spec file is a YAML document stream. The first document is the preamble, carrying
+    `description` and `version`; every later one is a `spec:` holding obligations under five
+    slots, or a `design:` holding normative freeform content under `type` and `content`.
+
+      slots        INPUT  RETURN  ERROR  SIDE-EFFECT  INVARIANT
+      obligation   one of MUST / MUST-NOT / SHOULD / SHOULD-NOT / MAY with the prose, an
+                   optional WHEN guard, and at most one each of CONFORMS / USES / SEE
+      relations    CONFORMS = must match the target, USES = binding design block,
+                   SEE = pointer that binds nothing
+      target       path@Name::SLOT — `path@` and `::SLOT` are each optional; a bare name is
+                   the same file, and a path with no leading dot is from the project root
+
+  4 — reading a spec set. Written whether or not a project root was found, because these
+  commands are what the program does rather than a property of the directory it started
+  in:
+
+    read a spec set
+      yass list                    every document of the project, one per line
+      yass query TARGET            one document, with its references resolved
+      yass find PATTERN            search obligation prose and design content
+      yass refs TARGET             what a document points at, and what points at it
+      yass validate                check the files against the language definition
+      yass lint                    report graph hygiene
+
+  5 — the corpus:
+
+    write or change a spec
+      yass docs                    index the language documents carried in this program
+      yass docs NAME               write one of those documents whole
+
+  6 — the rule for spending the corpus, which is the whole reason it is a command rather
+  than another section of this block:
+
+    Read a carried document when you are writing or changing a spec, not when you are
+    implementing one. Implementing against a spec set that already exists needs neither: the
+    notation above is all a spec file takes to read, and the behaviour to build is in the
+    spec files themselves.
+
+  7 — the residue, one line:
+
+      yass --help                  every global option, subcommand operand, and exit code
