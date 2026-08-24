@@ -1,0 +1,86 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  The `yass docs` subcommand. One Spec, serving the language documents this program carries
+  inside itself: with no operand it indexes the corpus, and with a name it writes that
+  document whole. The corpus is built into the program rather than read from the file tree,
+  because an agent holding this program does not hold the checkout those documents live in.
+  It is the one command whose answer is about the yass language rather than about the spec
+  set under the starting directory.
+version: v1
+related:
+- ../context/yass-reference.md
+- ../context/GUIDANCE.md
+- ../yass.yass.yaml
+---
+spec: Docs
+INPUT:
+- MUST: "be invoked as `yass docs [NAME]`"
+- MUST: take the parsed operands invocation yielded, relying on it to have rejected a second NAME
+  CONFORMS: 00-invocation@Invocation::RETURN
+- MUST: recognize exactly the names the corpus declares, and no other
+  USES: Corpus
+- MUST: match NAME against a corpus name byte-for-byte, so no name resolves by abbreviation, by prefix, or in another casing
+- WHEN: NAME is omitted
+  MUST: index the corpus rather than write a document
+- WHEN: NAME is given and names a corpus document
+  MUST: write that document whole
+- MUST-NOT: load, parse, or address a spec file, since no answer of this command comes from the file tree
+  SEE: 02-load@Load
+RETURN:
+- WHEN: NAME is omitted
+  MUST: write one docs record for each document of the corpus, in the order the corpus declares them
+  USES: root@RecordFormat
+- WHEN: NAME names a corpus document
+  MUST: write that document's text to standard output byte-for-byte as the corpus carries it, adding no header, no footer, no provenance comment, and no trailing summary
+- WHEN: NAME names a corpus document
+  MUST: write the document as a text stream rather than as records, since a document is prose and not a sequence of fields
+  SEE: root@RecordFormat
+- MUST: exit with the ok status once the index or the document is written
+- MUST: write the index and the document to standard output, because each is what was asked for
+  USES: root@OutputPolicy
+ERROR:
+- WHEN: NAME is not a name the corpus declares
+  MUST: report code yass.docs.unknown naming NAME, write no document, and exit with the unresolved status
+- MUST: report code yass.internal and exit with the environment status for any failure not matched by a guarded obligation in this slot
+- MUST: write every diagnostic in this slot to standard error, since the index and the served document are the only things this command puts on standard output
+  USES: root@OutputPolicy
+- MUST-NOT: "name the recognized document names in a diagnostic, since an invocation with no operand is the index and the reader recovers from it without being told"
+  USES: root@Brevity
+SIDE-EFFECT:
+- MUST-NOT: read, create, modify, delete, or rename any file or directory, since every document it serves is carried inside the program
+  CONFORMS: root@YassCli::SIDE-EFFECT
+INVARIANT:
+- MUST: carry exactly the documents the language names authoritative, so the corpus stays a language corpus and does not grow into a general file store
+  USES: Corpus
+- MUST: serve text identical to the source document the corpus was built from, so a reader of the served copy and a reader of the checkout read the same words
+- MUST-NOT: require a project root, discover one, or vary its answer with the starting directory, since the corpus is a property of the program and not of a tree
+- MUST-NOT: resolve, validate, lint, summarize, or otherwise interpret a document it serves, since this command is a courier and the language it carries is not its subject
+---
+design: Corpus
+type: table
+content: |
+  The documents this program carries, in index order. Each is copied verbatim from the
+  checkout by `script/sync-docs` and embedded when the program is built; a test fails when
+  an embedded copy has drifted from the source it was taken from.
+
+  The corpus is exactly the set of files that are authoritative for the yass language, and
+  nothing else. A project's own spec files are never corpus documents — they are served by
+  `query`, `list`, `find`, and `refs`, which read the tree.
+
+    NAME       SOURCE                      WHEN TO READ
+    reference  context/yass-reference.md   writing or changing a spec file
+    guidance   context/GUIDANCE.md         writing or changing a spec file
+    language   yass.yass.yaml              changing the yass language itself
+
+  An embedded name never ends in `.yass.yaml`. Every file with that suffix under a project
+  root is collected as part of that project, so a copy carrying it would be indexed,
+  validated, and linted as though it were a document of this program's own spec set.
+
+  WHEN TO READ is a field of the index, and it is load-bearing rather than decorative. An
+  agent implementing code against a spec set that already exists needs no corpus document
+  at all: the notation it must read is summarized by `overview`, and the behaviour it must
+  produce is in the spec files themselves. A corpus document costs hundreds of lines of a
+  reader's context, so the index states the task that earns the cost, and a reader spends
+  it only when its own task matches. That is the whole reason the corpus is served on
+  demand rather than written by `overview`.

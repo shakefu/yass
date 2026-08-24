@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+#
+# script/sync-docs — refresh the language corpus the yass CLI embeds.
+#
+# `yass docs` serves the three files that are authoritative for the language.
+# The binary must carry them, because a reader holding the binary does not hold
+# this checkout — so they are copied beside the package that embeds them, and
+# built into the program. This script is the only writer of that directory, and
+# TestCorpusInSyncWithCheckout fails when a copy has drifted from its source.
+#
+# Run it after editing any authoritative language document.
+
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+# source-path:embedded-name. An embedded name never ends in .yass.yaml: the CLI
+# collects every such file under its project root, so a copy carrying that
+# suffix would be indexed, validated, and linted as one of the CLI's own.
+corpus=cli/internal/yass/docs
+
+pairs=(
+  "context/yass-reference.md:reference.md"
+  "context/GUIDANCE.md:guidance.md"
+  "yass.yass.yaml:language.yaml"
+)
+
+mkdir -p "$corpus"
+
+for pair in "${pairs[@]}"; do
+  src="${pair%%:*}"
+  dst="$corpus/${pair##*:}"
+  if [ ! -f "$src" ]; then
+    echo "script/sync-docs: missing source $src" >&2
+    exit 1
+  fi
+  if cmp -s "$src" "$dst"; then
+    echo "  ok      $dst"
+  else
+    cp "$src" "$dst"
+    echo "  synced  $dst  <- $src"
+  fi
+done

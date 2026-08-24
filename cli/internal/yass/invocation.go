@@ -6,7 +6,12 @@ import (
 )
 
 // Subcommands is the recognized set, in synopsis order.
-var Subcommands = []string{"root", "query", "list", "find", "refs", "validate", "lint"}
+var Subcommands = []string{"overview", "root", "query", "list", "find", "refs", "validate", "lint", "docs"}
+
+// DefaultSubcommand is what an argument vector naming no subcommand yields.
+// Such a vector is well formed rather than malformed: a reader who does not yet
+// know how to drive the program is oriented instead of rejected.
+const DefaultSubcommand = "overview"
 
 var subcommandList = strings.Join(Subcommands, ", ")
 
@@ -35,6 +40,7 @@ type optionSpec struct {
 }
 
 var subcommandOptions = map[string]map[string]optionSpec{
+	"overview": {},
 	"root":     {},
 	"query":    {"--raw": {}},
 	"list":     {"--filter": {takesValue: true}},
@@ -42,11 +48,13 @@ var subcommandOptions = map[string]map[string]optionSpec{
 	"refs":     {"--in": {}, "--out": {}},
 	"validate": {},
 	"lint":     {},
+	"docs":     {},
 }
 
 // operandRange fixes how many operands each subcommand requires and accepts;
 // a max of -1 means unbounded.
 var operandRange = map[string][2]int{
+	"overview": {0, 0},
 	"root":     {0, 1},
 	"query":    {1, -1},
 	"list":     {0, -1},
@@ -54,6 +62,7 @@ var operandRange = map[string][2]int{
 	"refs":     {1, 1},
 	"validate": {0, -1},
 	"lint":     {0, -1},
+	"docs":     {0, 1},
 }
 
 func unknownOption(opt string) error {
@@ -94,8 +103,9 @@ func ParseArgs(args []string) (*Invocation, error) {
 		return inv, nil
 	}
 	if !g.haveSub {
-		return nil, fail(ExitUsage, "yass.args.no_subcommand", "", 0,
-			"no subcommand, expected one of "+subcommandList)
+		// No subcommand token: yield the default one, carrying no operand.
+		inv.Subcommand = DefaultSubcommand
+		return inv, nil
 	}
 	if !contains(Subcommands, inv.Subcommand) {
 		return nil, fail(ExitUsage, "yass.args.unknown_subcommand", "", 0,

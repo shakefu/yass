@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
+	"unicode/utf8"
 )
 
 type result struct {
@@ -133,20 +135,22 @@ func lines(s string) []string {
 
 // --- invocation -------------------------------------------------------------
 
-func TestNoSubcommand(t *testing.T) {
-	var o, e bytes.Buffer
-	st := Main(nil, &o, &e)
-	if st != ExitUsage {
-		t.Fatalf("status = %d, want %d", st, ExitUsage)
+// An argument vector naming no subcommand is well formed: it yields the default
+// subcommand and is answered with the orientation block, never a diagnostic.
+func TestNoSubcommandRunsOverview(t *testing.T) {
+	dir := project(t)
+	bare := run(dir)
+	if bare.status != ExitOK {
+		t.Fatalf("status = %d, want %d", bare.status, ExitOK)
 	}
-	if o.Len() != 0 {
-		t.Fatalf("stdout not empty: %q", o.String())
+	if bare.stderr != "" {
+		t.Fatalf("stderr not empty: %q", bare.stderr)
 	}
-	if !strings.Contains(e.String(), "yass.args.no_subcommand") {
-		t.Fatalf("stderr = %q", e.String())
+	if !strings.Contains(bare.stdout, "Yet Another Spec Syntax") {
+		t.Fatalf("stdout is not the orientation block: %q", bare.stdout)
 	}
-	if !strings.HasSuffix(e.String(), "\n") || strings.Count(e.String(), "\n") != 1 {
-		t.Fatalf("diagnostic is not exactly one LF-terminated line: %q", e.String())
+	if named := run(dir, "overview"); named.stdout != bare.stdout || named.status != bare.status {
+		t.Fatalf("`yass` and `yass overview` differ:\n%q\n%q", bare.stdout, named.stdout)
 	}
 }
 
@@ -1223,5 +1227,287 @@ func TestUnreadableFileIsAnEnvironmentError(t *testing.T) {
 	wantStatus(t, got, ExitEnvironment)
 	if !strings.Contains(got.stderr, "yass.io.unreadable") {
 		t.Fatalf("stderr = %q", got.stderr)
+	}
+}
+
+// --- overview ---------------------------------------------------------------
+
+// tinyProject is a project whose file and document counts are known exactly:
+// one root file holding one spec and one design, plus one other file holding
+// one spec.
+func tinyProject(t *testing.T) string {
+	t.Helper()
+	dir := t.TempDir()
+	write(t, dir, "root.yass.yaml", modeline+`---
+description: a one-line summary of what this project is
+version: v1
+---
+spec: Proj
+INPUT:
+- MUST: accept a thing
+  SEE: a@Alpha
+INVARIANT:
+- USES: Policy
+---
+design: Policy
+type: constraint
+content: |
+  one
+`)
+	write(t, dir, "a.yass.yaml", modeline+`---
+description: the alpha file
+version: v1
+---
+spec: Alpha
+RETURN:
+- MUST: yield a thing
+`)
+	return dir
+}
+
+func TestOverviewReportsTheProject(t *testing.T) {
+	dir := tinyProject(t)
+	got := run(dir, "overview")
+	if got.status != ExitOK {
+		t.Fatalf("status = %d, want %d", got.status, ExitOK)
+	}
+	want := []string{
+		"project    ",
+		"           a one-line summary of what this project is",
+		"holds      2 spec files, 3 documents",
+	}
+	for _, w := range want {
+		if !strings.Contains(got.stdout, w) {
+			t.Fatalf("block is missing %q:\n%s", w, got.stdout)
+		}
+	}
+}
+
+// The absence of a project root is a fact the block reports, not a failure: the
+// no-root status is never selected, and every other section is written.
+func TestOverviewWithoutProjectRoot(t *testing.T) {
+	got := run(t.TempDir(), "overview")
+	if got.status != ExitOK {
+		t.Fatalf("status = %d, want %d", got.status, ExitOK)
+	}
+	if got.stderr != "" {
+		t.Fatalf("stderr not empty: %q", got.stderr)
+	}
+	if !strings.Contains(got.stdout, "project    none — no root.yass.yaml at or above the starting directory") {
+		t.Fatalf("missing the absent-root line:\n%s", got.stdout)
+	}
+	for _, w := range []string{"Yet Another Spec Syntax", "SIDE-EFFECT", "yass docs", "yass --help"} {
+		if !strings.Contains(got.stdout, w) {
+			t.Fatalf("section carrying %q was dropped:\n%s", w, got.stdout)
+		}
+	}
+	if strings.Contains(got.stdout, "holds") {
+		t.Fatalf("counts written with no project root:\n%s", got.stdout)
+	}
+}
+
+// Orientation is not a check of the spec set: an unparsed file is counted among
+// the files, its documents are left out, and no diagnostic and no findings
+// status follow from it.
+func TestOverviewIgnoresAnUnparsedFile(t *testing.T) {
+	dir := tinyProject(t)
+	write(t, dir, "broken.yass.yaml", modeline+"---\n: : :\n")
+	got := run(dir, "overview")
+	if got.status != ExitOK {
+		t.Fatalf("status = %d, want %d", got.status, ExitOK)
+	}
+	if got.stderr != "" {
+		t.Fatalf("stderr not empty: %q", got.stderr)
+	}
+	if !strings.Contains(got.stdout, "holds      3 spec files, 3 documents") {
+		t.Fatalf("unparsed file was not counted among the files only:\n%s", got.stdout)
+	}
+}
+
+func TestOverviewWithoutARootDescription(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "root.yass.yaml", modeline+`---
+version: v1
+---
+spec: Proj
+INPUT:
+- MUST: accept a thing
+`)
+	got := run(dir, "overview")
+	if got.status != ExitOK {
+		t.Fatalf("status = %d, want %d", got.status, ExitOK)
+	}
+	if got.stderr != "" {
+		t.Fatalf("stderr not empty: %q", got.stderr)
+	}
+	body := lines(got.stdout)
+	for i, l := range body {
+		if strings.HasPrefix(l, "project    ") && i+1 < len(body) {
+			if next := body[i+1]; !strings.HasPrefix(next, "holds      ") {
+				t.Fatalf("a description line was written for a root with none: %q", next)
+			}
+		}
+	}
+}
+
+// The block is written to a width, so it survives a narrow terminal without
+// reflow. Width is counted in Unicode scalar values, not bytes.
+func TestOverviewBlockWidth(t *testing.T) {
+	for _, dir := range []string{tinyProject(t), t.TempDir()} {
+		for _, l := range lines(run(dir, "overview").stdout) {
+			if n := utf8.RuneCountInString(l); n > overviewWidth {
+				t.Fatalf("line is %d columns, over %d: %q", n, overviewWidth, l)
+			}
+		}
+	}
+}
+
+func TestOverviewTakesNoOperandOrOption(t *testing.T) {
+	dir := tinyProject(t)
+	for _, tc := range []struct {
+		args []string
+		code string
+	}{
+		{[]string{"overview", "extra"}, "yass.args.extra_operand"},
+		{[]string{"overview", "--raw"}, "yass.args.unknown_option"},
+	} {
+		got := run(dir, tc.args...)
+		if got.status != ExitUsage {
+			t.Fatalf("%v: status = %d, want %d", tc.args, got.status, ExitUsage)
+		}
+		if !strings.Contains(got.stderr, tc.code) {
+			t.Fatalf("%v: stderr = %q, want %s", tc.args, got.stderr, tc.code)
+		}
+		if got.stdout != "" {
+			t.Fatalf("%v: stdout not empty: %q", tc.args, got.stdout)
+		}
+	}
+}
+
+func TestOverviewIsByteIdentical(t *testing.T) {
+	dir := tinyProject(t)
+	if a, b := run(dir, "overview"), run(dir, "overview"); a.stdout != b.stdout {
+		t.Fatal("two runs over one tree differ")
+	}
+}
+
+// --- docs -------------------------------------------------------------------
+
+func TestDocsIndexesTheCorpus(t *testing.T) {
+	got := run(t.TempDir(), "docs")
+	if got.status != ExitOK {
+		t.Fatalf("status = %d, want %d", got.status, ExitOK)
+	}
+	rows := lines(got.stdout)
+	if len(rows) != len(Corpus) {
+		t.Fatalf("got %d records, want %d:\n%s", len(rows), len(Corpus), got.stdout)
+	}
+	for i, row := range rows {
+		fields := strings.Split(row, "\t")
+		if len(fields) != 4 {
+			t.Fatalf("record %d has %d fields, want 4: %q", i, len(fields), row)
+		}
+		if fields[0] != Corpus[i].Name {
+			t.Fatalf("record %d names %q, want %q", i, fields[0], Corpus[i].Name)
+		}
+		if n, err := strconv.Atoi(fields[1]); err != nil || n <= 0 {
+			t.Fatalf("record %d has a non-positive line count %q", i, fields[1])
+		}
+	}
+}
+
+func TestDocsWritesADocumentWhole(t *testing.T) {
+	for _, d := range Corpus {
+		want, err := d.text()
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := run(t.TempDir(), "docs", d.Name)
+		if got.status != ExitOK {
+			t.Fatalf("%s: status = %d, want %d", d.Name, got.status, ExitOK)
+		}
+		if got.stdout != want {
+			t.Fatalf("%s: served text is not the carried text byte-for-byte", d.Name)
+		}
+		if got.stderr != "" {
+			t.Fatalf("%s: stderr not empty: %q", d.Name, got.stderr)
+		}
+	}
+}
+
+// A name resolves only by an exact match, and the diagnostic does not enumerate
+// the corpus: `yass docs` is the index, and the reader recovers from it.
+func TestDocsUnknownName(t *testing.T) {
+	for _, name := range []string{"nope", "REFERENCE", "ref", "reference.md"} {
+		got := run(t.TempDir(), "docs", name)
+		if got.status != ExitUnresolved {
+			t.Fatalf("%s: status = %d, want %d", name, got.status, ExitUnresolved)
+		}
+		if got.stdout != "" {
+			t.Fatalf("%s: stdout not empty: %q", name, got.stdout)
+		}
+		if !strings.Contains(got.stderr, "yass.docs.unknown") {
+			t.Fatalf("%s: stderr = %q", name, got.stderr)
+		}
+		for _, d := range Corpus {
+			if name != d.Name && strings.Contains(got.stderr, "\t"+d.Name) {
+				t.Fatalf("%s: diagnostic enumerates the corpus: %q", name, got.stderr)
+			}
+		}
+	}
+}
+
+// The corpus is a property of the program, not of a tree, so it is served from
+// a directory no project root governs.
+func TestDocsNeedsNoProjectRoot(t *testing.T) {
+	for _, args := range [][]string{{"docs"}, {"docs", "reference"}} {
+		got := run(t.TempDir(), args...)
+		if got.status != ExitOK {
+			t.Fatalf("%v: status = %d, want %d", args, got.status, ExitOK)
+		}
+	}
+}
+
+func TestDocsTakesAtMostOneName(t *testing.T) {
+	got := run(t.TempDir(), "docs", "reference", "guidance")
+	if got.status != ExitUsage {
+		t.Fatalf("status = %d, want %d", got.status, ExitUsage)
+	}
+	if !strings.Contains(got.stderr, "yass.args.extra_operand") {
+		t.Fatalf("stderr = %q", got.stderr)
+	}
+}
+
+// The carried copies are built from the checkout by script/sync-docs. When the
+// checkout is present, each must still match the source it was taken from;
+// when it is not — a binary unpacked on its own — there is nothing to compare.
+func TestCorpusInSyncWithCheckout(t *testing.T) {
+	for _, d := range Corpus {
+		src := filepath.Join("..", "..", "..", filepath.FromSlash(d.Source))
+		want, err := os.ReadFile(src)
+		if err != nil {
+			t.Skipf("checkout not present beside the package: %v", err)
+		}
+		got, err := d.text()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got != string(want) {
+			t.Fatalf("%s has drifted from %s; run script/sync-docs", d.File, d.Source)
+		}
+	}
+}
+
+// Every recognized subcommand is named by the synopsis, so --help never omits
+// one that dispatch accepts.
+func TestSynopsisNamesEverySubcommand(t *testing.T) {
+	var o, e bytes.Buffer
+	if st := Main([]string{"--help"}, &o, &e); st != ExitOK {
+		t.Fatalf("status = %d, want %d", st, ExitOK)
+	}
+	for _, name := range Subcommands {
+		if !strings.Contains(o.String(), "\n  "+name) {
+			t.Fatalf("synopsis does not name subcommand %q:\n%s", name, o.String())
+		}
 	}
 }
