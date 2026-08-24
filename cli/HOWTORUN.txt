@@ -25,8 +25,9 @@ Build, from a clean checkout
 Run
 ---
 
-  yass [-C DIR] [--version] [--help] SUBCOMMAND [ARGS...]
+  yass [-C DIR] [--version] [--help] [SUBCOMMAND [ARGS...]]
 
+    overview                       orient a reader in this program and this project
     root [PATH]                    report the project root governing PATH
     query [--raw] TARGET...        emit each addressed document, references resolved
     list [--filter GLOB] [PATH...] index the documents of a tree
@@ -34,10 +35,16 @@ Run
     refs [--in] [--out] TARGET     report the reference edges of one document
     validate [PATH...]             check files against the yass language definition
     lint [PATH...]                 report graph hygiene of the project
+    docs [NAME]                    index the carried language documents, or write one
 
   Global options are written before the subcommand token; a subcommand's own
   options are written after it. A TARGET is `path@Name::SLOT`, in which `path@`
   and `::SLOT` are each optional.
+
+  An invocation naming no subcommand runs `overview`, which writes the block a
+  reader needs on first contact: what this program is, what project the starting
+  directory sits in, the notation a spec file uses, and the commands that read a
+  spec set. Running `yass` with no arguments is the intended way in.
 
   Exit statuses: 0 ok, 1 findings, 2 usage, 3 unresolved, 4 no-root,
   5 environment.
@@ -45,6 +52,8 @@ Run
 Examples, run from this directory
 ---------------------------------
 
+  ./yass
+  ./yass overview
   ./yass root
   ./yass list
   ./yass list --filter '*@*Command*'
@@ -56,10 +65,28 @@ Examples, run from this directory
   ./yass refs 01-locate@FileSet
   ./yass validate
   ./yass lint
+  ./yass docs
+  ./yass docs reference
 
   The repository holds two projects: this directory (the CLI) and the directory
   above it (the yass language definition). Each has its own root.yass.yaml, so
   `yass` run from either sees only that project's files.
+
+Carried language documents
+--------------------------
+
+  `yass docs` serves the three files that are authoritative for the yass
+  language — the reference, the authoring guidance, and the self-definition.
+  They are embedded in the binary, so they travel with it and are served from
+  any directory, with or without a project root.
+
+  Read one when you are writing or changing a spec. Implementing code against a
+  spec set that already exists needs none of them: the notation summary in
+  `yass overview` is all a spec file takes to read.
+
+  The embedded copies are built from the checkout by `script/sync-docs`; run it
+  after editing any of those three files. `go test ./...` fails when a copy has
+  drifted from its source.
 
 Test
 ----

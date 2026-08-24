@@ -264,10 +264,95 @@ caught signal, so it is named here.
   it. Reported under that slot's guard-less residual,
   `yass.args.unknown_option`, with the usage status.
 
+## Second pass — the orientation entry point
+
+Added after the first build, to a single requirement: an agent that has the
+binary and nothing else — no checkout, no `CLAUDE.md`, no `context/` — should be
+able to run `yass`, learn what the project is and what yass is, and find the
+language documents when, and only when, it needs them.
+
+Two subcommands, `overview` and `docs`, and one change to invocation: an
+argument vector naming no subcommand is now well formed and yields `overview`.
+`yass.args.no_subcommand` is gone and `yass.docs.unknown` is new, so the closed
+set is still exactly 55 codes.
+
+### 1. The corpus is embedded, not read
+
+`root@YassCli::SIDE-EFFECT` forbids reading any file that is not a
+`root.yass.yaml` on the ascent, a path named on the command line, or a
+`.yass.yaml` under the project root. Serving `context/GUIDANCE.md` off disk
+would break that — and would fail anyway for the reader this is for, who has the
+binary and not the checkout.
+
+**Chosen:** `//go:embed`. `script/sync-docs` copies the three authoritative
+language files into `cli/internal/yass/docs/` and `TestCorpusInSyncWithCheckout`
+fails when a copy has drifted from its source. The corpus is beside the package
+that embeds it rather than at `cli/docs/`, because an embed pattern cannot
+reach outside its own package directory.
+
+**One trap worth naming:** an embedded copy must not keep the `.yass.yaml`
+suffix. Every file with that suffix under a project root is collected as part of
+that project, so `cli/internal/yass/docs/language.yass.yaml` would be indexed by
+`list`, checked by `validate`, and flagged by `lint` as a document unreachable
+from the CLI's own root spec. The self-definition is carried as `language.yaml`.
+
+### 2. Why `Brevity` was amended rather than worked around
+
+`root@Brevity` forbids a banner and forbids a pointer to documentation, which is
+most of what an orientation block is. Rather than smuggle the block past the
+rule, the rule now names the two exempt commands and says why: the policy exists
+to protect the reader's context, and a reader who cannot tell what a project is
+opens files until it can — which costs more of that context than the block does.
+The exemption is bounded to output that was asked for and whose wording is fixed
+by a design block.
+
+### 3. `overview` never selects the no-root status
+
+`root@ExitPolicy` gives 4 to "no `root.yass.yaml` at or above the starting path",
+and says statuses 2 through 5 leave standard output empty. But `overview`
+answers perfectly well with no project root — it reports the absence as one line
+of its block — so exiting 4 would contradict the empty-output rule.
+
+**Chosen:** ExitPolicy now says 4 is selected only by a command that needs a root
+in order to answer at all, which `overview` and `docs` do not. Reported as a
+fact, exit 0.
+
+### 4. An unknown document name is 3, and does not enumerate
+
+`yass docs nope` exits 3 (unresolved), not 2: the request is well formed and
+names something absent, which is what 3 is for.
+
+The diagnostic does *not* list the recognized names. `Brevity`'s one enumeration
+carve-out is justified by the reader being unable to recover otherwise, and here
+it can: `yass docs` with no operand *is* the index. So the strict rule applies.
+
+### 5. What the block carries, and what it deliberately does not
+
+The notation summary in section 3 is scoped to what a reader needs in order to
+*read* a spec file — the five slots, the obligation shape, the three relations,
+the target grammar. What an author needs in order to *write* one stays in the
+corpus, behind an explicit `yass docs` call.
+
+That split is the whole point, and it is stated normatively in `10-docs@Corpus`
+rather than left to taste: an agent implementing existing specs pays nothing for
+guidance it does not need, and an agent changing the specs asks for it by name.
+The index carries a WHEN TO READ field so the decision can be made without
+fetching anything.
+
+### 6. Description wrapping
+
+The root preamble description is the single highest-value line in the block, so
+it gets more room than `list` gives it: collapsed to one line, truncated at 240
+Unicode scalar values rather than 100, then broken at spaces and indented to
+align under itself. A single word longer than the line budget still overflows —
+the block is written *within* 88 columns rather than guaranteed under it, and
+`11-overview@OrientationBlock` says so rather than claiming a bound the wrapper
+does not enforce.
+
 ## What was checked
 
 `script/test` runs `gofmt -l`, `go vet`, and `go test ./...`. The test suite
-(`cli/internal/yass/yass_test.go`, 65 test functions, 104 cases) builds
+(`cli/internal/yass/yass_test.go`, 79 test functions) builds
 throwaway spec trees and drives `Main` end to end: every argument-vector
 failure, nested project roots, symlink policy, the file-set ordering, Norway
 words, one-level resolution, guard conjunction, insertion non-deduplication,
@@ -289,3 +374,13 @@ Beyond the fixtures, both real projects in this repository are clean:
 
 and `cli/yass query` output for the whole CLI spec set parses back as a YAML
 stream.
+
+The second pass adds 15 test functions covering both new commands: the bare and
+named forms of `overview` agreeing byte for byte, the project counts, the
+absent-root line, an unparsed file counted but not diagnosed, a root with no
+description, the block's column budget, operand and option rejection, the corpus
+index shape, each document served byte-for-byte, exact-match-only name
+resolution, service with no project root, and the drift guard against the
+checkout. Every fixed line of `11-overview@OrientationBlock` was also checked
+against the emitted block: all 29 sample lines in the design block appear in the
+output verbatim.
