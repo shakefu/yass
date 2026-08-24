@@ -4,12 +4,13 @@ description: >
   The root file of the yass CLI project, so the directory holding it is this project's root,
   separate from the language definition above it — which forbids specifying tooling behavior
   under its own root. Its one Spec defines `yass`, a read-only command-line program that
-  serves an existing yass spec set to a coding agent: it reports where a project root is,
-  emits one addressed document with its references resolved, indexes what a spec set holds,
-  searches obligation prose, reports the reference edges of a document, checks files against
-  the language definition, and reports graph hygiene. It never writes a spec file and never
-  judges what an obligation says. Every command answers with the smallest output that carries
-  the answer, because the reader's context is the scarce resource.
+  serves an existing yass spec set to a coding agent: it orients a reader who arrives with no
+  context, reports where a project root is, emits one addressed document with its references
+  resolved, indexes what a spec set holds, searches obligation prose, reports the reference
+  edges of a document, checks files against the language definition, reports graph hygiene,
+  and serves the language documents it carries inside itself. It never writes a spec file and
+  never judges what an obligation says. Every command answers with the smallest output that
+  carries the answer, because the reader's context is the scarce resource.
 version: v1
 related:
 - ../yass.yass.yaml
@@ -25,6 +26,9 @@ INPUT:
 - WHEN: the parsed invocation names a subcommand outside the recognized set
   MUST: report code yass.internal and exit with the environment status, because invocation rejects such a token before dispatch
   SEE: 00-invocation@Invocation::ERROR
+- WHEN: "the subcommand is `overview`, whether it was named or defaulted to"
+  MUST: dispatch to the command that orients a reader in this program and this project
+  SEE: 11-overview@Overview
 - WHEN: "the subcommand is `root`"
   MUST: dispatch to the command that reports the project root governing a path
   SEE: 03-root@RootCommand
@@ -46,8 +50,13 @@ INPUT:
 - WHEN: "the subcommand is `lint`"
   MUST: dispatch to the command that reports graph hygiene
   SEE: 09-lint@Lint
+- WHEN: "the subcommand is `docs`"
+  MUST: dispatch to the command that indexes the carried language documents and writes one
+  SEE: 10-docs@Docs
 RETURN:
 - MUST: serve a spec set that already exists, so an agent reads the part it asked for instead of opening the files that hold it
+- MUST: answer an invocation that names no subcommand, so a reader who does not yet know how to drive the program is oriented rather than rejected
+  SEE: 11-overview@Overview
 - MUST: write whatever the dispatched command yields, and nothing of its own
 - MUST: exit with the status the dispatched command selects
   USES: ExitPolicy
@@ -64,6 +73,8 @@ SIDE-EFFECT:
 - MUST-NOT: "open a network connection, including to resolve a preamble `related` entry"
   CONFORMS: ../yass@Preamble::INVARIANT
 - MUST-NOT: "read a file other than a `root.yass.yaml` met on the ascent, a path named on the command line, or a file whose basename ends with `.yass.yaml` under the governing project root"
+- MUST-NOT: read a language document from the file tree in order to serve it, since the corpus is carried inside the program and a reader of it holds no checkout
+  SEE: 10-docs@Corpus
 - MUST-NOT: read standard input under any subcommand, so every input is named on the command line
 - MUST-NOT: prompt, page, or hand output to a pager
 INVARIANT:
@@ -106,6 +117,11 @@ content: |
   2, 3, and 4 divide cleanly. 2 means the request could not be understood. 3 means it was
   understood and the thing is absent. 4 means there is no project to understand it against.
 
+  4 is selected only by a command that needs a project root in order to answer at all. A
+  command that answers without one never selects it: `overview` reports the absence of a
+  root as one fact of its block, and `docs` serves a corpus the program carries, so for
+  neither is a missing root a reason the request went unserved.
+
   A status of 1 means the program worked and the spec set has a problem, so standard output
   carries the findings. A status of 2 through 5 means the program did not get far enough to
   answer, so standard output is empty.
@@ -138,7 +154,10 @@ design: RecordFormat
 type: line-grammar
 content: |
   Record output is line-oriented so a consumer splits it, never needing a regex or a parser.
-  It is the output form of every command except `query`, which emits a YAML stream instead.
+  It is the output form of every command except three. `query` emits a YAML stream; `docs`
+  given a NAME emits that document as text; `overview` emits a fixed block. Each of those
+  answers is a document rather than a sequence of fields, and forcing it into records would
+  destroy the thing being served.
 
   Segmentation, completely:
   - One record per line. A record is terminated by exactly one LF `0x0A`, the last record
@@ -179,6 +198,12 @@ content: |
                             or `content` for a design content match
                 TEXT        the whole matched text, on one line, however long
 
+    docs        4 fields
+                NAME        the token that addresses the document, as `yass docs NAME` takes it
+                LINES       count of lines the document holds, so a reader can budget for it
+                WHEN        the task that earns the cost of reading it
+                TITLE       the document's own title
+
     refs        3 fields
                 DIR         `out` for an edge the addressed document carries,
                             `in` for an edge that points at the addressed document
@@ -217,7 +242,7 @@ content: |
   no obligation of this project defines.
 
   Areas: `args`, `io`, `root`, `document`, `preamble`, `spec`, `design`, `slot`,
-  `obligation`, `ref`, `lint`.
+  `obligation`, `ref`, `lint`, `docs`.
 
   A message names what is wrong and never how to fix it. It carries no remedy, no
   alternative spelling, no quoted source, no restatement of the code, and no explanation of
@@ -235,9 +260,20 @@ content: |
   - No sentence that restates the request, names the path just read, or announces what the
     program is about to do.
   - No advice, no suggested fix, no "did you mean", no pointer to documentation. The single
-    exception is the residual of a closed set: the diagnostic for an absent or unrecognized
-    subcommand names the recognized subcommands, because the set is short and the agent
-    cannot otherwise recover.
+    exception is the residual of a closed set: the diagnostic for an unrecognized subcommand
+    names the recognized subcommands, because the set is short and the agent cannot
+    otherwise recover.
+  - Two commands are exempt, and only these two, because for them the emitted lines are the
+    answer and not an ornament on one. `overview` writes a fixed orientation block; `docs`
+    writes a language document the reader named. Both stay bounded: the block's wording is
+    fixed by a design block and nothing is added to it per invocation, and `docs` writes the
+    corpus document byte-for-byte with nothing beside it. Neither is written unless it was
+    asked for, and an invocation naming no subcommand is the asking.
+  - That exemption is about total context, not generosity with it. A reader who cannot tell
+    what a project is, or what notation its files are written in, opens files until it can —
+    which costs more of the context this policy exists to protect than the block does. The
+    block earns its lines by replacing that reading, so it carries what a reader cannot get
+    more cheaply elsewhere, and nothing that it can.
   - Help is a synopsis line, one line per subcommand, and one line per global option, plus
     the exit-code table. No examples, no paragraphs, no epilogue.
   - There is no per-subcommand help in v1, because the synopsis states each subcommand's

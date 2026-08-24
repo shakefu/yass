@@ -8,8 +8,9 @@ import (
 // synopsis is the option table Invocation parses against and the exact text
 // --help writes: a synopsis line, one line per subcommand, one line per option,
 // and the exit-code table.
-const synopsis = `usage: yass [-C DIR] [--version] [--help] SUBCOMMAND [ARGS...]
+const synopsis = `usage: yass [-C DIR] [--version] [--help] [SUBCOMMAND [ARGS...]]
 
+  overview                       orient a reader in this program and this project
   root [PATH]                    report the project root governing PATH
   query [--raw] TARGET...        emit each addressed document, references resolved
   list [--filter GLOB] [PATH...] index the documents of a tree
@@ -17,6 +18,7 @@ const synopsis = `usage: yass [-C DIR] [--version] [--help] SUBCOMMAND [ARGS...]
   refs [--in] [--out] TARGET     report the reference edges of one document
   validate [PATH...]             check files against the yass language definition
   lint [PATH...]                 report graph hygiene of the project
+  docs [NAME]                    index the carried language documents, or write one
 
   -C DIR                         start path resolution and root discovery at DIR
   --version, -V                  write the version and exit
@@ -71,6 +73,8 @@ func Main(args []string, stdout, stderr io.Writer) int {
 // residual arm can only be reached by an internal fault.
 func (a *App) dispatch() int {
 	switch a.Inv.Subcommand {
+	case "overview":
+		return a.run(a.cmdOverview)
 	case "root":
 		return a.run(a.cmdRoot)
 	case "query":
@@ -85,6 +89,8 @@ func (a *App) dispatch() int {
 		return a.run(a.cmdValidate)
 	case "lint":
 		return a.run(a.cmdLint)
+	case "docs":
+		return a.run(a.cmdDocs)
 	}
 	return report(a.err, a.out, internal("subcommand outside the recognized set"))
 }
