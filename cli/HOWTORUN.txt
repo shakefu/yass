@@ -1,0 +1,71 @@
+HOWTORUN — the yass CLI
+=======================
+
+Requirements
+------------
+
+  Go 1.24 or newer, and network access on the first build so the module cache
+  can fetch the single dependency (gopkg.in/yaml.v3 v3.0.1). Nothing else: no
+  configuration file, no environment variable, no per-repository setup.
+
+Build, from a clean checkout
+---------------------------
+
+  cd cli
+  go build -o yass .
+
+  That writes a single static binary named `yass` into cli/. Move or link it
+  anywhere on PATH; it reads nothing beside the file tree it is pointed at.
+
+  To install it on PATH instead:
+
+  cd cli
+  go build -o "$(go env GOPATH)/bin/yass" .
+
+Run
+---
+
+  yass [-C DIR] [--version] [--help] SUBCOMMAND [ARGS...]
+
+    root [PATH]                    report the project root governing PATH
+    query [--raw] TARGET...        emit each addressed document, references resolved
+    list [--filter GLOB] [PATH...] index the documents of a tree
+    find [--slot SLOT] PATTERN     search obligation prose and design content
+    refs [--in] [--out] TARGET     report the reference edges of one document
+    validate [PATH...]             check files against the yass language definition
+    lint [PATH...]                 report graph hygiene of the project
+
+  Global options are written before the subcommand token; a subcommand's own
+  options are written after it. A TARGET is `path@Name::SLOT`, in which `path@`
+  and `::SLOT` are each optional.
+
+  Exit statuses: 0 ok, 1 findings, 2 usage, 3 unresolved, 4 no-root,
+  5 environment.
+
+Examples, run from this directory
+---------------------------------
+
+  ./yass root
+  ./yass list
+  ./yass list --filter '*@*Command*'
+  ./yass query 03-root@RootCommand
+  ./yass query --raw 04-query@Resolution
+  ./yass query root@ExitPolicy
+  ./yass find 'byte-identical'
+  ./yass find --slot ERROR 'exit with the usage status'
+  ./yass refs 01-locate@FileSet
+  ./yass validate
+  ./yass lint
+
+  The repository holds two projects: this directory (the CLI) and the directory
+  above it (the yass language definition). Each has its own root.yass.yaml, so
+  `yass` run from either sees only that project's files.
+
+Test
+----
+
+  script/test        (from the repository root)
+
+  or, equivalently:
+
+  cd cli && gofmt -l . && go vet ./... && go test ./...

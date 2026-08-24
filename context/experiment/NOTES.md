@@ -148,40 +148,6 @@ most-repeated theme in the feedback.
   `OutputProfile` key-ordering guarantees, and any order-insensitive tooling
   (e.g. the merge-driver idea in `IDEAS.md`) all need revisiting.
 
-### 5. `USES:` becomes "call-like" rather than soft-include — PARTIAL
-
-**Note (verbatim):** `USES: becomes "call like" implying branching/jumping/
-subroutine instead of soft-include`
-
-**Reading:** redefine `USES` so it denotes invocation/transfer-of-control ("calls
-into / jumps to a subroutine"), replacing today's "behavior draws on the target,
-pointer that MAY inline."
-
-**Status:** PARTIAL. The deficiency this targets is named precisely, but the
-recorded fix differs.
-
-- Recognized gap: `context/OPEN-FEEDBACK.md:411` — "the only signal is USES, which
-  means the same thing for both 'I call this' and 'I run after this'."
-- Recorded fix is to **add a new relation**, not redefine `USES`:
-  `context/SPEC-FEEDBACK.md:281-287` (`DEPENDS`/`REQUIRES`), `429-436`
-  (`AFTER`/`REQUIRES` "distinct from USES"), `50-53` ("a pipeline or sequencing
-  relation"); also a `SEQUENCE` slot (170-171).
-- Current definition stays soft: `context/yass-reference.md` — `USES` = "behavior
-  depends on / draws on the target," a pointer tooling MAY inline; the
-  discriminator vs. `SEE` is dependence, not invocation.
-
-**Tension / open question:**
-
-- Redefining `USES` (this note) vs. adding `REQUIRES`/`AFTER`/`CALLS` alongside it
-  (the feedback). Redefinition is breaking and collapses the current
-  depends-on/draws-on meaning; addition preserves it but grows the closed
-  relation set (`CONFORMS`/`USES`/`SEE`).
-- "Call-like / branching / jumping" implies execution-order and control-transfer
-  semantics — close to the ordering question in note 4 and to the deferred
-  retrieval-depth-per-relation idea in `FUTURE.md` ("`USES` → default depth 0").
-- Inlining behavior: `CONFORMS` always inlines, `USES` MAY inline today. Does
-  "call-like" change whether/when `query` resolves a `USES` target?
-
 ### 6. Spec gains `intent:` key — bounded field for spec intent — PARTIAL / CONFLICTS
 
 **Note (verbatim):** `Spec gains "intent:" key - bounded field for spec intent`
