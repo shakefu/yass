@@ -11,10 +11,14 @@ const (
 	ExitEnvironment = 5 // a path or stream failed, or an internal guarantee did not hold
 )
 
-// programVersion is the version reported by --version. The yass language
-// version this program implements is fixed at v1.
+// The yass language version this program implements is fixed at v1.
 const (
 	programName     = "yass"
-	programVersion  = "1.0.0"
 	languageVersion = "v1"
 )
+
+// programVersion is the version reported by --version. It is a var, not a
+// const, so release builds can stamp it: script/build passes -ldflags
+// "-X github.com/shakefu/yass/cli/internal/yass.programVersion=<semver>".
+// Builds without the stamp report "dev".
+var programVersion = "dev"

@@ -1,2 +1,5 @@
 # cursor-agent experiment run outputs
 /runs/
+
+# release build artifacts (script/build)
+/dist/
