@@ -2,6 +2,26 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.2.0 - 2026-09-16
+#### Features
+- (**cli**) orient a cold reader from bare invocation - (d1a845a) - Jacob Alheid
+- (**cli**) implement the yass CLI from its spec set - (899fc45) - Jacob Alheid
+- (**cli**) spec an agent-facing yass CLI merging three experiment branches - (23b64c3) - Jacob Alheid
+#### Bug Fixes
+- (**cli**) exempt the root-path line from the overview width test - (09fd3c1) - Jacob Alheid, *Devin*
+#### Documentation
+- (**cli**) fence the build prompt's reading scope to the spec set - (e5f26e4) - Jacob Alheid
+- (**cli**) add build-prompt for implementing the CLI from spec - (004c184) - Jacob Alheid
+- describe the orientation entry point and the carried corpus - (ff5c2a7) - Jacob Alheid
+- add CLAUDE.md reading policy and CLI status note - (4ef864a) - Jacob Alheid
+- add root CLAUDE.md with reading policy and CLI build notes - (82e447d) - Jacob Alheid
+#### Build system
+- (**cli**) ship release archives via cog pre_bump_hook - (5535e6f) - Jacob Alheid, *Devin*
+#### Miscellaneous Chores
+- drop leftover experiment CLAUDE.md - (b7425d0) - Jacob Alheid, *Devin*
+
+- - -
+
 ## v0.1.0 - 2026-09-16
 #### Features
 - (**lang**) define the project root and require root.yass.yaml - (063bc5c) - Jacob Alheid
