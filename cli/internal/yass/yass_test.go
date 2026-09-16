@@ -1350,11 +1350,16 @@ INPUT:
 	}
 }
 
-// The block is written to a width, so it survives a narrow terminal without
-// reflow. Width is counted in Unicode scalar values, not bytes.
+// The block's fixed text is written to a width, so it survives a narrow
+// terminal without reflow. The project line reports the root path — a datum
+// whose length the spec deliberately does not bound — so it is exempt from
+// the check. Width is counted in Unicode scalar values, not bytes.
 func TestOverviewBlockWidth(t *testing.T) {
 	for _, dir := range []string{tinyProject(t), t.TempDir()} {
 		for _, l := range lines(run(dir, "overview").stdout) {
+			if strings.HasPrefix(l, "project    ") && filepath.IsAbs(l[overviewLabel:]) {
+				continue
+			}
 			if n := utf8.RuneCountInString(l); n > overviewWidth {
 				t.Fatalf("line is %d columns, over %d: %q", n, overviewWidth, l)
 			}
