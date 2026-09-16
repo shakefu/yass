@@ -113,6 +113,13 @@ jobs:
             echo "tag=v${version}"
           } >> "${GITHUB_OUTPUT}"
 
+      # cog's pre_bump_hooks (cog.toml) run inside `cog bump --auto` below;
+      # script/build needs the Go toolchain the cli module pins.
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        if: steps.plan.outputs.is-release == 'true'
+        with:
+          go-version-file: 'cli/go.mod'
+
       # Runs any `pre_bump_hooks` configured in cog.toml (artifact builds,
       # registry pushes, in-tree version stamps, etc). Hooks receive `{{version}}`
       # as the planned version. Any files modified by hooks should be `git add`'d

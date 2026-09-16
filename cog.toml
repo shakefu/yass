@@ -1,2 +1,9 @@
 tag_prefix = "v"
 ignore_merge_commits = true
+
+# Build the release archives into dist/ before the bump commit + tag are
+# created. The release workflow attaches dist/* to the GitHub release; a
+# failed build fails the bump, so a broken tree can't be tagged.
+pre_bump_hooks = [
+    "script/build {{version}}",
+]
