@@ -8,6 +8,9 @@ Requirements
   can fetch the single dependency (gopkg.in/yaml.v3 v3.0.1). Nothing else: no
   configuration file, no environment variable, no per-repository setup.
 
+  To install a released binary without Go, see the README's Install section:
+  an installer script, Homebrew, and `yass update` for keeping it current.
+
 Build, from a clean checkout
 ---------------------------
 
@@ -36,6 +39,7 @@ Run
     validate [PATH...]             check files against the yass language definition
     lint [PATH...]                 report graph hygiene of the project
     docs [NAME]                    index the carried language documents, or write one
+    update                         replace this binary with the newest release
 
   Global options are written before the subcommand token; a subcommand's own
   options are written after it. A TARGET is `path@Name::SLOT`, in which `path@`

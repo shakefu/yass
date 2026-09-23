@@ -9,12 +9,13 @@ YAML specification language and a read-only Go CLI for serving specs to coding a
 - `root.yass.yaml`: repository spec root; `cli/`: separate spec project and Go module with implementation and tests (see its index).
 - `context/`: language guides and provisional research in `context/experiment/`; `experiment/`: active-run workspace, currently a placeholder (see their indexes).
 - `GOAL.md`: experiment method only; its cold-start bar does not govern the language.
-- `script/agent`: headless model experiment runner; `script/build [version]`: cross-platform release archives in `dist/`.
+- `install.sh`: curl-able release installer (README's Install section documents it); `Formula/yass.rb`: Homebrew formula, regenerated per release by `script/gen-formula` — never edit it by hand.
+- `script/agent`: headless model experiment runner; `script/build [version]`: cross-platform release archives in `dist/`; `script/gen-formula [version]`: formula from `dist/checksums.txt` (both are cog pre-bump hooks).
 - `.github/workflows/`: CI, pre-commit, conventional-commit checks, and releases; `.common-repo.yaml`: inherited release configuration; `cog.toml`: release build hook.
 
 ## Development
 
-- `./script/test`: gofmt check, vet, tests, and build (requires Go; otherwise skips).
+- `./script/test`: installer tests, then gofmt check, vet, tests, and build (the Go parts skip without Go); `./script/test-install`: install.sh and gen-formula tests alone.
 - `./script/sync-docs`: refresh the CLI's embedded corpus after changing authoritative language documents; never edit those copies directly.
 - `prek run --all-files`: repository hooks. Use conventional commits.
 - CLI build/run instructions: `cli/HOWTORUN.txt`.
