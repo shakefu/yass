@@ -2,6 +2,18 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.3.0 - 2026-09-23
+#### Features
+- (**cli**) add yass update to replace the binary with the newest release - (411388a) - Claude, *Claude Fable 5*
+- (**install**) add curl-able installer and Homebrew distribution - (75b46d8) - Claude, *Claude Fable 5*
+#### Documentation
+- document the installation and update paths - (4fa29ed) - Claude, *Claude Fable 5*
+- add semantic agent navigation indexes - (caacd15) - Jacob Alheid
+#### Refactoring
+- simplify installer, formula staging, and update tests - (4875678) - Claude, *Claude Fable 5*
+
+- - -
+
 ## v0.2.0 - 2026-09-16
 #### Features
 - (**cli**) orient a cold reader from bare invocation - (d1a845a) - Jacob Alheid

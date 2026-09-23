@@ -19,6 +19,7 @@ const synopsis = `usage: yass [-C DIR] [--version] [--help] [SUBCOMMAND [ARGS...
   validate [PATH...]             check files against the yass language definition
   lint [PATH...]                 report graph hygiene of the project
   docs [NAME]                    index the carried language documents, or write one
+  update                         replace this binary with the newest release
 
   -C DIR                         start path resolution and root discovery at DIR
   --version, -V                  write the version and exit
@@ -91,6 +92,8 @@ func (a *App) dispatch() int {
 		return a.run(a.cmdLint)
 	case "docs":
 		return a.run(a.cmdDocs)
+	case "update":
+		return a.run(a.cmdUpdate)
 	}
 	return report(a.err, a.out, internal("subcommand outside the recognized set"))
 }

@@ -3,13 +3,14 @@
 description: >
   The root file of the yass CLI project, so the directory holding it is this project's root,
   separate from the language definition above it — which forbids specifying tooling behavior
-  under its own root. Its one Spec defines `yass`, a read-only command-line program that
-  serves an existing yass spec set to a coding agent: it orients a reader who arrives with no
-  context, reports where a project root is, emits one addressed document with its references
+  under its own root. Its one Spec defines `yass`, a command-line program, read-only toward
+  every spec set, that serves an existing one to a coding agent: it orients a reader who
+  arrives with no context, reports where a project root is, emits one addressed document with its references
   resolved, indexes what a spec set holds, searches obligation prose, reports the reference
   edges of a document, checks files against the language definition, reports graph hygiene,
-  and serves the language documents it carries inside itself. It never writes a spec file and
-  never judges what an obligation says. Every command answers with the smallest output that
+  serves the language documents it carries inside itself, and replaces its own installed
+  binary with the newest published release. It never writes a spec file and never judges
+  what an obligation says. Every command answers with the smallest output that
   carries the answer, because the reader's context is the scarce resource.
 version: v1
 related:
@@ -53,6 +54,9 @@ INPUT:
 - WHEN: "the subcommand is `docs`"
   MUST: dispatch to the command that indexes the carried language documents and writes one
   SEE: 10-docs@Docs
+- WHEN: "the subcommand is `update`"
+  MUST: dispatch to the command that replaces this program's installed binary with the newest release
+  SEE: 12-update@Update
 RETURN:
 - MUST: serve a spec set that already exists, so an agent reads the part it asked for instead of opening the files that hold it
 - MUST: answer an invocation that names no subcommand, so a reader who does not yet know how to drive the program is oriented rather than rejected
@@ -69,8 +73,9 @@ ERROR:
   MUST: report code yass.io.unreadable naming the path and exit with the environment status
 - MUST: report code yass.internal and exit with the environment status for any failure not matched by a guarded obligation of the dispatched command's own ERROR slot
 SIDE-EFFECT:
-- MUST-NOT: create, modify, delete, or rename any file or directory
-- MUST-NOT: "open a network connection, including to resolve a preamble `related` entry"
+- MUST-NOT: "create, modify, delete, or rename any file or directory, save that `update` replaces the program's own installed binary and nothing else"
+  SEE: 12-update@Update::SIDE-EFFECT
+- MUST-NOT: "open a network connection, including to resolve a preamble `related` entry, save that `update` connects to the release host and nowhere else"
   CONFORMS: ../yass@Preamble::INVARIANT
 - MUST-NOT: "read a file other than a `root.yass.yaml` met on the ascent, a path named on the command line, or a file whose basename ends with `.yass.yaml` under the governing project root"
 - MUST-NOT: read a language document from the file tree in order to serve it, since the corpus is carried inside the program and a reader of it holds no checkout
@@ -88,7 +93,7 @@ INVARIANT:
 - MUST: state every rule it checks in the command that checks it, so this project is implementable from the files under this project root alone
 - MUST: treat the language definition as the normative statement of every rule it checks, and the derived JSON Schema as advisory
   SEE: ../root@Yass
-- MUST: produce byte-identical output for the same file tree, the same starting directory, and the same argument vector, so an agent can diff two runs
+- MUST: "produce byte-identical output for the same file tree, the same starting directory, and the same argument vector — plus, under `update`, the one command whose answer is not a function of the tree, the same published releases and the same installed binary — so an agent can diff two runs"
 - MUST-NOT: judge whether an obligation is correct, complete, achievable, or well worded, so the program stays independent of the language a spec describes
 - MUST-NOT: be required in order to read, understand, or implement a yass spec, since a spec set must be intelligible on its own
 - MUST-NOT: "introduce a free-prose channel into a spec file, since the only comments yass emits are tooling-generated provenance"
@@ -119,8 +124,9 @@ content: |
 
   4 is selected only by a command that needs a project root in order to answer at all. A
   command that answers without one never selects it: `overview` reports the absence of a
-  root as one fact of its block, and `docs` serves a corpus the program carries, so for
-  neither is a missing root a reason the request went unserved.
+  root as one fact of its block, `docs` serves a corpus the program carries, and `update`
+  concerns the installed program itself, so for none of them is a missing root a reason the
+  request went unserved.
 
   A status of 1 means the program worked and the spec set has a problem, so standard output
   carries the findings. A status of 2 through 5 means the program did not get far enough to
@@ -210,6 +216,13 @@ content: |
                 RELATION    CONFORMS, USES, or SEE
                 REF         the other end of the edge, `path@Name` with any `::SLOT` kept
 
+    update      3 fields
+                ACTION      `updated` for a binary replaced with the newest release,
+                            `current` for an installed version already the newest,
+                            `homebrew` for a package-managed binary left alone
+                FROM        the version this program ran as
+                TO          the newest stable release version
+
   A REF is written root-relative with `/` separators and the `.yass.yaml` suffix removed, so
   it can be passed back to `yass query` unchanged.
 
@@ -242,7 +255,7 @@ content: |
   no obligation of this project defines.
 
   Areas: `args`, `io`, `root`, `document`, `preamble`, `spec`, `design`, `slot`,
-  `obligation`, `ref`, `lint`, `docs`.
+  `obligation`, `ref`, `lint`, `docs`, `update`.
 
   A message names what is wrong and never how to fix it. It carries no remedy, no
   alternative spelling, no quoted source, no restatement of the code, and no explanation of

@@ -1,0 +1,75 @@
+# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+---
+description: >
+  The `yass update` subcommand. One Spec, replacing the installed binary with the newest
+  published stable release. It is the one command that opens a network connection and the one
+  command that writes to the file system, and both carve-outs are scoped to it alone: every
+  other command remains read-only, and this one never touches a spec file. It answers about
+  the program rather than about a spec set, so it needs no project root.
+version: v1
+---
+spec: Update
+INPUT:
+- MUST: "be invoked as `yass update`, taking no option and no operand"
+- MUST: "take the version this program was built as for the installed version, the same value `--version` reports"
+  SEE: 00-invocation@Invocation::RETURN
+- MUST: take the file the running program was executed from, with symbolic links resolved, as the installed binary
+- MUST: resolve the newest stable release and the published archive matching the platform this program was built for
+  USES: ReleaseLayout
+- MUST-NOT: discover a project root or load any file from the tree, since the answer concerns the program rather than a spec set
+RETURN:
+- WHEN: the installed version equals the newest stable release version
+  MUST: "write one update record with action `current`, download no archive, and replace nothing"
+  USES: root@RecordFormat
+- WHEN: the installed version differs and the installed binary is managed by Homebrew
+  MUST: "write one update record with action `homebrew` and replace nothing, since a package-managed file is updated by its package manager"
+  USES: HomebrewDetection
+- WHEN: the installed version differs and the installed binary is not managed by Homebrew
+  MUST: "download the matching archive, verify its digest against the published checksum, replace the installed binary with the archive's binary, and write one update record with action `updated`"
+  USES: ReleaseLayout
+- MUST: exit with the ok status once the one update record is written
+ERROR:
+- WHEN: the newest release cannot be resolved, or a download cannot be completed
+  MUST: report code yass.update.unreachable naming the URL and exit with the environment status
+- WHEN: "no archive for the host platform is listed by the release's `checksums.txt`"
+  MUST: report code yass.update.unsupported naming the host platform and exit with the environment status
+- WHEN: the downloaded archive's digest does not equal the published checksum
+  MUST: report code yass.update.checksum, discard the download, and exit with the environment status
+- WHEN: the installed binary cannot be replaced
+  MUST: report code yass.update.denied naming the binary path and exit with the environment status
+- MUST: report code yass.internal and exit with the environment status for any failure not matched by a guarded obligation in this slot
+- MUST: write every diagnostic in this slot to standard error, since the update record is the only thing this command puts on standard output
+  USES: root@OutputPolicy
+SIDE-EFFECT:
+- MUST: "connect only to the release host, and only to resolve the newest release and fetch its archive and `checksums.txt`"
+  USES: ReleaseLayout
+- MUST: write only the installed binary and a temporary file beside it that the replacement is staged through, so the swap is a rename rather than a partial write
+- MUST: leave the installed binary as it was whenever any step fails, so a failed update preserves the working installation
+- MUST-NOT: create, modify, delete, or rename anything else, and in particular no spec file
+INVARIANT:
+- MUST-NOT: install a binary whose digest was not verified against the published checksum
+- MUST-NOT: select the no-root status, since no answer of this command needs a project root
+  USES: root@ExitPolicy
+- MUST-NOT: prompt for confirmation, retry a failed download, or fall back to an unverified source
+- MUST-NOT: emit more than one record, since one invocation answers one update question
+---
+design: ReleaseLayout
+type: constraint
+content: |
+  Releases live at https://github.com/shakefu/yass/releases. The newest stable release is
+  what `releases/latest` resolves to, and its tag is `v` followed by the version. Each
+  release publishes one archive per supported platform, named
+  `yass_<version>_<os>_<arch>.tar.gz` (`.zip` on windows) and holding a single binary, plus
+  a `checksums.txt` holding one `<sha256-hex>  <archive-name>` line per archive — the layout
+  script/build produces and script/gen-formula and install.sh consume. The archive matching
+  the host is the one whose `<os>_<arch>` equals the platform this program was built for,
+  and a platform absent from `checksums.txt` is unsupported for that release.
+---
+design: HomebrewDetection
+type: constraint
+content: |
+  A Homebrew-managed binary lives in a cellar: its resolved path contains a `Cellar` or
+  `linuxbrew` path segment. Overwriting it would desynchronize the package database and be
+  undone by the next `brew upgrade`, so the binary is left alone and the update record's
+  `homebrew` action reports the state; the documented upgrade path is `brew upgrade yass`
+  (see Formula/yass.rb and the README's installation section).

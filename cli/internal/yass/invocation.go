@@ -6,7 +6,7 @@ import (
 )
 
 // Subcommands is the recognized set, in synopsis order.
-var Subcommands = []string{"overview", "root", "query", "list", "find", "refs", "validate", "lint", "docs"}
+var Subcommands = []string{"overview", "root", "query", "list", "find", "refs", "validate", "lint", "docs", "update"}
 
 // DefaultSubcommand is what an argument vector naming no subcommand yields.
 // Such a vector is well formed rather than malformed: a reader who does not yet
@@ -49,6 +49,7 @@ var subcommandOptions = map[string]map[string]optionSpec{
 	"validate": {},
 	"lint":     {},
 	"docs":     {},
+	"update":   {},
 }
 
 // operandRange fixes how many operands each subcommand requires and accepts;
@@ -63,6 +64,7 @@ var operandRange = map[string][2]int{
 	"validate": {0, -1},
 	"lint":     {0, -1},
 	"docs":     {0, 1},
+	"update":   {0, 0},
 }
 
 func unknownOption(opt string) error {
