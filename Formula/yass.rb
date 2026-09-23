@@ -2,26 +2,26 @@
 class Yass < Formula
   desc "Read-only CLI serving yass spec sets to coding agents"
   homepage "https://github.com/shakefu/yass"
-  version "0.2.0"
+  version "0.3.0"
   license "AGPL-3.0-only"
 
   on_macos do
     if Hardware::CPU.arm?
-      url "https://github.com/shakefu/yass/releases/download/v0.2.0/yass_0.2.0_darwin_arm64.tar.gz"
-      sha256 "ba779b3b51548e92a8581c479827c7edd00d1a26f3b9333f3860b65bc726f3a0"
+      url "https://github.com/shakefu/yass/releases/download/v0.3.0/yass_0.3.0_darwin_arm64.tar.gz"
+      sha256 "4f8c44c3d31361bbddf9bfc5cda25904fdd4bd85780ab00e7fa7c874fd5e51ba"
     else
-      url "https://github.com/shakefu/yass/releases/download/v0.2.0/yass_0.2.0_darwin_amd64.tar.gz"
-      sha256 "f097aaf8698a8e1140343a20086e4ff57561d815718e5ddc99cdd788e60b05d1"
+      url "https://github.com/shakefu/yass/releases/download/v0.3.0/yass_0.3.0_darwin_amd64.tar.gz"
+      sha256 "8cfe564fb08b811f00df3ad47fcd5f13670ae2e29e2222de8dd0249830a5c9e3"
     end
   end
 
   on_linux do
     if Hardware::CPU.arm?
-      url "https://github.com/shakefu/yass/releases/download/v0.2.0/yass_0.2.0_linux_arm64.tar.gz"
-      sha256 "be78627a06bae3b294a35b1573a5fd4eec17d9ea18fda8eb5057e63c299a0cab"
+      url "https://github.com/shakefu/yass/releases/download/v0.3.0/yass_0.3.0_linux_arm64.tar.gz"
+      sha256 "d8eef7a7917b6eee96751fc813aa212f74afc47028e267512298b0d6be2eb0ac"
     else
-      url "https://github.com/shakefu/yass/releases/download/v0.2.0/yass_0.2.0_linux_amd64.tar.gz"
-      sha256 "2c95bbb967983c6f20adc19b4eddf97aa4df9ce161c25edafc3312e32bae731e"
+      url "https://github.com/shakefu/yass/releases/download/v0.3.0/yass_0.3.0_linux_amd64.tar.gz"
+      sha256 "f7394dcf19367ecc90a4234f4c8b2a08571f56e2a8ab32b730bc9a4c3e6ca9c3"
     end
   end
 
@@ -30,6 +30,6 @@ class Yass < Formula
   end
 
   test do
-    assert_match "yass 0.2.0", shell_output("#{bin}/yass --version")
+    assert_match "yass 0.3.0", shell_output("#{bin}/yass --version")
   end
 end
