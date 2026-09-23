@@ -15,7 +15,8 @@ while it is still cheap.
 - MUST-NOT write product code, scaffold, install a dependency, or create a project before
   the user approves the spec set.
 - MUST-NOT write a spec file before the user confirms the written-back understanding
-  (stage 2).
+  (stage 2). WHEN the work is a retrofit, the code pins the intent: the draft is the
+  write-back and stage 5 is its review.
 - Each gate takes its own yes, whatever the size of the request.
 - Skip a question only when the request or the repository already answers it — never
   because the answer seems obvious.
@@ -33,6 +34,10 @@ State the class in one sentence before the first question, so the user can overr
   existing specs before it adds new ones.
 - **Several independent subsystems** in one request: decompose first — name the pieces,
   their order, and the boundaries between them — then run this flow once per piece.
+- Either of the first two is also a **retrofit** when the code already exists and the
+  spec is written after it. Then the code is the interviewee: MUST answer stages 2 and 3
+  from it, and ask the user only where it is ambiguous, self-contradictory, or looks
+  accidental — and then whether the spec pins that behavior or corrects it.
 
 When in doubt, take the larger class. Complexity found mid-flow upgrades the class;
 nothing downgrades it.
@@ -78,17 +83,18 @@ nothing downgrades it.
 
 ## Stage 5 — Review
 
-- MUST show the user each spec document and ask after each whether it is right. A short
-  file is shown whole; a long one, spec by spec.
+- MUST put every spec document in front of the user and ask whether it is right: in
+  chat, a short file whole and a long one spec by spec; or, WHEN the set is large or the
+  work lives on a branch, as a pushed diff reviewed there.
 - Before showing, MUST check what the tools cannot: an obligation with two readings, two
   that contradict, a residual *Error obligations* forbids. Fix, then show.
 - The user's corrections go back into the files. Re-run validate and lint after each.
 
 ## Stage 6 — Hand off
 
-- WHEN the user approves the spec set: MUST stop. Report where the root is and how to
-  begin: an implementing agent starts fresh in the project directory, runs `yass`, and
-  builds what the spec set describes.
+- WHEN the user approves the spec set: MUST stop. Report where the root is and, WHEN
+  there is code to write, how to begin: an implementing agent starts fresh in the project
+  directory, runs `yass`, and builds what the spec set describes.
 - Implementing here is a new request. WHEN the user makes it: MUST work from the spec set
   through `yass query`, not from memory of this conversation — a gap that surfaces there
   is a spec defect to fix, not a gap to fill silently.
