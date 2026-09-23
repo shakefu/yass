@@ -80,7 +80,8 @@ hand.
 The language documents are carried inside the binary and served by `yass docs`,
 so they travel with it wherever it is installed. Read one when you are writing
 or changing a spec; implementing against specs that already exist needs none of
-them.
+them. When a project or feature has no spec yet, `yass docs brainstorming`
+writes the flow that elicits one from the user before anything is built.
 
 ## License
 

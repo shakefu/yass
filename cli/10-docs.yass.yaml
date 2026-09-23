@@ -64,14 +64,15 @@ content: |
   checkout by `script/sync-docs` and embedded when the program is built; a test fails when
   an embedded copy has drifted from the source it was taken from.
 
-  The corpus is exactly the set of files that are authoritative for the yass language, and
-  nothing else. A project's own spec files are never corpus documents — they are served by
+  The corpus is exactly the set of files that are authoritative for the yass language and
+  for writing specs in it, and nothing else. A project's own spec files are never corpus documents — they are served by
   `query`, `list`, `find`, and `refs`, which read the tree.
 
-    NAME       SOURCE                      WHEN TO READ
-    reference  context/yass-reference.md   writing or changing a spec file
-    guidance   context/GUIDANCE.md         writing or changing a spec file
-    language   yass.yass.yaml              changing the yass language itself
+    NAME           SOURCE                      WHEN TO READ
+    brainstorming  context/BRAINSTORMING.md    starting a project or feature that has no spec yet
+    reference      context/yass-reference.md   writing or changing a spec file
+    guidance       context/GUIDANCE.md         writing or changing a spec file
+    language       yass.yass.yaml              changing the yass language itself
 
   An embedded name never ends in `.yass.yaml`. Every file with that suffix under a project
   root is collected as part of that project, so a copy carrying it would be indexed,

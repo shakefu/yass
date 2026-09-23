@@ -26,13 +26,21 @@ type CorpusDoc struct {
 }
 
 // Corpus is the carried set, in index order: exactly the files that are
-// authoritative for the yass language, and nothing else.
+// authoritative for the yass language and for writing specs in it, and nothing
+// else.
 //
 // An embedded basename never ends in .yass.yaml. Every file with that suffix
 // under a project root is collected as part of that project, so a copy carrying
 // it would be indexed, validated, and linted as one of this program's own
 // documents.
 var Corpus = []CorpusDoc{
+	{
+		Name:   "brainstorming",
+		File:   "brainstorming.md",
+		Source: "context/BRAINSTORMING.md",
+		When:   "starting a project or feature that has no spec yet",
+		Title:  "yass — Brainstorming a Spec",
+	},
 	{
 		Name:   "reference",
 		File:   "reference.md",

@@ -46,7 +46,8 @@ const overviewReading = `read a spec set
 
 const overviewWriting = `write or change a spec
   yass docs                    index the language documents carried in this program
-  yass docs NAME               write one of those documents whole`
+  yass docs NAME               write one of those documents whole
+  yass docs brainstorming      start a project or feature that has no spec yet`
 
 const overviewSpending = `Read a carried document when you are writing or changing a spec, not when you are
 implementing one. Implementing against a spec set that already exists needs neither: the
