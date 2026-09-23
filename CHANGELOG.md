@@ -2,6 +2,20 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.4.0 - 2026-09-23
+#### Features
+- (**cli**) route the brainstorming flow from the overview block - (840dee9) - Claude, *Claude Fable 5.1*
+- (**cli**) carry a brainstorming flow that elicits a spec from a user - (7385345) - Claude, *Claude Fable 5.1*
+#### Documentation
+- (**brainstorming**) word the flow for how agents actually follow it - (73661c0) - Claude, *Claude Fable 5.1*
+- (**brainstorming**) ask about a retrofit's silences, not only its ambiguities - (e838283) - Claude, *Claude Fable 5.1*
+- (**brainstorming**) add the retrofit mode and a pushed-diff review surface - (0ebb289) - Claude, *Claude Fable 5.1*
+- (**readme**) add a quick start for working with an agent through yass - (63af8d0) - Claude, *Claude Fable 5.1*
+#### Refactoring
+- (**cli**) point the brainstorming flow at guidance, not restate it - (17b3077) - Claude, *Claude Fable 5.1*
+
+- - -
+
 ## v0.3.0 - 2026-09-23
 #### Features
 - (**cli**) add yass update to replace the binary with the newest release - (411388a) - Claude, *Claude Fable 5*
