@@ -118,8 +118,9 @@ content: |
 
   5 — the corpus:
 
-    elicit, write, or change a spec
-      yass docs                    index the language documents carried in this program
+    elicit, write, or change a spec with the user
+      yass docs brainstorming      the dialogue that turns their request into a spec set
+      yass docs                    index every language document carried in this program
       yass docs NAME               write one of those documents whole
 
   6 — the rule for spending the corpus, which is the whole reason it is a command rather
