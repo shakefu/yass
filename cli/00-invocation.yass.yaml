@@ -17,7 +17,7 @@ INPUT:
 - WHEN: no argument remains to be taken as the subcommand token, and neither help nor version was requested
   MUST: "yield the subcommand token `overview`, so an argument vector naming no subcommand is well formed and carries no operand"
   SEE: 11-overview@Overview
-- MUST: "recognize exactly the subcommand tokens `overview`, `root`, `query`, `list`, `find`, `refs`, `validate`, `lint`, and `docs`"
+- MUST: "recognize exactly the subcommand tokens `overview`, `root`, `query`, `list`, `find`, `refs`, `validate`, `lint`, `docs`, and `update`"
 - MUST: parse every argument after the subcommand token as that subcommand's option or operand, against the option set the synopsis fixes for it
   USES: Synopsis
 - MUST: "treat an argument equal to `--` as end-of-options, so every argument after it is an operand even when it begins with `-`"
@@ -90,6 +90,7 @@ content: |
     validate [PATH...]             check files against the yass language definition
     lint [PATH...]                 report graph hygiene of the project
     docs [NAME]                    index the carried language documents, or write one
+    update                         replace this binary with the newest release
 
     -C DIR                         start path resolution and root discovery at DIR
     --version, -V                  write the version and exit
