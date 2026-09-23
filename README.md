@@ -70,18 +70,50 @@ Verify any installation with `yass --version`.
 
 Build with Go per [`cli/HOWTORUN.txt`](./cli/HOWTORUN.txt).
 
+## Quick start
+
+yass is for working with a coding agent. You say what you want, the agent
+writes it down as a spec the two of you agree on, and then an agent builds
+exactly that. The `yass` command is how the agent finds its way around, and it
+works with any agent that can run a shell command.
+
+1. **Install `yass`** (above) and tell your agent to use it. One line in your
+   project's agent instructions (`AGENTS.md`, `CLAUDE.md`, or the like) is
+   enough:
+
+   > Run `yass` with no arguments before writing, changing, or implementing a
+   > spec.
+
+2. **Ask for what you want.** The output of that one command tells the agent
+   which of three paths to take:
+
+   - **Starting something new** — a project or feature with no spec yet. The
+     agent runs the brainstorming flow: it asks what the thing is for, works
+     through each behavior with you (proposing answers for you to correct rather
+     than making you compose them), and drafts the spec. Nothing gets built until
+     you have read the spec and said yes.
+   - **Implementing a spec that exists** — the agent reads the spec set through
+     `yass`, one document at a time rather than whole files, and builds what it
+     says.
+   - **Changing a spec** — the agent reads the language documents carried inside
+     the binary (`yass docs`), edits the spec files, and checks them with
+     `yass validate` and `yass lint`.
+
+3. **Review the spec first.** It is the contract the code is built against, so
+   when something comes out wrong, the fix is usually a line in the spec — and
+   the code follows.
+
 ## The CLI, for an agent arriving cold
 
 Run `yass` with no arguments. It writes what the program is, what project the
-current directory sits in, the notation a spec file uses, and the commands that
-read a spec set — enough to start implementing without opening a single file by
-hand.
+current directory sits in, the notation a spec file uses, the commands that
+read a spec set, and the flow that elicits a new one — enough to start without
+opening a single file by hand.
 
 The language documents are carried inside the binary and served by `yass docs`,
-so they travel with it wherever it is installed. Read one when you are writing
-or changing a spec; implementing against specs that already exist needs none of
-them. When a project or feature has no spec yet, `yass docs brainstorming`
-writes the flow that elicits one from the user before anything is built.
+so they travel with it wherever it is installed. Read one when you are
+eliciting, writing, or changing a spec; implementing against specs that already
+exist needs none of them.
 
 ## License
 
