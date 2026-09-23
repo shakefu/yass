@@ -36,8 +36,8 @@ State the class in one sentence before the first question, so the user can overr
   their order, and the boundaries between them — then run this flow once per piece.
 - Either of the first two is also a **retrofit** when the code already exists and the
   spec is written after it. Then the code is the interviewee: MUST answer stages 2 and 3
-  from it, and ask the user only where it is ambiguous, self-contradictory, or looks
-  accidental — and then whether the spec pins that behavior or corrects it.
+  from it, and ask the user only where it is ambiguous, self-contradictory, silent, or
+  looks accidental — and then whether the spec pins that behavior or corrects it.
 
 When in doubt, take the larger class. Complexity found mid-flow upgrades the class;
 nothing downgrades it.
