@@ -4,7 +4,7 @@ YAML specification language and a read-only Go CLI for serving specs to coding a
 
 ## Entry points
 
-- `yass.yass.yaml`, `context/yass-reference.md`, `context/GUIDANCE.md`: authoritative language definition, reference, and authoring guidance.
+- `yass.yass.yaml`, `context/yass-reference.md`, `context/GUIDANCE.md`, `context/BRAINSTORMING.md`: authoritative language definition, reference, authoring guidance, and the spec-elicitation flow the CLI serves as `yass docs brainstorming`.
 - `yass.v1.schema.json`: derived editor-validation schema; keep consistent with the language.
 - `root.yass.yaml`: repository spec root; `cli/`: separate spec project and Go module with implementation and tests (see its index).
 - `context/`: language guides and provisional research in `context/experiment/`; `experiment/`: active-run workspace, currently a placeholder (see their indexes).

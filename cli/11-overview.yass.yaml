@@ -121,6 +121,7 @@ content: |
     write or change a spec
       yass docs                    index the language documents carried in this program
       yass docs NAME               write one of those documents whole
+      yass docs brainstorming      start a project or feature that has no spec yet
 
   6 — the rule for spending the corpus, which is the whole reason it is a command rather
   than another section of this block:
