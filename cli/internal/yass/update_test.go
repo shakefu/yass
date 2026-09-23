@@ -54,39 +54,34 @@ func zipArchive(t *testing.T, name string, contents []byte) []byte {
 }
 
 // updateHost fakes the release layout of 12-update@ReleaseLayout for one
-// version, counting archive downloads so a test can assert none happened.
+// version and one archive, counting archive downloads so a test can assert
+// none happened.
 type updateHost struct {
 	srv       *httptest.Server
 	downloads int
 }
 
 // serveUpdate starts the fake host. With tamper set, checksums.txt publishes
-// digests that match no archive.
-func serveUpdate(t *testing.T, version string, assets map[string][]byte, tamper bool) *updateHost {
+// a digest that matches no archive.
+func serveUpdate(t *testing.T, version, asset string, archive []byte, tamper bool) *updateHost {
 	t.Helper()
 	h := &updateHost{}
-	var sums strings.Builder
-	for name, data := range assets {
-		d := sha256.Sum256(data)
-		digest := hex.EncodeToString(d[:])
-		if tamper {
-			digest = strings.Repeat("0", 64)
-		}
-		sums.WriteString(digest + "  " + name + "\n")
+	d := sha256.Sum256(archive)
+	digest := hex.EncodeToString(d[:])
+	if tamper {
+		digest = strings.Repeat("0", 64)
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/latest", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/tag/v"+version, http.StatusFound)
 	})
 	mux.HandleFunc("/download/v"+version+"/checksums.txt", func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(sums.String()))
+		_, _ = w.Write([]byte(digest + "  " + asset + "\n"))
 	})
-	for name, data := range assets {
-		mux.HandleFunc("/download/v"+version+"/"+name, func(w http.ResponseWriter, r *http.Request) {
-			h.downloads++
-			_, _ = w.Write(data)
-		})
-	}
+	mux.HandleFunc("/download/v"+version+"/"+asset, func(w http.ResponseWriter, r *http.Request) {
+		h.downloads++
+		_, _ = w.Write(archive)
+	})
 	h.srv = httptest.NewServer(mux)
 	t.Cleanup(h.srv.Close)
 	return h
@@ -94,33 +89,30 @@ func serveUpdate(t *testing.T, version string, assets map[string][]byte, tamper 
 
 // pointUpdateAt overrides the release host, the built-for platform, the
 // running version, and the installed binary, restoring each after the test.
-func pointUpdateAt(t *testing.T, url, goos, goarch, running string, exe func() (string, error)) {
+func pointUpdateAt(t *testing.T, url, goos, goarch, running, exe string) {
 	t.Helper()
 	oldURL, oldOS, oldArch := updateReleases, updateOS, updateArch
 	oldVer, oldExe := programVersion, updateExecutable
 	updateReleases, updateOS, updateArch = url, goos, goarch
-	programVersion, updateExecutable = running, exe
+	programVersion = running
+	updateExecutable = func() (string, error) { return exe, nil }
 	t.Cleanup(func() {
 		updateReleases, updateOS, updateArch = oldURL, oldOS, oldArch
 		programVersion, updateExecutable = oldVer, oldExe
 	})
 }
 
-func fixedExe(path string) func() (string, error) {
-	return func() (string, error) { return path, nil }
-}
-
 func TestUpdateReplacesTheBinary(t *testing.T) {
 	newBin := []byte("the new release binary")
-	h := serveUpdate(t, "9.9.9", map[string][]byte{
-		"yass_9.9.9_linux_amd64.tar.gz": targz(t, "yass", newBin),
-	}, false)
+	h := serveUpdate(t, "9.9.9", "yass_9.9.9_linux_amd64.tar.gz", targz(t, "yass", newBin), false)
 	dir := t.TempDir()
 	exe := filepath.Join(dir, "yass")
+	// Written by hand rather than through the write helper, because this test
+	// checks that the replacement keeps the installed mode.
 	if err := os.WriteFile(exe, []byte("the old binary"), 0o750); err != nil {
 		t.Fatal(err)
 	}
-	pointUpdateAt(t, h.srv.URL, "linux", "amd64", "1.0.0", fixedExe(exe))
+	pointUpdateAt(t, h.srv.URL, "linux", "amd64", "1.0.0", exe)
 
 	// The starting directory holds no root.yass.yaml: update needs none.
 	got := run(t.TempDir(), "update")
@@ -152,15 +144,9 @@ func TestUpdateReplacesTheBinary(t *testing.T) {
 }
 
 func TestUpdateAlreadyCurrent(t *testing.T) {
-	h := serveUpdate(t, "9.9.9", map[string][]byte{
-		"yass_9.9.9_linux_amd64.tar.gz": targz(t, "yass", []byte("release")),
-	}, false)
-	dir := t.TempDir()
-	exe := filepath.Join(dir, "yass")
-	if err := os.WriteFile(exe, []byte("installed"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	pointUpdateAt(t, h.srv.URL, "linux", "amd64", "9.9.9", fixedExe(exe))
+	h := serveUpdate(t, "9.9.9", "yass_9.9.9_linux_amd64.tar.gz", targz(t, "yass", []byte("release")), false)
+	exe := write(t, t.TempDir(), "yass", "installed")
+	pointUpdateAt(t, h.srv.URL, "linux", "amd64", "9.9.9", exe)
 
 	got := run(t.TempDir(), "update")
 	wantStatus(t, got, ExitOK)
@@ -177,11 +163,9 @@ func TestUpdateAlreadyCurrent(t *testing.T) {
 }
 
 func TestUpdateHomebrewManagedIsLeftAlone(t *testing.T) {
-	h := serveUpdate(t, "9.9.9", map[string][]byte{
-		"yass_9.9.9_darwin_arm64.tar.gz": targz(t, "yass", []byte("release")),
-	}, false)
+	h := serveUpdate(t, "9.9.9", "yass_9.9.9_darwin_arm64.tar.gz", targz(t, "yass", []byte("release")), false)
 	exe := filepath.Join(t.TempDir(), "Cellar", "yass", "1.0.0", "bin", "yass")
-	pointUpdateAt(t, h.srv.URL, "darwin", "arm64", "1.0.0", fixedExe(exe))
+	pointUpdateAt(t, h.srv.URL, "darwin", "arm64", "1.0.0", exe)
 
 	got := run(t.TempDir(), "update")
 	wantStatus(t, got, ExitOK)
@@ -194,15 +178,9 @@ func TestUpdateHomebrewManagedIsLeftAlone(t *testing.T) {
 }
 
 func TestUpdateChecksumMismatchInstallsNothing(t *testing.T) {
-	h := serveUpdate(t, "9.9.9", map[string][]byte{
-		"yass_9.9.9_linux_amd64.tar.gz": targz(t, "yass", []byte("release")),
-	}, true)
-	dir := t.TempDir()
-	exe := filepath.Join(dir, "yass")
-	if err := os.WriteFile(exe, []byte("installed"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	pointUpdateAt(t, h.srv.URL, "linux", "amd64", "1.0.0", fixedExe(exe))
+	h := serveUpdate(t, "9.9.9", "yass_9.9.9_linux_amd64.tar.gz", targz(t, "yass", []byte("release")), true)
+	exe := write(t, t.TempDir(), "yass", "installed")
+	pointUpdateAt(t, h.srv.URL, "linux", "amd64", "1.0.0", exe)
 
 	got := run(t.TempDir(), "update")
 	wantStatus(t, got, ExitEnvironment)
@@ -219,10 +197,8 @@ func TestUpdateChecksumMismatchInstallsNothing(t *testing.T) {
 }
 
 func TestUpdateUnsupportedPlatform(t *testing.T) {
-	h := serveUpdate(t, "9.9.9", map[string][]byte{
-		"yass_9.9.9_linux_amd64.tar.gz": targz(t, "yass", []byte("release")),
-	}, false)
-	pointUpdateAt(t, h.srv.URL, "linux", "mips64", "1.0.0", fixedExe("/nonexistent/yass"))
+	h := serveUpdate(t, "9.9.9", "yass_9.9.9_linux_amd64.tar.gz", targz(t, "yass", []byte("release")), false)
+	pointUpdateAt(t, h.srv.URL, "linux", "mips64", "1.0.0", "/nonexistent/yass")
 
 	got := run(t.TempDir(), "update")
 	wantStatus(t, got, ExitEnvironment)
@@ -238,7 +214,7 @@ func TestUpdateUnsupportedPlatform(t *testing.T) {
 func TestUpdateUnreachableHost(t *testing.T) {
 	srv := httptest.NewServer(http.NotFoundHandler())
 	srv.Close()
-	pointUpdateAt(t, srv.URL, "linux", "amd64", "1.0.0", fixedExe("/nonexistent/yass"))
+	pointUpdateAt(t, srv.URL, "linux", "amd64", "1.0.0", "/nonexistent/yass")
 
 	got := run(t.TempDir(), "update")
 	wantStatus(t, got, ExitEnvironment)
@@ -251,19 +227,14 @@ func TestUpdateDeniedPreservesTheBinary(t *testing.T) {
 	if os.Geteuid() == 0 {
 		t.Skip("directory permissions do not bind root")
 	}
-	h := serveUpdate(t, "9.9.9", map[string][]byte{
-		"yass_9.9.9_linux_amd64.tar.gz": targz(t, "yass", []byte("release")),
-	}, false)
+	h := serveUpdate(t, "9.9.9", "yass_9.9.9_linux_amd64.tar.gz", targz(t, "yass", []byte("release")), false)
 	dir := t.TempDir()
-	exe := filepath.Join(dir, "yass")
-	if err := os.WriteFile(exe, []byte("installed"), 0o755); err != nil {
-		t.Fatal(err)
-	}
+	exe := write(t, dir, "yass", "installed")
 	if err := os.Chmod(dir, 0o555); err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = os.Chmod(dir, 0o755) })
-	pointUpdateAt(t, h.srv.URL, "linux", "amd64", "1.0.0", fixedExe(exe))
+	pointUpdateAt(t, h.srv.URL, "linux", "amd64", "1.0.0", exe)
 
 	got := run(t.TempDir(), "update")
 	wantStatus(t, got, ExitEnvironment)
@@ -279,15 +250,9 @@ func TestUpdateDeniedPreservesTheBinary(t *testing.T) {
 
 func TestUpdateWindowsAssetIsAZip(t *testing.T) {
 	newBin := []byte("the windows binary")
-	h := serveUpdate(t, "9.9.9", map[string][]byte{
-		"yass_9.9.9_windows_amd64.zip": zipArchive(t, "yass.exe", newBin),
-	}, false)
-	dir := t.TempDir()
-	exe := filepath.Join(dir, "yass.exe")
-	if err := os.WriteFile(exe, []byte("old"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	pointUpdateAt(t, h.srv.URL, "windows", "amd64", "1.0.0", fixedExe(exe))
+	h := serveUpdate(t, "9.9.9", "yass_9.9.9_windows_amd64.zip", zipArchive(t, "yass.exe", newBin), false)
+	exe := write(t, t.TempDir(), "yass.exe", "old")
+	pointUpdateAt(t, h.srv.URL, "windows", "amd64", "1.0.0", exe)
 
 	got := run(t.TempDir(), "update")
 	wantStatus(t, got, ExitOK)

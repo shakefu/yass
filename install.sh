@@ -102,21 +102,19 @@ esac
 # --- release selection ----------------------------------------------------------
 
 if [ -z "$version" ]; then
-	# The /releases/latest URL redirects to /releases/tag/<tag>; the tag names
-	# the latest stable release without touching the rate-limited API.
-	effective=$(curl -fsSL -o /dev/null -w '%{url_effective}' "${repo_url}/releases/latest") ||
+	# The /releases/latest URL redirects to /releases/tag/<tag>; reading the
+	# redirect target names the latest stable release without fetching the
+	# page it points at or touching the rate-limited API.
+	redirect=$(curl -fsS -o /dev/null -w '%{redirect_url}' "${repo_url}/releases/latest") ||
 		fail "cannot resolve the latest release from ${repo_url}/releases/latest"
-	version="${effective##*/}"
+	version="${redirect##*/}"
 	case "$version" in
 	v[0-9]*) ;;
-	*) fail "cannot parse a release tag from $effective" ;;
+	*) fail "cannot parse a release tag from ${redirect:-an empty redirect}" ;;
 	esac
 fi
-case "$version" in
-v*) tag="$version" ;;
-*) tag="v$version" ;;
-esac
-ver="${tag#v}"
+ver="${version#v}"
+tag="v$ver"
 
 asset="yass_${ver}_${os}_${arch}.tar.gz"
 base="${repo_url}/releases/download/${tag}"
@@ -126,14 +124,16 @@ base="${repo_url}/releases/download/${tag}"
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT INT TERM
 
-say "downloading ${base}/${asset}"
-curl -fsSL -o "${tmp}/${asset}" "${base}/${asset}" ||
-	fail "cannot download ${base}/${asset} (is ${tag} a published release?)"
+# The checksums come first: a release or platform the checksums cannot vouch
+# for is refused before the archive is spent on.
 curl -fsSL -o "${tmp}/checksums.txt" "${base}/checksums.txt" ||
-	fail "cannot download ${base}/checksums.txt"
-
+	fail "cannot download ${base}/checksums.txt (is ${tag} a published release?)"
 want=$(awk -v a="$asset" '$2 == a { print $1 }' "${tmp}/checksums.txt")
 [ -n "$want" ] || fail "checksums.txt of ${tag} does not list ${asset}"
+
+say "downloading ${base}/${asset}"
+curl -fsSL -o "${tmp}/${asset}" "${base}/${asset}" ||
+	fail "cannot download ${base}/${asset}"
 got=$(sha256 "${tmp}/${asset}")
 [ "$got" = "$want" ] ||
 	fail "checksum mismatch for ${asset}: want ${want}, got ${got}; nothing was installed"
@@ -144,22 +144,17 @@ tar -xzf "${tmp}/${asset}" -C "$tmp" yass ||
 # --- install --------------------------------------------------------------------
 
 if [ -z "$bin_dir" ]; then
-	if [ -d /usr/local/bin ] && [ -w /usr/local/bin ]; then
+	if [ -w /usr/local/bin ]; then
 		bin_dir=/usr/local/bin
 	else
 		bin_dir="${HOME}/.local/bin"
 	fi
 fi
 mkdir -p "$bin_dir" || fail "cannot create ${bin_dir}"
-[ -d "$bin_dir" ] && [ -w "$bin_dir" ] ||
+[ -w "$bin_dir" ] ||
 	fail "cannot write to ${bin_dir}; re-run with --bin-dir DIR or as a user who can"
 
-if command -v install >/dev/null 2>&1; then
-	install -m 0755 "${tmp}/yass" "${bin_dir}/yass" || fail "cannot install into ${bin_dir}"
-else
-	cp "${tmp}/yass" "${bin_dir}/yass" && chmod 0755 "${bin_dir}/yass" ||
-		fail "cannot install into ${bin_dir}"
-fi
+install -m 0755 "${tmp}/yass" "${bin_dir}/yass" || fail "cannot install into ${bin_dir}"
 
 say "installed ${bin_dir}/yass ($("${bin_dir}/yass" --version))"
 
@@ -170,4 +165,3 @@ case ":${PATH}:" in
 	say "  export PATH=\"${bin_dir}:\$PATH\""
 	;;
 esac
-say "verify with: yass --version"

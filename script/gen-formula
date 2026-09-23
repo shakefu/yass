@@ -4,8 +4,8 @@
 #
 # Invoked by cocogitto's pre_bump_hooks (see cog.toml) after script/build, so
 # every release commit carries a formula whose URLs and sha256 digests match
-# the archives that release publishes. The formula is read by Homebrew from
-# this repository as a tap:
+# the archives that release publishes; the hook after this one stages the
+# result. The formula is read by Homebrew from this repository as a tap:
 #
 #   brew tap shakefu/yass https://github.com/shakefu/yass
 #   brew install yass
@@ -93,12 +93,5 @@ class Yass < Formula
   end
 end
 EOF
-
-# Inside the repository (the cog bump path), stage the formula so it rides the
-# bump commit; standalone and test runs outside a work tree skip this.
-if git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1 &&
-	[[ "$FORMULA" == "$REPO_ROOT"/* ]]; then
-	git -C "$REPO_ROOT" add "$FORMULA"
-fi
 
 echo "wrote ${FORMULA} for v${ver}"

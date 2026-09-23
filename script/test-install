@@ -16,7 +16,6 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT INT TERM
 
 failures=0
-note() { echo "    $*"; }
 ok() { echo "ok   $*"; }
 bad() {
 	echo "FAIL $*" >&2
@@ -38,7 +37,11 @@ fake_release() {
 		tar -czf "$assets/yass_${ver}_${os}_${arch}.tar.gz" -C "$tmp" yass
 		rm -rf "$tmp"
 	done
-	(cd "$assets" && sha256sum yass_* >checksums.txt)
+	if command -v sha256sum >/dev/null 2>&1; then
+		(cd "$assets" && sha256sum yass_* >checksums.txt)
+	else
+		(cd "$assets" && shasum -a 256 yass_* >checksums.txt)
+	fi
 }
 
 # fake_uname DIR OS ARCH — write a uname shim into DIR.
@@ -55,15 +58,22 @@ fake_uname() {
 	chmod 0755 "$dir/uname"
 }
 
-# run_install NAME [ARG...] — run install.sh with the fixture repo and a shimmed
-# platform, capturing output and status into $out and $status.
+# capture CMD [ARG...] — run a command that may fail, keeping its combined
+# output in $out and its exit status in $status.
+capture() {
+	set +e
+	out=$("$@" 2>&1)
+	status=$?
+	set -e
+}
+
+# run_install [ARG...] — run install.sh with the shimmed platform against the
+# fixture repo, or against $repo when a case sets it.
 FIXTURE="$work/repo"
 SHIM="$work/shim"
 run_install() {
-	set +e
-	out=$(PATH="$SHIM:$PATH" YASS_REPO_URL="file://$FIXTURE" sh "$REPO_ROOT/install.sh" "$@" 2>&1)
-	status=$?
-	set -e
+	capture env PATH="$SHIM:$PATH" YASS_REPO_URL="file://${repo:-$FIXTURE}" \
+		sh "$REPO_ROOT/install.sh" "$@"
 }
 
 fake_release "$FIXTURE" 9.9.9
@@ -133,11 +143,7 @@ cp -R "$FIXTURE" "$tampered"
 asset_dir="$tampered/releases/download/v9.9.9"
 printf 'tampered\n' >>"$asset_dir/yass_9.9.9_linux_amd64.tar.gz"
 bin="$work/bin6"
-set +e
-out=$(PATH="$SHIM:$PATH" YASS_REPO_URL="file://$tampered" \
-	sh "$REPO_ROOT/install.sh" --version 9.9.9 --bin-dir "$bin" 2>&1)
-status=$?
-set -e
+repo="$tampered" run_install --version 9.9.9 --bin-dir "$bin"
 if [ "$status" -ne 0 ] && printf '%s' "$out" | grep -q "checksum mismatch" &&
 	[ ! -e "$bin/yass" ]; then
 	ok "aborts on a checksum mismatch and installs nothing"
@@ -174,15 +180,12 @@ echo "==> script/gen-formula"
 # The generated formula carries the version and the published checksums.
 formula="$work/yass.rb"
 dist="$FIXTURE/releases/download/v9.9.9"
+want=$(awk '$2 == "yass_9.9.9_darwin_arm64.tar.gz" { print $1 }' "$dist/checksums.txt")
 if YASS_DIST_DIR="$dist" YASS_FORMULA="$formula" "$REPO_ROOT/script/gen-formula" 9.9.9 >/dev/null &&
 	grep -q 'version "9.9.9"' "$formula" &&
-	[ "$(grep -c 'sha256 "' "$formula")" -eq 4 ]; then
-	want=$(awk '$2 == "yass_9.9.9_darwin_arm64.tar.gz" { print $1 }' "$dist/checksums.txt")
-	if grep -q "sha256 \"$want\"" "$formula"; then
-		ok "generates the formula from dist/checksums.txt"
-	else
-		bad "formula misses the darwin_arm64 checksum $want"
-	fi
+	[ "$(grep -c 'sha256 "' "$formula")" -eq 4 ] &&
+	grep -q "sha256 \"$want\"" "$formula"; then
+	ok "generates the formula from dist/checksums.txt"
 else
 	bad "generates the formula from dist/checksums.txt"
 fi
@@ -192,11 +195,8 @@ fi
 partial="$work/partial-dist"
 mkdir -p "$partial"
 grep -v darwin_arm64 "$dist/checksums.txt" >"$partial/checksums.txt"
-set +e
-out=$(YASS_DIST_DIR="$partial" YASS_FORMULA="$work/partial.rb" \
-	"$REPO_ROOT/script/gen-formula" 9.9.9 2>&1)
-status=$?
-set -e
+capture env YASS_DIST_DIR="$partial" YASS_FORMULA="$work/partial.rb" \
+	"$REPO_ROOT/script/gen-formula" 9.9.9
 if [ "$status" -ne 0 ] && [ ! -e "$work/partial.rb" ]; then
 	ok "refuses a checksums.txt missing a target"
 else
