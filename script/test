@@ -2,11 +2,15 @@
 #
 # script/test — build and test the yass CLI.
 #
-# The CLI is a Go module rooted at cli/. This builds it and runs its tests.
+# The CLI is a Go module rooted at cli/. This builds it and runs its tests,
+# after the shell-only installer tests, which need no toolchain.
 
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
+
+echo "==> install.sh + gen-formula"
+script/test-install
 
 if ! command -v go >/dev/null 2>&1; then
   echo "script/test: go toolchain not found; skipping cli tests" >&2

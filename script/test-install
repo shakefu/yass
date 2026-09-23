@@ -1,0 +1,212 @@
+#!/usr/bin/env bash
+#
+# script/test-install — behavior tests for install.sh and script/gen-formula.
+#
+# Needs only a POSIX userland plus curl and sha256sum/shasum, so it runs where
+# the Go toolchain does not. Releases are faked as a file tree served over
+# file:// URLs via YASS_REPO_URL, and the host platform is faked with a uname
+# shim on PATH, so no test touches the network or depends on the real host.
+
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+REPO_ROOT="$PWD"
+
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT INT TERM
+
+failures=0
+note() { echo "    $*"; }
+ok() { echo "ok   $*"; }
+bad() {
+	echo "FAIL $*" >&2
+	failures=$((failures + 1))
+}
+
+# fake_release DIR VERSION — build a release tree of every supported target
+# under DIR, each archive holding a distinct runnable stand-in binary.
+fake_release() {
+	local dir="$1" ver="$2" target os arch tmp
+	local assets="$dir/releases/download/v$ver"
+	mkdir -p "$assets"
+	for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64; do
+		os="${target%/*}"
+		arch="${target#*/}"
+		tmp=$(mktemp -d)
+		printf '#!/bin/sh\necho "yass %s v1 (%s_%s)"\n' "$ver" "$os" "$arch" >"$tmp/yass"
+		chmod 0755 "$tmp/yass"
+		tar -czf "$assets/yass_${ver}_${os}_${arch}.tar.gz" -C "$tmp" yass
+		rm -rf "$tmp"
+	done
+	(cd "$assets" && sha256sum yass_* >checksums.txt)
+}
+
+# fake_uname DIR OS ARCH — write a uname shim into DIR.
+fake_uname() {
+	local dir="$1" os="$2" arch="$3"
+	mkdir -p "$dir"
+	cat >"$dir/uname" <<-EOF
+		#!/bin/sh
+		case "\${1:-}" in
+		-m) echo "$arch" ;;
+		*) echo "$os" ;;
+		esac
+	EOF
+	chmod 0755 "$dir/uname"
+}
+
+# run_install NAME [ARG...] — run install.sh with the fixture repo and a shimmed
+# platform, capturing output and status into $out and $status.
+FIXTURE="$work/repo"
+SHIM="$work/shim"
+run_install() {
+	set +e
+	out=$(PATH="$SHIM:$PATH" YASS_REPO_URL="file://$FIXTURE" sh "$REPO_ROOT/install.sh" "$@" 2>&1)
+	status=$?
+	set -e
+}
+
+fake_release "$FIXTURE" 9.9.9
+
+echo "==> install.sh"
+
+# A pinned version installs the verified binary into --bin-dir and reports it.
+fake_uname "$SHIM" Linux x86_64
+bin="$work/bin1"
+run_install --version v9.9.9 --bin-dir "$bin"
+if [ "$status" -eq 0 ] && [ -x "$bin/yass" ] &&
+	[ "$("$bin/yass" --version)" = "yass 9.9.9 v1 (linux_amd64)" ] &&
+	printf '%s' "$out" | grep -q "installed $bin/yass"; then
+	ok "installs a pinned version"
+else
+	bad "installs a pinned version: status=$status
+$out"
+fi
+
+# A bare version with no leading v selects the same release.
+bin="$work/bin2"
+run_install --version 9.9.9 --bin-dir "$bin"
+if [ "$status" -eq 0 ] && [ -x "$bin/yass" ]; then
+	ok "accepts a version without the leading v"
+else
+	bad "accepts a version without the leading v: status=$status
+$out"
+fi
+
+# The archive matching the shimmed platform is the one installed.
+fake_uname "$SHIM" Darwin arm64
+bin="$work/bin3"
+run_install --version 9.9.9 --bin-dir "$bin"
+if [ "$status" -eq 0 ] && [ "$("$bin/yass" --version)" = "yass 9.9.9 v1 (darwin_arm64)" ]; then
+	ok "selects the archive matching the host platform"
+else
+	bad "selects the archive matching the host platform: status=$status
+$out"
+fi
+
+# An unsupported architecture is reported clearly and installs nothing.
+fake_uname "$SHIM" Linux mips64
+bin="$work/bin4"
+run_install --version 9.9.9 --bin-dir "$bin"
+if [ "$status" -ne 0 ] && printf '%s' "$out" | grep -q "unsupported architecture mips64" &&
+	[ ! -e "$bin/yass" ]; then
+	ok "reports an unsupported architecture"
+else
+	bad "reports an unsupported architecture: status=$status
+$out"
+fi
+
+# An unsupported operating system is reported clearly.
+fake_uname "$SHIM" SunOS x86_64
+run_install --version 9.9.9 --bin-dir "$work/bin5"
+if [ "$status" -ne 0 ] && printf '%s' "$out" | grep -q "unsupported operating system"; then
+	ok "reports an unsupported operating system"
+else
+	bad "reports an unsupported operating system: status=$status
+$out"
+fi
+
+# A checksum mismatch aborts before anything is installed.
+fake_uname "$SHIM" Linux x86_64
+tampered="$work/tampered"
+cp -R "$FIXTURE" "$tampered"
+asset_dir="$tampered/releases/download/v9.9.9"
+printf 'tampered\n' >>"$asset_dir/yass_9.9.9_linux_amd64.tar.gz"
+bin="$work/bin6"
+set +e
+out=$(PATH="$SHIM:$PATH" YASS_REPO_URL="file://$tampered" \
+	sh "$REPO_ROOT/install.sh" --version 9.9.9 --bin-dir "$bin" 2>&1)
+status=$?
+set -e
+if [ "$status" -ne 0 ] && printf '%s' "$out" | grep -q "checksum mismatch" &&
+	[ ! -e "$bin/yass" ]; then
+	ok "aborts on a checksum mismatch and installs nothing"
+else
+	bad "aborts on a checksum mismatch and installs nothing: status=$status
+$out"
+fi
+
+# A missing release is a clear download failure, not a checksum one.
+bin="$work/bin7"
+run_install --version 1.0.0-nosuch --bin-dir "$bin"
+if [ "$status" -ne 0 ] && printf '%s' "$out" | grep -q "cannot download" &&
+	[ ! -e "$bin/yass" ]; then
+	ok "reports a missing release"
+else
+	bad "reports a missing release: status=$status
+$out"
+fi
+
+# An install directory that cannot be created is a clear failure. The target
+# is a path under a regular file, so it fails for root as well.
+blocker="$work/blocker"
+: >"$blocker"
+run_install --version 9.9.9 --bin-dir "$blocker/bin"
+if [ "$status" -ne 0 ] && printf '%s' "$out" | grep -q "cannot create"; then
+	ok "reports an unusable install directory"
+else
+	bad "reports an unusable install directory: status=$status
+$out"
+fi
+
+echo "==> script/gen-formula"
+
+# The generated formula carries the version and the published checksums.
+formula="$work/yass.rb"
+dist="$FIXTURE/releases/download/v9.9.9"
+if YASS_DIST_DIR="$dist" YASS_FORMULA="$formula" "$REPO_ROOT/script/gen-formula" 9.9.9 >/dev/null &&
+	grep -q 'version "9.9.9"' "$formula" &&
+	[ "$(grep -c 'sha256 "' "$formula")" -eq 4 ]; then
+	want=$(awk '$2 == "yass_9.9.9_darwin_arm64.tar.gz" { print $1 }' "$dist/checksums.txt")
+	if grep -q "sha256 \"$want\"" "$formula"; then
+		ok "generates the formula from dist/checksums.txt"
+	else
+		bad "formula misses the darwin_arm64 checksum $want"
+	fi
+else
+	bad "generates the formula from dist/checksums.txt"
+fi
+
+# A checksums.txt missing a target fails the generation rather than emitting a
+# formula with a hole in it.
+partial="$work/partial-dist"
+mkdir -p "$partial"
+grep -v darwin_arm64 "$dist/checksums.txt" >"$partial/checksums.txt"
+set +e
+out=$(YASS_DIST_DIR="$partial" YASS_FORMULA="$work/partial.rb" \
+	"$REPO_ROOT/script/gen-formula" 9.9.9 2>&1)
+status=$?
+set -e
+if [ "$status" -ne 0 ] && [ ! -e "$work/partial.rb" ]; then
+	ok "refuses a checksums.txt missing a target"
+else
+	bad "refuses a checksums.txt missing a target: status=$status
+$out"
+fi
+
+echo
+if [ "$failures" -ne 0 ]; then
+	echo "script/test-install: $failures failure(s)" >&2
+	exit 1
+fi
+echo "script/test-install: all tests passed"
