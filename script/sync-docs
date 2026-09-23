@@ -3,11 +3,11 @@
 # script/sync-docs — refresh the language corpus the yass CLI embeds.
 #
 # `yass docs` serves the files that are authoritative for the language and for
-# writing specs in it.
-# The binary must carry them, because a reader holding the binary does not hold
-# this checkout — so they are copied beside the package that embeds them, and
-# built into the program. This script is the only writer of that directory, and
-# TestCorpusInSyncWithCheckout fails when a copy has drifted from its source.
+# writing specs in it. The binary must carry them, because a reader holding the
+# binary does not hold this checkout — so they are copied beside the package
+# that embeds them, and built into the program. This script is the only writer
+# of that directory, and TestCorpusInSyncWithCheckout fails when a copy has
+# drifted from its source.
 #
 # Run it after editing any authoritative language document.
 

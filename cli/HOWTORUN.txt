@@ -79,15 +79,14 @@ Examples, run from this directory
 Carried language documents
 --------------------------
 
-  `yass docs` serves the files that are authoritative for the yass language
-  and for writing specs in it — the brainstorming flow, the reference, the
-  authoring guidance, and the self-definition. They are embedded in the binary,
+  `yass docs` indexes the documents that are authoritative for the yass
+  language and for writing specs in it, each with the task that earns reading
+  it, and `yass docs NAME` writes one whole. They are embedded in the binary,
   so they travel with it and are served from any directory, with or without a
   project root.
 
-  Read one when you are writing or changing a spec; `yass docs brainstorming`
-  is the way in when a project or feature has no spec yet. Implementing code
-  against a spec set that already exists needs none of them: the notation
+  Read one when you are eliciting, writing, or changing a spec. Implementing
+  code against a spec set that already exists needs none of them: the notation
   summary in `yass overview` is all a spec file takes to read.
 
   The embedded copies are built from the checkout by `script/sync-docs`; run it

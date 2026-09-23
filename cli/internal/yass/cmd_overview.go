@@ -44,15 +44,14 @@ const overviewReading = `read a spec set
   yass validate                check the files against the language definition
   yass lint                    report graph hygiene`
 
-const overviewWriting = `write or change a spec
+const overviewWriting = `elicit, write, or change a spec
   yass docs                    index the language documents carried in this program
-  yass docs NAME               write one of those documents whole
-  yass docs brainstorming      start a project or feature that has no spec yet`
+  yass docs NAME               write one of those documents whole`
 
-const overviewSpending = `Read a carried document when you are writing or changing a spec, not when you are
-implementing one. Implementing against a spec set that already exists needs neither: the
-notation above is all a spec file takes to read, and the behaviour to build is in the
-spec files themselves.`
+const overviewSpending = `Read a carried document when you are eliciting, writing, or changing a spec, not when
+you are implementing one. Implementing against a spec set that already exists needs
+neither: the notation above is all a spec file takes to read, and the behaviour to
+build is in the spec files themselves.`
 
 const overviewResidue = `  yass --help                  every global option, subcommand operand, and exit code`
 
