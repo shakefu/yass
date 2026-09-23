@@ -2,6 +2,14 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.4.1 - 2026-09-23
+#### Bug Fixes
+- (**cli**) call the corpus index every carried document, not every language one - (5dc2795) - Claude, *Claude Fable 5.1*
+#### Documentation
+- say carried documents, not carried language documents, everywhere - (9c313cf) - Claude, *Claude Fable 5.1*
+
+- - -
+
 ## v0.4.0 - 2026-09-23
 #### Features
 - (**cli**) route the brainstorming flow from the overview block - (840dee9) - Claude, *Claude Fable 5.1*
