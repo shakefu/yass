@@ -9,6 +9,7 @@ description: >
   set under the starting directory.
 version: v1
 related:
+- ../context/BRAINSTORMING.md
 - ../context/yass-reference.md
 - ../context/GUIDANCE.md
 - ../yass.yass.yaml
@@ -51,7 +52,7 @@ SIDE-EFFECT:
 - MUST-NOT: read, create, modify, delete, or rename any file or directory, since every document it serves is carried inside the program
   CONFORMS: root@YassCli::SIDE-EFFECT
 INVARIANT:
-- MUST: carry exactly the documents the language names authoritative, so the corpus stays a language corpus and does not grow into a general file store
+- MUST: carry exactly the documents named authoritative for the yass language or for writing specs in it, so the corpus stays a language corpus and does not grow into a general file store
   USES: Corpus
 - MUST: serve text identical to the source document the corpus was built from, so a reader of the served copy and a reader of the checkout read the same words
 - MUST-NOT: require a project root, discover one, or vary its answer with the starting directory, since the corpus is a property of the program and not of a tree
@@ -65,8 +66,8 @@ content: |
   an embedded copy has drifted from the source it was taken from.
 
   The corpus is exactly the set of files that are authoritative for the yass language and
-  for writing specs in it, and nothing else. A project's own spec files are never corpus documents — they are served by
-  `query`, `list`, `find`, and `refs`, which read the tree.
+  for writing specs in it, and nothing else. A project's own spec files are never corpus
+  documents — they are served by `query`, `list`, `find`, and `refs`, which read the tree.
 
     NAME           SOURCE                      WHEN TO READ
     brainstorming  context/BRAINSTORMING.md    starting a project or feature that has no spec yet
