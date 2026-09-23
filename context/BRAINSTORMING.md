@@ -20,6 +20,7 @@ while it is still cheap.
 - Each gate takes its own yes, whatever the size of the request.
 - Skip a question only when the request or the repository already answers it — never
   because the answer seems obvious.
+- WHEN no user can answer: MUST-NOT pass a gate; report the open questions and stop.
 - MAY read the repository and run `yass` commands at any stage.
 
 ## Stage 1 — Classify, out loud
@@ -30,7 +31,7 @@ State the class in one sentence before the first question, so the user can overr
   specs it reaches.
 - **Feature**: a root governs the directory. MUST read `yass list`, locate what the
   feature touches with `yass find` and `yass refs`, and `yass query` only those documents;
-  MUST-NOT open spec files by hand for what those commands serve. New behavior extends
+  MUST-NOT read spec files by hand for what those commands serve. New behavior extends
   existing specs before it adds new ones.
 - **Several independent subsystems** in one request: decompose first — name the pieces,
   their order, and the boundaries between them — then run this flow once per piece.
@@ -39,17 +40,18 @@ State the class in one sentence before the first question, so the user can overr
   from it, and ask the user only where it is ambiguous, self-contradictory, silent, or
   looks accidental — and then whether the spec pins that behavior or corrects it.
 
-When in doubt, take the larger class. Complexity found mid-flow upgrades the class;
-nothing downgrades it.
+When in doubt whether a request is several subsystems, decompose. Complexity found
+mid-flow means stop and decompose then; nothing shrinks a class once taken.
 
 ## Stage 2 — Establish intent
 
 - MUST know, before proposing anything: what the thing is for, who or what uses it, and
   what "done" observably looks like.
-- MUST ask one question per message. SHOULD offer choices with a recommended default
-  marked, so the user corrects rather than composes; WHEN the choice shapes the spec — a
-  wire format, a storage model, a dispatch structure — MUST, with two or three options
-  and their trade-offs.
+- MUST put one decision per message to the user, and batch what the request or the
+  repository already answers as proposed defaults for them to correct. SHOULD offer
+  choices with a recommended default marked, so the user corrects rather than composes;
+  WHEN the choice shapes the spec — a wire format, a storage model, a dispatch structure
+  — MUST present two or three options and their trade-offs.
 - MUST then write the understanding back in a few lines, separating what the user said
   from what was assumed.
 
@@ -57,9 +59,10 @@ nothing downgrades it.
 
 - MUST read `yass docs guidance` first: it owns the edge cases this stage asks about, and
   this document does not restate them. Section names below are its.
-- Interview by slot, for each spec the set will hold, one slot per message: propose every
-  answer with a marked default and let the user correct in one reply. Every answer becomes
-  an obligation.
+- Interview by slot, for each spec the set will hold: propose every answer with a marked
+  default and let the user correct in one reply, one slot per message where the user must
+  decide and batched where the request, the repository, or the code already answers.
+  Every answer becomes an obligation.
   - **INPUT** — the forms accepted; for a closed set, the out-of-set and missing cases
     (*Closed-set dispatch*); for split input, every boundary (*Input segmentation*).
   - **RETURN** — what is yielded, in its exact shape: format, ordering, numbering, and
@@ -92,9 +95,9 @@ nothing downgrades it.
 
 ## Stage 6 — Hand off
 
-- WHEN the user approves the spec set: MUST stop. Report where the root is and, WHEN
-  there is code to write, how to begin: an implementing agent starts fresh in the project
-  directory, runs `yass`, and builds what the spec set describes.
+- WHEN the user approves the spec set: report where the root is and, WHEN there is code
+  to write, how to begin — an implementing agent starts fresh in the project directory,
+  runs `yass`, and builds what the spec set describes — then MUST stop.
 - Implementing here is a new request. WHEN the user makes it: MUST work from the spec set
   through `yass query`, not from memory of this conversation — a gap that surfaces there
   is a spec defect to fix, not a gap to fill silently.
