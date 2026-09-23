@@ -44,8 +44,9 @@ const overviewReading = `read a spec set
   yass validate                check the files against the language definition
   yass lint                    report graph hygiene`
 
-const overviewWriting = `elicit, write, or change a spec
-  yass docs                    index the language documents carried in this program
+const overviewWriting = `elicit, write, or change a spec with the user
+  yass docs brainstorming      the dialogue that turns their request into a spec set
+  yass docs                    index every language document carried in this program
   yass docs NAME               write one of those documents whole`
 
 const overviewSpending = `Read a carried document when you are eliciting, writing, or changing a spec, not when
