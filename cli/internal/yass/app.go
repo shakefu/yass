@@ -18,7 +18,7 @@ const synopsis = `usage: yass [-C DIR] [--version] [--help] [SUBCOMMAND [ARGS...
   refs [--in] [--out] TARGET     report the reference edges of one document
   validate [PATH...]             check files against the yass language definition
   lint [PATH...]                 report graph hygiene of the project
-  docs [NAME]                    index the carried language documents, or write one
+  docs [NAME]                    index the carried documents, or write one
   update                         replace this binary with the newest release
 
   -C DIR                         start path resolution and root discovery at DIR
