@@ -38,7 +38,7 @@ Run
     refs [--in] [--out] TARGET     report the reference edges of one document
     validate [PATH...]             check files against the yass language definition
     lint [PATH...]                 report graph hygiene of the project
-    docs [NAME]                    index the carried language documents, or write one
+    docs [NAME]                    index the carried documents, or write one
     update                         replace this binary with the newest release
 
   Global options are written before the subcommand token; a subcommand's own
@@ -76,8 +76,8 @@ Examples, run from this directory
   above it (the yass language definition). Each has its own root.yass.yaml, so
   `yass` run from either sees only that project's files.
 
-Carried language documents
---------------------------
+Carried documents
+-----------------
 
   `yass docs` indexes the documents that are authoritative for the yass
   language and for writing specs in it, each with the task that earns reading

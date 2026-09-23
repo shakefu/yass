@@ -52,7 +52,7 @@ INPUT:
   MUST: dispatch to the command that reports graph hygiene
   SEE: 09-lint@Lint
 - WHEN: "the subcommand is `docs`"
-  MUST: dispatch to the command that indexes the carried language documents and writes one
+  MUST: dispatch to the command that indexes the carried documents and writes one
   SEE: 10-docs@Docs
 - WHEN: "the subcommand is `update`"
   MUST: dispatch to the command that replaces this program's installed binary with the newest release

@@ -95,8 +95,8 @@ works with any agent that can run a shell command.
    - **Implementing a spec that exists** — the agent reads the spec set through
      `yass`, one document at a time rather than whole files, and builds what it
      says.
-   - **Changing a spec** — the agent reads the language documents carried inside
-     the binary (`yass docs`), edits the spec files, and checks them with
+   - **Changing a spec** — the agent reads the documents carried inside the
+     binary (`yass docs`), edits the spec files, and checks them with
      `yass validate` and `yass lint`.
 
 3. **Review the spec first.** It is the contract the code is built against, so
@@ -110,10 +110,10 @@ current directory sits in, the notation a spec file uses, the commands that
 read a spec set, and the flow that elicits a new one — enough to start without
 opening a single file by hand.
 
-The language documents are carried inside the binary and served by `yass docs`,
-so they travel with it wherever it is installed. Read one when you are
-eliciting, writing, or changing a spec; implementing against specs that already
-exist needs none of them.
+The documents that define the language and how to write specs in it are
+carried inside the binary and served by `yass docs`, so they travel with it
+wherever it is installed. Read one when you are eliciting, writing, or changing
+a spec; implementing against specs that already exist needs none of them.
 
 ## License
 
