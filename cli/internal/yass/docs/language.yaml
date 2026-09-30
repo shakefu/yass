@@ -207,7 +207,9 @@ ERROR:
 - MUST: be rejected when it carries neither a Normativity keyword nor a Reference
 - MUST: be rejected when it carries a Guard but no Normativity keyword
   SEE: Guard
-- MUST: be rejected when its value at a scalar position is a YAML mapping, sequence, or null as resolved by the YAML 1.2 core schema; an absent value, unquoted null, or unquoted ~ is null, whereas a quoted empty string is a string
+- MUST: be rejected when its value at a scalar position is a YAML mapping,
+    sequence, or null as resolved by the YAML 1.2 core schema; an absent value,
+    unquoted null, Null, NULL, or ~ is null, whereas a quoted empty string is a string
 - MUST: be rejected when it carries more than one distinct Normativity keyword
   SEE: Normativity
 INVARIANT:
