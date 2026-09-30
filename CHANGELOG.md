@@ -2,6 +2,14 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.4.2 - 2026-09-30
+#### Bug Fixes
+- clarify obligation null and normativity rules - (ce76098) - Jacob Alheid
+#### Documentation
+- address obligation rule review feedback - (7d0a4fd) - Jacob Alheid
+
+- - -
+
 ## v0.4.1 - 2026-09-23
 #### Bug Fixes
 - (**cli**) call the corpus index every carried document, not every language one - (5dc2795) - Claude, *Claude Fable 5.1*
