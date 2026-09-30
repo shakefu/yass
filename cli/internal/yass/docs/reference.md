@@ -159,9 +159,9 @@ An obligation is a **YAML mapping** (a list item under a slot):
 - **References** (optional) — `CONFORMS` / `USES` / `SEE`, each at most once per
   obligation, value = a **single** ref-target string.
 - **Scalar values** — mappings, sequences, and YAML 1.2 core-schema nulls are rejected.
-  An absent value, unquoted `null`, and unquoted `~` resolve to null; quoted empty
-  strings and quoted `"null"` or `"~"` remain strings. Resolve YAML tags before
-  checking this rule rather than testing only the scalar text.
+  An absent value and unquoted `null`, `Null`, `NULL`, or `~` resolve to null;
+  quoted empty strings and quoted `"null"` or `"~"` remain strings. Resolve YAML tags
+  before checking this rule rather than testing only the scalar text.
 - **Ref-only** — a mapping with one or more relation keys and **no** normativity keyword
   and **no** `WHEN`. Allowed; it adds no obligation of its own and resolves per its
   relation (a **slot-targeted** `CONFORMS` transcludes; a whole-spec `CONFORMS` stays in
