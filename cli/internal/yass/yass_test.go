@@ -915,6 +915,35 @@ func TestValidateCodes(t *testing.T) {
 	}
 }
 
+func TestValidateObligationScalarResolution(t *testing.T) {
+	dir := project(t)
+	for _, c := range []struct {
+		name, value string
+		null        bool
+	}{
+		{"absent", "", true},
+		{"null", "null", true},
+		{"null-title", "Null", true},
+		{"null-upper", "NULL", true},
+		{"tilde", "~", true},
+		{"empty-double", `""`, false},
+		{"empty-single", "''", false},
+		{"quoted-null", `"null"`, false},
+		{"quoted-tilde", `"~"`, false},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			write(t, dir, "scalar.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\nspec: A\nINPUT:\n- MUST: "+c.value+"\n")
+			codes := validateCodes(t, dir, "scalar.yass.yaml")
+			if got := contains(codes, "yass.obligation.not_scalar"); got != c.null {
+				t.Fatalf("codes = %v, want null rejection = %v", codes, c.null)
+			}
+			if !c.null && len(codes) != 0 {
+				t.Fatalf("quoted string rejected: %v", codes)
+			}
+		})
+	}
+}
+
 func TestValidateRootSpecCount(t *testing.T) {
 	dir := t.TempDir()
 	write(t, dir, "root.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n")
