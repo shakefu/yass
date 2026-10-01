@@ -128,19 +128,17 @@ or `SIDE-EFFECT` is suitable. It exists so always-true constraints are not force
 
 In the `ERROR` slot specifically, a **guarded** obligation (with `WHEN`) names one
 specific failure mode, and a **guard-less** obligation is the **residual** — the policy
-for any failure not matched by a guarded obligation in the same slot. State a residual
-whenever a spec rejects anything; but a foreseeable, named failure with its own
-observable outcome (a distinct error code, message, or exit status) belongs in its own
-guarded obligation, never folded into the residual. A residual is meaningful only when
-the guards leave inputs unmatched: if the guarded obligations already account for every
-input, the residual set is empty and a guard-less catch-all is **dead** — it can never
-fire. Do not state one; assert the exhaustiveness instead.
+for any failure not matched by a guarded obligation in the same slot. A residual is
+meaningful only when the guards leave inputs unmatched: if the guarded obligations
+already account for every input, the residual set is empty and a guard-less catch-all
+is **dead** — it can never fire, and MUST-NOT be carried.
 
 The residual discipline generalizes beyond `ERROR`: whenever a slot branches on a
 **closed set of values** — most commonly an `INPUT` that dispatches on a subcommand,
 mode, or enum — it must state the behavior for a value outside that set, or one that is
 missing. The residual is to a dispatch what the guard-less catch-all is to the error
-table.
+table. (The draft-time pass that walks every such case — closed sets, guards,
+segmentation boundaries, failures, trusted inputs: see GUIDANCE, *Case coverage*.)
 
 When a spec describes something that is not a function (e.g. the language defining
 itself), read the function-shaped slots structurally: `INPUT` = the form a thing takes,
@@ -242,7 +240,7 @@ An obligation is a **YAML mapping** (a list item under a slot):
   is the structural anchor for a pipeline or producer/consumer relationship. It does
   **not** by itself decide the trust boundary — which of the producer's guarantees the
   consumer relies on versus re-checks is the consuming spec's own obligation to state
-  (see GUIDANCE, *Composition*). That obligation includes the **residual on violation**: for each
+  (see GUIDANCE, *Composition* and *Case coverage*). That obligation includes the **residual on violation**: for each
   guarantee the consumer relies on without re-validating, the consuming spec must also
   state what it does if that guarantee does not hold — even if only to declare the
   behavior unspecified. Stating the trust without pinning its violation leaves every
