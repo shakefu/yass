@@ -63,16 +63,16 @@ mid-flow means stop and decompose then; nothing shrinks a class once taken.
   default and let the user correct in one reply, one slot per message where the user must
   decide and batched where the request, the repository, or the code already answers.
   Every answer becomes an obligation.
-  - **INPUT** — the forms accepted; for a closed set, the out-of-set and missing cases
-    (*Closed-set dispatch*); for split input, every boundary (*Input segmentation*).
+  - **INPUT** — the forms accepted; for a closed set, the out-of-set and missing
+    cases; for split input, every boundary (*Case coverage*).
   - **RETURN** — what is yielded, in its exact shape: format, ordering, numbering, and
     what an empty result looks like.
   - **ERROR** — each foreseeable failure with its observable outcome, then the residual
-    or the exhaustiveness that replaces it (*Error obligations*).
+    or the exhaustiveness that replaces it (*Case coverage*).
   - **SIDE-EFFECT** — what changes outside the return, and what MUST-NOT change.
   - **INVARIANT** — only what fits none of the above.
   - **Boundaries** — WHEN one spec consumes what another produces: what is trusted, what
-    is re-checked, and what happens on violation (*Composition*).
+    is re-checked, and what happens on violation (*Composition*, *Case coverage*).
   - **Constraints that are not behavior** — stack, algorithm, startup order: a `design:`
     block bound with `USES` (*The root file*).
 
@@ -89,8 +89,8 @@ mid-flow means stop and decompose then; nothing shrinks a class once taken.
 - MUST put every spec document in front of the user and ask whether it is right: in
   chat, a short file whole and a long one spec by spec; or, WHEN the set is large or the
   work lives on a branch, as a pushed diff reviewed there.
-- Before showing, MUST check what the tools cannot: an obligation with two readings, two
-  that contradict, a residual *Error obligations* forbids. Fix, then show.
+- Before showing, MUST apply guidance's *Case coverage* pass to the draft and check what
+  the tools cannot: an obligation with two readings, two that contradict. Fix, then show.
 - The user's corrections go back into the files. Re-run validate and lint after each.
 
 ## Stage 6 — Hand off
