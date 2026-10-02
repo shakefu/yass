@@ -206,6 +206,21 @@ checks are the discipline those rules generalize.
    independently rejected a guard-less error obligation as unreachable, several
    citing the spec's own well-formed/malformed invariant).
 
+   Reachability is judged within the component's declared input contract,
+   not the composed program. A guarded failure another component prevents
+   in this composition is **shadowed**, not dead: it stays, its prose
+   states the preventing guarantee or check and names the spec that owns
+   it (`CONFORMS` if that contract binds this component, `SEE` to point),
+   and *Trusted inputs* still applies to the violation side. A **dead**
+   obligation contributes no behavior within its owning contract — the
+   guard-less residual over an empty remainder above; that prohibition is
+   specific to guard-less `ERROR` — and is removed or revised. Apparent
+   shadowing may instead reveal redundancy, a contradiction, or a
+   mistaken reading: verify each claim. Obligation order settles nothing
+   — state the shadowing explicitly, never by list position. For review
+   and testing, exercise a component policy at the component boundary; an
+   end-to-end input bypassing upstream validation is not required.
+
 5. **Trusted inputs** (`INPUT`). For each guarantee from a producing spec that
    the consumer relies on without re-validating — *Composition* covers naming
    the producer and the trust boundary — state what the consumer does if that
