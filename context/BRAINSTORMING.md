@@ -89,8 +89,9 @@ mid-flow means stop and decompose then; nothing shrinks a class once taken.
 - MUST put every spec document in front of the user and ask whether it is right: in
   chat, a short file whole and a long one spec by spec; or, WHEN the set is large or the
   work lives on a branch, as a pushed diff reviewed there.
-- Before showing, MUST apply guidance's *Case coverage* pass to the draft and check what
-  the tools cannot: an obligation with two readings, two that contradict. Fix, then show.
+- Before showing, MUST apply guidance's *Case coverage* pass and its *Implementer view*
+  rehearsal to the draft and check what the tools cannot: an obligation with two readings,
+  two that contradict. Fix, then show.
 - The user's corrections go back into the files. Re-run validate and lint after each.
 
 ## Stage 6 — Hand off
@@ -98,6 +99,8 @@ mid-flow means stop and decompose then; nothing shrinks a class once taken.
 - WHEN the user approves the spec set: report where the root is and, WHEN there is code
   to write, how to begin — an implementing agent starts fresh in the project directory,
   runs `yass`, and builds what the spec set describes — then MUST stop.
+- Before handing off, MUST re-apply guidance's *Implementer view* rehearsal to the
+  approved set and fix and re-show whatever it surfaces.
 - Implementing here is a new request. WHEN the user makes it: MUST work from the spec set
   through `yass query`, not from memory of this conversation — a gap that surfaces there
   is a spec defect to fix, not a gap to fill silently.

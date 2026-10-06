@@ -234,6 +234,44 @@ The finishing question: **can a reader locate the contractual disposition of
 every case this pass identified?** Defined behavior, an explicitly permitted
 choice, and a stated "unspecified" all count; silence does not.
 
+## Implementer view: read the set as its implementer
+
+The implementing agent starts cold and holds the set only through `yass query`. Before
+showing a draft and again before handing the set off, the authoring agent MUST rehearse
+that view: query every spec and implement from the fragment — the queried spec with
+slot-targeted `CONFORMS` obligations spliced in front of their carriers
+(provenance-commented, guards conjoined) and `USES` design blocks appended. Whole-spec
+`CONFORMS` and `SEE` are not transcluded: they remain references out of the fragment,
+and following them the way a cold reader would is part of the pass. Wherever the only
+honest answer is a guess, the set is defective — fix the spec, not the implementer's
+imagination.
+
+*Case coverage* works from the author's map of decisions; the rehearsal works from the
+artifact a cold implementer holds, and that vantage has gap classes of its own:
+
+- **A policy named but never stated** — "library defaults when the policy is absent,"
+  with no default anywhere in the set. Naming a policy is a promise; state the value.
+- **A value used but never defined** — a named directory, a content type, a path, a
+  token appearing in several fragments and defined in none.
+- **A named seam with no shape** — an extension point three specs accept and none
+  constructs: nothing tells the implementer what building it requires.
+- **A rule gap at a boundary** — a case each side of an interface assumes the other
+  owns, so no spec disposes of it: what validation rejects up front versus what only
+  the call can know, and what happens then.
+
+*Case coverage*'s own classes — a classification with no vocabulary, an uncovered
+failure, an unstated trust boundary — still apply as written; the fragment view is
+where their misses surface.
+
+Read the transclusions as the consumer will hold them: a slot-targeted `CONFORMS`
+inherits the producer's whole slot, so a `RETURN` mixing data guarantees with
+assertions hands the consumer misleading obligations under the producer's provenance.
+Confirm each guard-less residual the fragment view exposes can fire — *Case coverage*'s
+**Failures** check applies to every one.
+
+The dress rehearsal: what cannot be implemented from the fragment and the contracts it
+points to cannot be implemented from the set.
+
 ## Open: emergent guidance
 
 As the specs get used, more steerage will surface (placeholder conventions, naming,
