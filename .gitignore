@@ -3,3 +3,6 @@
 
 # release build artifacts (script/build)
 /dist/
+
+# mdBook build output
+/docs/book/

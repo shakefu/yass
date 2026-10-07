@@ -8,10 +8,11 @@ YAML specification language and a read-only Go CLI for serving specs to coding a
 - `yass.v1.schema.json`: derived editor-validation schema; keep consistent with the language.
 - `root.yass.yaml`: repository spec root; `cli/`: separate spec project and Go module with implementation and tests (see its index).
 - `context/`: language guides and provisional research in `context/experiment/`; `experiment/`: active-run workspace, currently a placeholder (see their indexes).
+- `docs/`: mdBook site published to GitHub Pages (see its index); chapters `{{#include}}` the authoritative `context/` documents and the workflow hosts `yass.v1.schema.json` at the site root.
 - `GOAL.md`: experiment method only; its cold-start bar does not govern the language.
 - `install.sh`: curl-able release installer (README's Install section documents it); `Formula/yass.rb`: Homebrew formula, regenerated per release by `script/gen-formula` — never edit it by hand.
 - `script/agent`: headless model experiment runner; `script/build [version]`: cross-platform release archives in `dist/`; `script/gen-formula [version]`: formula from `dist/checksums.txt` (both are cog pre-bump hooks).
-- `.github/workflows/`: CI, pre-commit, conventional-commit checks, and releases; `.common-repo.yaml`: inherited release configuration; `cog.toml`: release build hook.
+- `.github/workflows/`: CI, pre-commit, conventional-commit checks, releases, and the `docs.yaml` mdBook/Pages deploy; `.common-repo.yaml`: inherited release configuration; `cog.toml`: release build hook.
 
 ## Development
 
