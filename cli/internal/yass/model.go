@@ -99,7 +99,7 @@ const SpecSuffix = ".yass.yaml"
 const RootBasename = "root.yass.yaml"
 
 // Modeline is the schema modeline lint expects as a file's first line.
-const Modeline = "# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json"
+const Modeline = "# yaml-language-server: $schema=https://shakefu.github.io/yass/v1.schema.json"
 
 // File is one loaded spec file: either its parsed documents or a parse
 // failure, never both and never neither.

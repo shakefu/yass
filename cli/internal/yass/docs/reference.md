@@ -11,7 +11,7 @@ consumes them to drive test (TDD) and implementation generation.
 - Read as UTF-8.
 - SHOULD carry the schema modeline as its first line, so editors validate against the
   JSON Schema with no per-repo config:
-  `# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json`
+  `# yaml-language-server: $schema=https://shakefu.github.io/yass/v1.schema.json`
 
 ## Project root (`root.yass.yaml`)
 
