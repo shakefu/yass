@@ -2,6 +2,17 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.4.3 - 2026-10-07
+#### Bug Fixes
+- <span style="background-color: #d73a49; color: white; padding: 2px 6px; border-radius: 3px; font-weight: bold; font-size: 0.85em;">BREAKING</span>replace hallucinated textla.dev schema URL with GitHub Pages - (b3296ca) - Jacob Alheid, *Devin*
+#### Documentation
+- (**guidance**) pre-handoff implementer-view review pass - (1e0dd6f) - Jacob Alheid
+- (**guidance**) distinguish dead from shadowed error conditions - (ae342f3) - Jacob Alheid
+- (**guidance**) consolidate case-coverage rules into a checklist pass - (55d4f6a) - Jacob Alheid, *Devin*
+- (**site**) publish mdBook site and JSON schema to GitHub Pages - (a4871c4) - Jacob Alheid, *Devin*
+
+- - -
+
 ## v0.4.2 - 2026-09-30
 #### Bug Fixes
 - clarify obligation null and normativity rules - (ce76098) - Jacob Alheid
