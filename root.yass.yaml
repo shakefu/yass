@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+# yaml-language-server: $schema=https://shakefu.github.io/yass/v1.schema.json
 ---
 description: >
   The root file of this project, so the directory holding it is the project root. Its one

@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+# yaml-language-server: $schema=https://shakefu.github.io/yass/v1.schema.json
 ---
 description: >
   The `yass overview` subcommand, and the answer to an invocation carrying no subcommand at

@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json
+# yaml-language-server: $schema=https://shakefu.github.io/yass/v1.schema.json
 ---
 description: >
   The graph-hygiene subcommand. `yass lint` reports what is well formed but wrong about a
@@ -39,7 +39,7 @@ RETURN:
 - MUST: count a reference edge toward reachability regardless of its relation, so CONFORMS, USES, and SEE weigh the same
   CONFORMS: ../yass@Root::INVARIANT
 - MUST-NOT: emit yass.lint.unreachable for the root file's own spec, since it is the origin of the chain rather than a member of it
-- WHEN: "a file's first line is not the schema modeline `# yaml-language-server: $schema=https://textla.dev/yass/v1.schema.json`"
+- WHEN: "a file's first line is not the schema modeline `# yaml-language-server: $schema=https://shakefu.github.io/yass/v1.schema.json`"
   MUST: emit code yass.lint.modeline, since an editor then validates the file against no schema
 - WHEN: a spec declares a slot whose obligation list is empty
   MUST: emit code yass.lint.slot_empty naming the spec and the slot
