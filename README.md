@@ -6,6 +6,9 @@ drive TDD and implementation generation.
 
 > 🚧 Early work in progress.
 
+Read the [documentation](https://shakefu.github.io/yass/) for installation,
+a CLI quick start, command examples, and workflows for working with coding agents.
+
 ## What's here
 
 - [`yass.yass.yaml`](./yass.yass.yaml) — the yass language defined in yass itself.

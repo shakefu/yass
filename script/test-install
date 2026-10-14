@@ -93,6 +93,48 @@ else
 $out"
 fi
 
+# Equals spellings select the verified release and preserve a directory with spaces.
+bin="$work/equals bin"
+run_install --version=9.9.9 --bin-dir="$bin"
+if [ "$status" -eq 0 ] && [ -x "$bin/yass" ] &&
+	[ "$("$bin/yass" --version)" = "yass 9.9.9 v1 (linux_amd64)" ]; then
+	ok "accepts equals spellings and a directory with spaces"
+else
+	bad "accepts equals spellings and a directory with spaces: status=$status
+$out"
+fi
+
+# The documented env vars work without options.
+bin="$work/env-bin"
+YASS_VERSION=v9.9.9 YASS_BIN_DIR="$bin" run_install
+if [ "$status" -eq 0 ] && [ -x "$bin/yass" ] &&
+	[ "$("$bin/yass" --version)" = "yass 9.9.9 v1 (linux_amd64)" ]; then
+	ok "accepts version and directory environment variables"
+else
+	bad "accepts version and directory environment variables: status=$status
+$out"
+fi
+
+# Both option spellings override incompatible env defaults rather than using them.
+for spelling in spaced equals; do
+	bin="$work/override-$spelling"
+	env_bin="$work/unused-$spelling"
+	if [ "$spelling" = spaced ]; then
+		YASS_VERSION=1.0.0-nosuch YASS_BIN_DIR="$env_bin" \
+			run_install --version v9.9.9 --bin-dir "$bin"
+	else
+		YASS_VERSION=1.0.0-nosuch YASS_BIN_DIR="$env_bin" \
+			run_install --version=v9.9.9 --bin-dir="$bin"
+	fi
+	if [ "$status" -eq 0 ] && [ -x "$bin/yass" ] && [ ! -e "$env_bin" ] &&
+		[ "$("$bin/yass" --version)" = "yass 9.9.9 v1 (linux_amd64)" ]; then
+		ok "$spelling options override environment variables"
+	else
+		bad "$spelling options override environment variables: status=$status
+$out"
+	fi
+done
+
 # A bare version with no leading v selects the same release.
 bin="$work/bin2"
 run_install --version 9.9.9 --bin-dir "$bin"
