@@ -35,8 +35,7 @@ The language reference, authoring guidance, and brainstorming chapters are
 ```
 
 This refreshes and verifies the corpus embedded in the CLI. Do not edit
-`cli/internal/yass/docs/` directly. Experiment documents and `cli/notes.md` are
-working material and are not user documentation.
+`cli/internal/yass/docs/` directly.
 
 Before submitting a change, build the book, inspect its rendered pages and
 navigation, and run `prek run --all-files`. For installer examples, also run

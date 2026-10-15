@@ -19,13 +19,6 @@ codebase. To prevent that:
 - **One spec definition per public symbol or endpoint.** Each public function, method,
   class, or endpoint gets its own `spec:` document.
 
-Candidate phrasing as a *future* meta-rule (deliberately NOT in the self-defining
-`yass.yass.yaml` — the generalized language definition is not the place for code-authoring
-steerage):
-
-    WHEN: the spec defines code behavior
-    MUST: maintain one spec file per code file, and one spec definition per public symbol
-
 ## The root file: say what the project is, first
 
 `root.yass.yaml` is required, and it is the **first file a reader opens** — the entry
@@ -92,16 +85,6 @@ Two levels of ordering are at play:
 - **Intra-file ordering** — within a single spec file. The YAML document stream is
   ordered; spec documents earlier in the file should be implemented before later ones.
 
-Candidate phrasing (not yet a meta-rule):
-
-    WHEN: the spec defines code behavior
-    SHOULD: order spec documents in implementation sequence, both across files
-            (via naming convention) and within files (via document position)
-
-Note: this is emergent guidance from early usage — not yet formalized. A second pass on
-spec revisions may promote it to a meta-rule or refine the conventions. Captured here so
-it isn't lost.
-
 ## Composition: dataflow and cross-cutting concerns across specs
 
 Specs describe components one at a time, but real programs are wired together. Two gaps
@@ -152,8 +135,7 @@ checks are the discipline those rules generalize.
    value, an unrecognized value, and absence: if the enumerated set is
    `{tally, grade, pack}`, say what the program does with `harvest`, and with
    no command at all. Otherwise each implementer invents the out-of-set
-   handling — observed in practice as different exit codes and different
-   diagnostics for the same input. A reader must never have to deduce the
+   handling. A reader must never have to deduce the
    residual case from the enumerated ones.
 
 2. **Conditional behavior** (any slot). For each `WHEN` guard, determine what
@@ -202,9 +184,7 @@ checks are the discipline those rules generalize.
    rejected by a named guard or accepted as well-formed — state that
    exhaustiveness and omit the residual: a residual over an empty remainder is
    dead and can never fire, and asserting one alongside an exhaustive partition
-   is a contradiction careful readers flag (all four panel models once
-   independently rejected a guard-less error obligation as unreachable, several
-   citing the spec's own well-formed/malformed invariant).
+   is a contradiction.
 
    Reachability is judged within the component's declared input contract,
    not the composed program. A guarded failure another component prevents
@@ -226,9 +206,7 @@ checks are the discipline those rules generalize.
    the producer and the trust boundary — state what the consumer does if that
    guarantee is violated, even if only to declare the behavior unspecified.
    Pointing at the producer's contract does not discharge this: the contract
-   says what should arrive, not what the consumer does when it doesn't
-   (observed: three of four models silently invented how a consumer counts and
-   classifies an out-of-contract input line).
+   says what should arrive, not what the consumer does when it doesn't.
 
 The finishing question: **can a reader locate the contractual disposition of
 every case this pass identified?** Defined behavior, an explicitly permitted
@@ -271,9 +249,3 @@ Confirm each guard-less residual the fragment view exposes can fire — *Case co
 
 The dress rehearsal: what cannot be implemented from the fragment and the contracts it
 points to cannot be implemented from the set.
-
-## Open: emergent guidance
-
-As the specs get used, more steerage will surface (placeholder conventions, naming,
-when to split a spec, etc.). Collect it here until it earns a permanent home — either
-as a language meta-rule or as stable authoring documentation.

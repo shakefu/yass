@@ -264,11 +264,7 @@ Fixed-meaning keywords are written **UPPERCASE**; content-bearing field keys are
 
 Rationale: it mirrors the RFC 2119 uppercase-keyword convention already used for
 normativity, unifies the structural vocabulary as one visually distinct layer, and
-disambiguates homographs (`RETURN` the slot vs. "return" the word). The disambiguation
-is a contextual/attention effect, not a separate token; uppercase common words also tend
-to tokenize into distinct sub-tokens, but treat that as a minor bonus, not the
-justification. (Token cost is measurable via Anthropic's `count_tokens` endpoint, which
-returns counts but not boundaries.)
+disambiguates homographs (`RETURN` the slot vs. "return" the word).
 
 In the self-definition the rule is encoded once as the `Keyword` construct; slots,
 normativity, the `WHEN` guard, and relations declare `CONFORMS: Keyword` rather
@@ -285,7 +281,7 @@ than restating it.
 ## Footgun
 
 - Obligation prose containing `: ` (colon-space) mis-parses as a nested YAML mapping and
-  **must be quoted**. (Open: lint vs. require quoting / block scalars.)
+  **must be quoted**.
 
 ## Meta-rules (the spec *system*, distinct from in-spec obligations)
 
@@ -296,19 +292,17 @@ than restating it.
 - The `.yass.yaml` file MUST conform to the format when written, and MUST be validatable by
   tooling.
 
-## Notes / open items
+## Resolution and scope
 
 - Resolution: a **slot-targeted** `CONFORMS` is inlined into the referencing spec (one level
-  in v1; cycles, transitive resolution, batching, and depth are deferred); a **whole-spec**
+  in v1); a **whole-spec**
   `CONFORMS` (no `::SLOT`) is not inlined — it is a conformance reference to the entire spec.
   `SEE` is a pure pointer, never inlined. `USES` appends its design block's typed content
   to the emitted fragment, once per block, with provenance.
-- Drift detection (content hashing) is deferred to a generated index.
 - Verification is out of scope — tooling routes/retrieves, never verifies obligation
   content (keeps it language-agnostic). A `COMPATIBLE` relation was deliberately
   excluded.
-- Necessary-condition guards (`ONLY WHEN` / `UNLESS`) are deferred; `WHEN` is sufficient
-  only.
+- `WHEN` states a sufficient condition only.
 - Extension: `.yass.yaml`, chosen over bare `.spec` after a collision
   review. Bare `.spec` is owned by RPM spec files / PyInstaller / Vim+Neovim filetype /
   GitHub Linguist / freedesktop MIME, and — decisively — a bare `.spec` never gets the
