@@ -6,4 +6,3 @@
 - `internal/yass/`: `cmd_*.go` implements commands; `load.go`, `model.go`, `locate.go`, `target.go`, `fileset.go` handle parsing and discovery; `emit.go`, `output.go`, `errors.go`, `exit.go` handle output and status.
 - `internal/yass/yass_test.go`, `internal/yass/update_test.go`: behavior, embedded-corpus sync, and self-update tests (the latter fake the release host; nothing touches the network); run `../script/test` from here.
 - `internal/yass/docs.go`, `internal/yass/docs/`: embedded language corpus; refresh source changes with `../script/sync-docs`, never edit copies or add agent files there.
-- `build-prompt.md`, `NOTES.md`: implementation exercise constraints and recorded ambiguities; specs remain normative.
