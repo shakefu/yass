@@ -54,16 +54,6 @@ func contains(set []string, s string) bool {
 	return false
 }
 
-// slotRank orders a slot name canonically; an unrecognized name sorts last.
-func slotRank(s string) int {
-	for i, v := range SlotNames {
-		if v == s {
-			return i
-		}
-	}
-	return len(SlotNames)
-}
-
 func relationRank(s string) int {
 	for i, v := range RelationNames {
 		if v == s {

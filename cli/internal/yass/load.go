@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"io"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -39,18 +38,6 @@ func newLoader(root string) *Loader {
 	return &Loader{root: root, files: map[string]*File{}}
 }
 
-// relOf renders an absolute path project-root-relative with `/` separators.
-func (l *Loader) relOf(abs string) string {
-	if l.root == "" {
-		return filepath.ToSlash(abs)
-	}
-	rel, err := filepath.Rel(l.root, abs)
-	if err != nil {
-		return filepath.ToSlash(abs)
-	}
-	return filepath.ToSlash(rel)
-}
-
 // Load reads and parses one file, returning the cached model when the file has
 // already been read this invocation. A read failure is an environment error.
 func (l *Loader) Load(abs string) (*File, error) {
@@ -59,17 +46,11 @@ func (l *Loader) Load(abs string) (*File, error) {
 	}
 	data, err := os.ReadFile(abs)
 	if err != nil {
-		return nil, unreadable(l.relOf(abs))
+		return nil, unreadable(relTo(l.root, abs))
 	}
-	f := parseBytes(abs, l.relOf(abs), data)
+	f := parseBytes(abs, relTo(l.root, abs), data)
 	l.files[abs] = f
 	return f, nil
-}
-
-// Loaded reports the already-loaded model for a path, if any.
-func (l *Loader) Loaded(abs string) (*File, bool) {
-	f, ok := l.files[abs]
-	return f, ok
 }
 
 func refOf(rel string) string { return strings.TrimSuffix(rel, SpecSuffix) }
