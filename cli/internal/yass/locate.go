@@ -26,25 +26,22 @@ func resolveStart(path, label string) (string, error) {
 	return real, nil
 }
 
-// discoverRoot yields the nearest directory at or above the starting path that
-// holds a file named exactly root.yass.yaml. A project root is located by that
-// name and by nothing else; the ascent never descends into a child directory
-// and never moves sideways.
+// discoverRoot yields the nearest directory at or above an already-resolved
+// absolute starting path that holds a file named exactly root.yass.yaml. A
+// project root is located by that name and by nothing else; the ascent never
+// descends into a child directory and never moves sideways. label is how the
+// path is named in a diagnostic.
 func discoverRoot(start, label string) (string, error) {
-	real, err := resolveStart(start, label)
-	if err != nil {
-		return "", err
-	}
-	info, err := os.Stat(real)
+	info, err := os.Stat(start)
 	if err != nil {
 		if os.IsPermission(err) {
 			return "", unreadable(label)
 		}
 		return "", missingPath(label)
 	}
-	dir := real
+	dir := start
 	if !info.IsDir() {
-		dir = filepath.Dir(real)
+		dir = filepath.Dir(start)
 	}
 	for {
 		candidate := filepath.Join(dir, RootBasename)

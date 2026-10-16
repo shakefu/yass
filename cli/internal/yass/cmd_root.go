@@ -13,7 +13,10 @@ func (a *App) cmdRoot() (int, error) {
 	target, label := startDir, a.Inv.StartDir
 	if len(a.Inv.Operands) == 1 {
 		label = a.Inv.Operands[0]
-		target = a.absPath(label)
+		target, err = resolveStart(a.absPath(label), label)
+		if err != nil {
+			return 0, err
+		}
 	}
 	root, err := discoverRoot(target, label)
 	if err != nil {
