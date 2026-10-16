@@ -4,6 +4,10 @@
 #
 # The CLI is a Go module rooted at cli/. This builds it and runs its tests,
 # after the shell-only installer tests, which need no toolchain.
+#
+# In CI a missing Go toolchain fails rather than skips: the release workflow
+# gates on the CI test job, and a skip would turn that gate green with no Go
+# tests run.
 
 set -euo pipefail
 
@@ -13,6 +17,10 @@ echo "==> install.sh + gen-formula"
 script/test-install
 
 if ! command -v go >/dev/null 2>&1; then
+  if [ -n "${CI:-}" ]; then
+    echo "script/test: go toolchain not found in CI; failing rather than skipping" >&2
+    exit 1
+  fi
   echo "script/test: go toolchain not found; skipping cli tests" >&2
   exit 0
 fi

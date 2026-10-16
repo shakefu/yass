@@ -5,7 +5,9 @@
 # Invoked by cocogitto's pre_bump_hooks (see cog.toml) during `cog bump`,
 # which passes the planned version as $1 ({{version}}). Also runnable
 # standalone: with no argument the version comes from `git describe`,
-# falling back to "dev".
+# falling back to "dev". The tag match excludes the floating major tag
+# (v0) the release workflow force-moves: `git describe` would otherwise
+# prefer it over the release tag and stamp version 0.
 #
 # Each target produces dist/yass_<version>_<os>_<arch>.tar.gz (.zip on
 # windows) holding a single binary stamped via -ldflags -X so that
@@ -26,7 +28,7 @@ PKG="github.com/shakefu/yass/cli/internal/yass"
 
 ver="${1:-${VERSION:-}}"
 if [[ -z "$ver" ]]; then
-	ver="$(git -C "$REPO_ROOT" describe --tags --dirty --always 2>/dev/null || echo dev)"
+	ver="$(git -C "$REPO_ROOT" describe --tags --match 'v[0-9]*.[0-9]*.[0-9]*' --dirty --always 2>/dev/null || echo dev)"
 fi
 ver="${ver#v}"
 
