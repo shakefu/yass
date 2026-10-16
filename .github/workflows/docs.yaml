@@ -29,6 +29,13 @@ env:
 
 jobs:
   build:
+    permissions:
+      contents: read
+      # pages: read is not required for public repos (the Pages metadata
+      # endpoint serves any authenticated token), but it insures the
+      # configure-pages call against transient throttling failures
+      # (actions/configure-pages#190).
+      pages: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
