@@ -2,6 +2,14 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.4.7 - 2026-10-17
+#### Bug Fixes
+- (**cli**) treat alias diamonds as renderable, not cyclic - (5569c33) - Jacob Alheid
+- (**cli**) stop cyclic alias graphs from crashing query emission - (30a2a01) - Jacob Alheid
+- (**cli**) keep query fragments well-formed and resolution honest - (0d15220) - Jacob Alheid
+
+- - -
+
 ## v0.4.6 - 2026-10-17
 #### Bug Fixes
 - (**cli**) keep list stdout empty until every file loads, filter findings to the answer, count only emitted documents - (77f3821) - Jacob Alheid
