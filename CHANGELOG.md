@@ -2,6 +2,20 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.4.4 - 2026-10-17
+#### Bug Fixes
+- (**install**) report broken installs, handle interrupts, unset HOME, piped help - (69a7c51) - Jacob Alheid
+#### Documentation
+- (**site**) add CLI guides and agent development workflows - (26844bb) - Jacob Alheid
+#### Continuous Integration
+- (**docs**) grant build job pages read as throttle insurance - (9681155) - Jacob Alheid
+- pin docs actions, scope Pages perms, require Go, fix v0 describe - (5be0702) - Jacob Alheid
+#### Miscellaneous Chores
+- (**cli**) remove unused code and redundant start-directory resolution - (49264d4) - Jacob Alheid
+- retire development experiments and clean up documentation - (0f7a0e4) - Jacob Alheid
+
+- - -
+
 ## v0.4.3 - 2026-10-07
 #### Bug Fixes
 - <span style="background-color: #d73a49; color: white; padding: 2px 6px; border-radius: 3px; font-weight: bold; font-size: 0.85em;">BREAKING</span>replace hallucinated textla.dev schema URL with GitHub Pages - (b3296ca) - Jacob Alheid, *Devin*
