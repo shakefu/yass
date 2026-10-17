@@ -217,6 +217,111 @@ else
 $out"
 fi
 
+# A directory already at the install target is refused rather than nested into.
+fake_uname "$SHIM" Linux x86_64
+bin="$work/dir-target"
+mkdir -p "$bin/yass"
+run_install --version v9.9.9 --bin-dir "$bin"
+if [ "$status" -ne 0 ] && printf '%s' "$out" | grep -q "is a directory" &&
+	[ ! -e "$bin/yass/yass" ]; then
+	ok "refuses a directory at the install target"
+else
+	bad "refuses a directory at the install target: status=$status
+$out"
+fi
+
+# A binary that installs but cannot execute fails the install rather than
+# reporting success. The fixture swaps in a binary whose interpreter does not
+# exist and regenerates its checksum line, so verification itself still passes.
+broken="$work/broken"
+cp -R "$FIXTURE" "$broken"
+btmp=$(mktemp -d)
+printf '#!/no/such/interpreter\n' >"$btmp/yass"
+chmod 0755 "$btmp/yass"
+btar="$broken/releases/download/v9.9.9/yass_9.9.9_linux_amd64.tar.gz"
+tar -czf "$btar" -C "$btmp" yass
+rm -rf "$btmp"
+if command -v sha256sum >/dev/null 2>&1; then
+	bsum=$(sha256sum "$btar" | cut -d' ' -f1)
+else
+	bsum=$(shasum -a 256 "$btar" | cut -d' ' -f1)
+fi
+awk -v a="yass_9.9.9_linux_amd64.tar.gz" -v s="$bsum" \
+	'$2 == a { print s "  " a; next } { print }' \
+	"$broken/releases/download/v9.9.9/checksums.txt" >"$broken/checksums.txt"
+mv "$broken/checksums.txt" "$broken/releases/download/v9.9.9/checksums.txt"
+bin="$work/broken-bin"
+repo="$broken" run_install --version 9.9.9 --bin-dir "$bin"
+if [ "$status" -ne 0 ] && printf '%s' "$out" | grep -q "does not run" &&
+	! printf '%s' "$out" | grep -q '^installed '; then
+	ok "fails when the installed binary cannot run"
+else
+	bad "fails when the installed binary cannot run: status=$status
+$out"
+fi
+
+# SIGINT during the download exits 130 through the EXIT cleanup instead of
+# continuing against the deleted temp directory. The curl shim delivers the
+# interrupt to the installer itself, the way a terminal delivers Ctrl-C to the
+# whole foreground process group, and dies as curl would.
+slowcurl="$work/slowcurl"
+mkdir -p "$slowcurl"
+cat >"$slowcurl/curl" <<-'EOF'
+	#!/bin/sh
+	kill -INT "$PPID"
+	exit 130
+	EOF
+chmod 0755 "$slowcurl/curl"
+intbin="$work/int-bin"
+capture env PATH="$SHIM:$slowcurl:$PATH" YASS_REPO_URL="file://$FIXTURE" \
+	sh "$REPO_ROOT/install.sh" --version v9.9.9 --bin-dir "$intbin"
+if [ "$status" -eq 130 ] && ! printf '%s' "$out" | grep -q "checksum mismatch" &&
+	[ ! -e "$intbin/yass" ]; then
+	ok "exits 130 on SIGINT during download and installs nothing"
+else
+	bad "exits 130 on SIGINT during download and installs nothing: status=$status
+$out"
+fi
+
+# With no --bin-dir and an unwritable /usr/local/bin, an unset HOME is a clear
+# failure rather than a raw set -u abort. Skipped where /usr/local/bin is
+# writable (root), because that branch never reaches HOME.
+if [ -w /usr/local/bin ]; then
+	ok "skips the unset-HOME case (/usr/local/bin is writable here)"
+else
+	capture env -u HOME PATH="$SHIM:$PATH" YASS_REPO_URL="file://$FIXTURE" \
+		sh "$REPO_ROOT/install.sh" --version v9.9.9
+	if [ "$status" -ne 0 ] && printf '%s' "$out" | grep -q "HOME is unset"; then
+		ok "fails clearly when HOME is unset and /usr/local/bin is not writable"
+	else
+		bad "fails clearly when HOME is unset and /usr/local/bin is not writable: status=$status
+$out"
+	fi
+fi
+
+# The documented piped invocation has no install.sh on disk to read; the
+# embedded usage makes `curl … | sh -s -- --help` print the real header.
+capture sh -s -- --help <"$REPO_ROOT/install.sh"
+if [ "$status" -eq 0 ] && printf '%s' "$out" | grep -q -- '--version TAG' &&
+	printf '%s' "$out" | grep -q 'YASS_REPO_URL'; then
+	ok "prints usage for a piped --help"
+else
+	bad "prints usage for a piped --help: status=$status
+$out"
+fi
+
+# The embedded usage and the file header are the same text, so repo browsers
+# and --help readers cannot drift apart. The header is the comment block
+# between the shebang and the first blank line.
+capture sh "$REPO_ROOT/install.sh" --help
+header=$(awk 'NR == 1 { next } /^$/ { exit } { print }' "$REPO_ROOT/install.sh")
+if [ "$status" -eq 0 ] && [ "$out" = "$header" ]; then
+	ok "keeps --help identical to the file header"
+else
+	bad "keeps --help identical to the file header: status=$status
+$out"
+fi
+
 echo "==> script/gen-formula"
 
 # The generated formula carries the version and the published checksums.

@@ -30,6 +30,36 @@ fail() {
 	exit 1
 }
 
+# The usage text is embedded rather than extracted from "$0" because a piped
+# `curl … | sh` runs with $0 set to "sh". It must stay identical to the header
+# comment above; script/test-install compares the two.
+usage() {
+	cat <<-'EOF'
+	#
+	# install.sh — install a released yass binary without a Go toolchain.
+	#
+	#   curl -fsSL https://raw.githubusercontent.com/shakefu/yass/main/install.sh | sh
+	#
+	# Options (after `sh -s --` when piped):
+	#   --version TAG   install that release instead of the latest (v0.2.0 or 0.2.0)
+	#   --bin-dir DIR   install into DIR instead of the default
+	#   --help          write this header and exit
+	#
+	# Environment (each is overridden by the matching option):
+	#   YASS_VERSION    same as --version
+	#   YASS_BIN_DIR    same as --bin-dir
+	#   YASS_REPO_URL   repository base URL, for mirrors and tests
+	#                   (default https://github.com/shakefu/yass)
+	#
+	# The default install directory is /usr/local/bin when it is writable, and
+	# $HOME/.local/bin (created if absent) otherwise.
+	#
+	# The matching release archive for the host OS and architecture is downloaded,
+	# verified against the release's published sha256 checksums, and installed.
+	# Nothing is installed unless verification succeeds.
+	EOF
+}
+
 repo_url="${YASS_REPO_URL:-https://github.com/shakefu/yass}"
 version="${YASS_VERSION:-}"
 bin_dir="${YASS_BIN_DIR:-}"
@@ -55,7 +85,7 @@ while [ $# -gt 0 ]; do
 		shift
 		;;
 	--help | -h)
-		sed -n '2,24p' "$0" 2>/dev/null || say "see the header of install.sh"
+		usage
 		exit 0
 		;;
 	*)
@@ -122,7 +152,11 @@ base="${repo_url}/releases/download/${tag}"
 # --- download and verify --------------------------------------------------------
 
 tmp=$(mktemp -d)
-trap 'rm -rf "$tmp"' EXIT INT TERM
+# The signal traps exit through the EXIT cleanup; a handler that only removed
+# the directory would let the script continue against a deleted tmp.
+trap 'rm -rf "$tmp"' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 # The checksums come first: a release or platform the checksums cannot vouch
 # for is refused before the archive is spent on.
@@ -147,6 +181,8 @@ if [ -z "$bin_dir" ]; then
 	if [ -w /usr/local/bin ]; then
 		bin_dir=/usr/local/bin
 	else
+		[ -n "${HOME:-}" ] ||
+			fail "HOME is unset and /usr/local/bin is not writable; re-run with --bin-dir DIR"
 		bin_dir="${HOME}/.local/bin"
 	fi
 fi
@@ -154,9 +190,13 @@ mkdir -p "$bin_dir" || fail "cannot create ${bin_dir}"
 [ -w "$bin_dir" ] ||
 	fail "cannot write to ${bin_dir}; re-run with --bin-dir DIR or as a user who can"
 
+[ ! -d "${bin_dir}/yass" ] ||
+	fail "${bin_dir}/yass is a directory; remove it or re-run with --bin-dir DIR"
 install -m 0755 "${tmp}/yass" "${bin_dir}/yass" || fail "cannot install into ${bin_dir}"
 
-say "installed ${bin_dir}/yass ($("${bin_dir}/yass" --version))"
+v="$("${bin_dir}/yass" --version)" ||
+	fail "installed ${bin_dir}/yass does not run (wrong architecture or a noexec mount?)"
+say "installed ${bin_dir}/yass ($v)"
 
 case ":${PATH}:" in
 *":${bin_dir}:"*) ;;
