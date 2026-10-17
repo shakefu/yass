@@ -231,8 +231,9 @@ func aliasDiagnostic(target string, err error) error {
 }
 
 // emitNode renders an arbitrary node under a key, used for a preamble's or a
-// design's authored entries. seen holds the alias nodes being resolved above,
-// so a cyclic anchor graph stops at a diagnostic instead of recursing forever.
+// design's authored entries. seen holds the alias nodes on the resolution
+// path, so a cyclic anchor graph stops at a diagnostic instead of recursing
+// forever.
 func emitNode(out *[]string, indent, key string, n *yaml.Node, seen map[*yaml.Node]bool) error {
 	if n == nil {
 		*out = append(*out, indent+key+":")
@@ -240,7 +241,9 @@ func emitNode(out *[]string, indent, key string, n *yaml.Node, seen map[*yaml.No
 	}
 	if n.Kind == yaml.AliasNode && n.Alias != nil {
 		// An alias emits the value it names; the anchor's own spelling cannot
-		// survive into a standalone fragment.
+		// survive into a standalone fragment. seen is the path being resolved,
+		// not every alias visited: an anchored subtree is one shared node
+		// graph, so a second alias arm must re-walk its inner aliases.
 		if seen[n] {
 			return &cyclicAliasError{line: n.Line}
 		}
@@ -248,7 +251,9 @@ func emitNode(out *[]string, indent, key string, n *yaml.Node, seen map[*yaml.No
 			seen = map[*yaml.Node]bool{}
 		}
 		seen[n] = true
-		return emitNode(out, indent, key, n.Alias, seen)
+		err := emitNode(out, indent, key, n.Alias, seen)
+		delete(seen, n)
+		return err
 	}
 	switch n.Kind {
 	case yaml.ScalarNode:
@@ -290,7 +295,9 @@ func emitSeqItem(out *[]string, indent string, n *yaml.Node, seen map[*yaml.Node
 			seen = map[*yaml.Node]bool{}
 		}
 		seen[n] = true
-		return emitSeqItem(out, indent, n.Alias, seen)
+		err := emitSeqItem(out, indent, n.Alias, seen)
+		delete(seen, n)
+		return err
 	}
 	switch n.Kind {
 	case yaml.ScalarNode:

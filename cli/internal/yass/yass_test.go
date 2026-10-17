@@ -1093,6 +1093,23 @@ func TestQueryCyclicAliasIsDiagnostic(t *testing.T) {
 	}
 }
 
+// A shared anchored subtree reached more than once — at its own position and
+// through alias arms — is a diamond with a finite rendering, not a cycle.
+func TestQueryAliasedDiamondRenders(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "root.yass.yaml", modeline+"---\nversion: &d v1\ndescription: &base\n  v: *d\nx: *base\ny: *base\n---\nspec: R\nINPUT:\n- MUST: x\n  NOTE:\n  - &d leaf\n  - &g\n    v: *d\n  - *g\n  - *g\n")
+	file := run(dir, "query", "root")
+	wantStatus(t, file, ExitOK)
+	if n := strings.Count(file.stdout, "v: v1"); n != 3 {
+		t.Fatalf("an anchored subtree renders once directly and once per alias arm:\n%s", file.stdout)
+	}
+	doc := run(dir, "query", "root@R")
+	wantStatus(t, doc, ExitOK)
+	if n := strings.Count(doc.stdout, "v: leaf"); n != 3 {
+		t.Fatalf("two alias arms inside one value must both render:\n%s", doc.stdout)
+	}
+}
+
 // An in-file reference to a duplicated document name resolves to neither, and
 // the diagnostic names the carrying document and the reference target.
 func TestQueryDuplicateNameInFileRefResolvesToNeither(t *testing.T) {
