@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.4.6 - 2026-10-17
+#### Bug Fixes
+- (**cli**) keep list stdout empty until every file loads, filter findings to the answer, count only emitted documents - (77f3821) - Jacob Alheid
+
+- - -
+
 ## v0.4.5 - 2026-10-17
 #### Bug Fixes
 - (**cli**) resolve symlinked directory operands, stop cleaning target tokens, start -C files at their directory, treat bare dash as an option - (e71e3cc) - Jacob Alheid
