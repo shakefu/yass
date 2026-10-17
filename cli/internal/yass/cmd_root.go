@@ -8,7 +8,7 @@ func (a *App) cmdRoot() (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	a.StartDir = startDir
+	a.StartDir = startDirectory(startDir)
 
 	target, label := startDir, a.Inv.StartDir
 	if len(a.Inv.Operands) == 1 {

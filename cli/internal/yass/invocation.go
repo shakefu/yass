@@ -153,7 +153,7 @@ func scanGlobal(inv *Invocation, args []string) globalPhase {
 			inv.StartDir = args[i]
 		case strings.HasPrefix(a, "-C="):
 			inv.StartDir = a[len("-C="):]
-		case strings.HasPrefix(a, "-") && a != "-":
+		case strings.HasPrefix(a, "-"):
 			if g.err == nil {
 				g.err = unknownOption(a)
 			}
@@ -177,7 +177,7 @@ func parseSubcommandArgs(inv *Invocation, args []string) error {
 				endOfOptions = true
 				continue
 			}
-			if strings.HasPrefix(a, "-") && a != "-" {
+			if strings.HasPrefix(a, "-") {
 				name, value, hasValue := a, "", false
 				if eq := strings.Index(a, "="); eq >= 0 {
 					name, value, hasValue = a[:eq], a[eq+1:], true

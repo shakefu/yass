@@ -171,6 +171,9 @@ func TestArgumentErrors(t *testing.T) {
 		{[]string{"list", ""}, "yass.args.empty"},
 		{[]string{"find", ""}, "yass.args.empty"},
 		{[]string{"query", "--raw=yes", "a@Alpha"}, "yass.args.unknown_option"},
+		{[]string{"-"}, "yass.args.unknown_option"},
+		{[]string{"root", "-"}, "yass.args.unknown_option"},
+		{[]string{"query", "-"}, "yass.args.unknown_option"},
 	}
 	for _, c := range cases {
 		got := run(dir, c.args...)
@@ -244,6 +247,55 @@ func realpath(t *testing.T, p string) string {
 		t.Fatal(err)
 	}
 	return r
+}
+
+// The `-C=DIR` and `--slot=SLOT` equals spellings select the same value as the
+// spaced ones.
+func TestOptionEqualsValueForms(t *testing.T) {
+	dir := project(t)
+	var o, e bytes.Buffer
+	st := Main([]string{"-C=" + dir, "find", "--slot=RETURN", "goods"}, &o, &e)
+	wantStatus(t, result{o.String(), e.String(), st}, ExitOK)
+	if !strings.Contains(o.String(), "a@Beta") {
+		t.Fatalf("stdout = %q, want the RETURN obligation of a@Beta", o.String())
+	}
+}
+
+// An argument that is not valid UTF-8 rejects the vector rather than being
+// silently replaced.
+func TestNonUTF8ArgumentRejected(t *testing.T) {
+	dir := project(t)
+	var o, e bytes.Buffer
+	st := Main([]string{"-C", dir, "find", string([]byte{0xff, 0xfe})}, &o, &e)
+	wantStatus(t, result{o.String(), e.String(), st}, ExitUsage)
+	if !strings.Contains(e.String(), "yass.args.unknown_option") {
+		t.Fatalf("stderr = %q", e.String())
+	}
+}
+
+// A starting path that names a file begins at the directory holding it, so
+// operands and `./` target tokens resolve against that directory.
+func TestStartDirectoryFromCFile(t *testing.T) {
+	dir := project(t)
+	rootFile := filepath.Join(dir, "root.yass.yaml")
+	var o, e bytes.Buffer
+	st := Main([]string{"-C", rootFile, "list", "sub"}, &o, &e)
+	if st != ExitOK || len(lines(o.String())) != 2 {
+		t.Fatalf("list sub via -C FILE: status %d\nstdout:\n%s\nstderr:\n%s", st, o.String(), e.String())
+	}
+	o.Reset()
+	e.Reset()
+	st = Main([]string{"-C", rootFile, "query", "./sub/b@Beta"}, &o, &e)
+	wantStatus(t, result{o.String(), e.String(), st}, ExitOK)
+	if !strings.Contains(o.String(), "return b") {
+		t.Fatalf("stdout = %q, want the resolved Beta obligation", o.String())
+	}
+	o.Reset()
+	e.Reset()
+	st = Main([]string{"-C", rootFile, "root", "sub"}, &o, &e)
+	if st != ExitOK || strings.TrimSuffix(o.String(), "\n") != realpath(t, dir) {
+		t.Fatalf("root sub via -C FILE: status %d, root %q", st, o.String())
+	}
 }
 
 // --- root -------------------------------------------------------------------
@@ -418,6 +470,101 @@ func TestListPathOperands(t *testing.T) {
 	wantStatus(t, bad2, ExitUsage)
 	if !strings.Contains(bad2.stderr, "yass.io.not_a_spec_file") {
 		t.Fatalf("stderr = %q", bad2.stderr)
+	}
+}
+
+// A PATH that is a symbolic link to a directory addresses the tree under the
+// directory it names: the walk begins at the directory, not at the link.
+func TestListSymlinkedDirectoryOperand(t *testing.T) {
+	dir := project(t)
+	if err := os.Symlink(filepath.Join(dir, "sub"), filepath.Join(dir, "sublink")); err != nil {
+		t.Skipf("cannot create a symbolic link: %v", err)
+	}
+	for _, sub := range []string{"list", "validate", "lint"} {
+		direct := run(dir, sub, "sub")
+		viaLink := run(dir, sub, "sublink")
+		if viaLink.status != direct.status || viaLink.stdout != direct.stdout || viaLink.stderr != direct.stderr {
+			t.Errorf("`%s sublink` differs from `%s sub`:\n%v\n%v", sub, sub, direct, viaLink)
+		}
+	}
+	got := run(dir, "list", "sublink")
+	wantStatus(t, got, ExitOK)
+	if n := len(lines(got.stdout)); n != 2 {
+		t.Fatalf("record count = %d, want the sub tree's two records:\n%s", n, got.stdout)
+	}
+}
+
+// A directory PATH that is itself a nested project root yields nothing, under
+// the same nearer-root exclusion the project file set applies; naming the
+// project root itself still lists the project, and from inside the nested
+// root that tree is the project.
+func TestListNestedRootOperandYieldsNothing(t *testing.T) {
+	dir := project(t)
+	got := run(dir, "list", "sub/nested")
+	wantStatus(t, got, ExitOK)
+	if got.stdout != "" {
+		t.Fatalf("a nested project root operand must yield nothing:\n%s", got.stdout)
+	}
+	self := run(dir, "list", ".")
+	bare := run(dir, "list")
+	if self.status != bare.status || self.stdout != bare.stdout {
+		t.Fatalf("`list .` differs from `list`:\n%s\n%s", self.stdout, bare.stdout)
+	}
+	nested := run(filepath.Join(dir, "sub", "nested"), "list")
+	wantStatus(t, nested, ExitOK)
+	want := "root\tfile\t1\tnested|root@Nested\tspec\tINVARIANT\t-|" +
+		"x\tfile\t1\tnested x|x@X\tspec\tINPUT\t-"
+	if joined := strings.Join(lines(nested.stdout), "|"); joined != want {
+		t.Fatalf("nested listing = %q, want %q", joined, want)
+	}
+}
+
+// A directory that cannot be read is named by the diagnostic, both when the
+// traversal meets it and when the ascent does.
+func TestUnreadableDirectory(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("running as root; directory permissions are not enforced")
+	}
+	dir := project(t)
+	write(t, dir, "locked/x.yass.yaml", modeline+"---\ndescription: locked\nversion: v1\n---\nspec: L\nINPUT:\n- MUST: x\n")
+	locked := filepath.Join(dir, "locked")
+	if err := os.Chmod(locked, 0o000); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chmod(locked, 0o755) //nolint:errcheck
+	got := run(dir, "list")
+	wantStatus(t, got, ExitEnvironment)
+	if !strings.Contains(got.stderr, "yass.io.unreadable") || !strings.Contains(got.stderr, "locked") {
+		t.Fatalf("traversal stderr = %q, want yass.io.unreadable naming locked", got.stderr)
+	}
+
+	outside := t.TempDir()
+	shut := filepath.Join(outside, "shut")
+	if err := os.Mkdir(shut, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(shut, 0o000); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chmod(shut, 0o755) //nolint:errcheck
+	got = run(shut, "root")
+	wantStatus(t, got, ExitEnvironment)
+	if !strings.Contains(got.stderr, "yass.io.unreadable") || !strings.Contains(got.stderr, "shut") {
+		t.Fatalf("ascent stderr = %q, want yass.io.unreadable naming shut", got.stderr)
+	}
+}
+
+// A directory named root.yass.yaml is not a root file; the ascent climbs past
+// it rather than stopping there.
+func TestAscentSkipsDirectoryNamedRoot(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.Mkdir(filepath.Join(dir, "root.yass.yaml"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	got := run(filepath.Join(dir, "root.yass.yaml"), "root")
+	wantStatus(t, got, ExitNoRoot)
+	if !strings.Contains(got.stderr, "yass.root.not_found") {
+		t.Fatalf("stderr = %q", got.stderr)
 	}
 }
 
@@ -616,6 +763,38 @@ func TestTargetIsCaseSensitive(t *testing.T) {
 	dir := project(t)
 	got := run(dir, "query", "a@alpha")
 	wantStatus(t, got, ExitUnresolved)
+}
+
+// The suffix is appended to the path token exactly as written: `.` and `..`
+// segments stay part of the name looked up, so a token spelling a directory
+// names no file rather than resolving to the neighbour a cleaned path would
+// reach — here a sibling named as the project directory.
+func TestTargetTokenIsNotCleaned(t *testing.T) {
+	base := t.TempDir()
+	dir := filepath.Join(base, "proj")
+	write(t, dir, "root.yass.yaml", modeline+"---\ndescription: the project\nversion: v1\n---\nspec: P\nINPUT:\n- MUST: x\n")
+	write(t, dir, "sub/b.yass.yaml", modeline+"---\ndescription: the b file\nversion: v1\n---\nspec: Beta\nRETURN:\n- MUST: return b\n")
+	write(t, base, "proj.yass.yaml", modeline+"---\ndescription: the sibling\nversion: v1\n---\nspec: S\nINPUT:\n- MUST: x\n")
+	for _, target := range []string{".", "sub/.."} {
+		got := run(dir, "query", target)
+		wantStatus(t, got, ExitUnresolved)
+		if !strings.Contains(got.stderr, "yass.ref.unresolved") {
+			t.Errorf("%s: stderr = %q", target, got.stderr)
+		}
+		if got.stdout != "" {
+			t.Errorf("%s: a token that names nothing must emit nothing, got %q", target, got.stdout)
+		}
+	}
+	// A trailing slash spells the directory's hidden `.yass.yaml`, not the
+	// directory cleaned away; an empty segment is inert and names the same
+	// file either way.
+	got := run(dir, "query", "sub/")
+	wantStatus(t, got, ExitUnresolved)
+	got = run(dir, "query", "sub//b")
+	wantStatus(t, got, ExitOK)
+	if !strings.Contains(got.stdout, "the b file") {
+		t.Fatalf("stdout = %q, want the b file's preamble", got.stdout)
+	}
 }
 
 // --- query ------------------------------------------------------------------
