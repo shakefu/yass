@@ -213,62 +213,99 @@ func blockScalar(v, indent string) (string, []string) {
 	return header, lines
 }
 
+// cyclicAliasError stops emission when alias resolution re-enters an alias
+// already being resolved: the value graph is cyclic and has no finite
+// rendering.
+type cyclicAliasError struct{ line int }
+
+func (e *cyclicAliasError) Error() string { return "alias value graph is cyclic" }
+
+// aliasDiagnostic turns the emission cycle guard's stop into the diagnostic
+// validate already defines for a yaml alias, named for the target being
+// emitted.
+func aliasDiagnostic(target string, err error) error {
+	if c, ok := err.(*cyclicAliasError); ok {
+		return fail(ExitUnresolved, "yass.document.yaml_feature", target, c.line, c.Error())
+	}
+	return err
+}
+
 // emitNode renders an arbitrary node under a key, used for a preamble's or a
-// design's authored entries.
-func emitNode(out *[]string, indent, key string, n *yaml.Node) {
+// design's authored entries. seen holds the alias nodes being resolved above,
+// so a cyclic anchor graph stops at a diagnostic instead of recursing forever.
+func emitNode(out *[]string, indent, key string, n *yaml.Node, seen map[*yaml.Node]bool) error {
 	if n == nil {
 		*out = append(*out, indent+key+":")
-		return
+		return nil
 	}
 	if n.Kind == yaml.AliasNode && n.Alias != nil {
 		// An alias emits the value it names; the anchor's own spelling cannot
 		// survive into a standalone fragment.
-		emitNode(out, indent, key, n.Alias)
-		return
+		if seen[n] {
+			return &cyclicAliasError{line: n.Line}
+		}
+		if seen == nil {
+			seen = map[*yaml.Node]bool{}
+		}
+		seen[n] = true
+		return emitNode(out, indent, key, n.Alias, seen)
 	}
 	switch n.Kind {
 	case yaml.ScalarNode:
 		if n.Tag == "!!null" {
 			*out = append(*out, indent+key+":")
-			return
+			return nil
 		}
 		if n.Tag != "!!str" {
 			*out = append(*out, indent+key+": "+n.Value)
-			return
+			return nil
 		}
 		emitScalarValue(out, indent, key, n.Value)
 	case yaml.SequenceNode:
 		*out = append(*out, indent+key+":")
 		for _, item := range n.Content {
-			emitSeqItem(out, indent, item)
+			if err := emitSeqItem(out, indent, item, seen); err != nil {
+				return err
+			}
 		}
 	case yaml.MappingNode:
 		*out = append(*out, indent+key+":")
 		for i := 0; i+1 < len(n.Content); i += 2 {
-			emitNode(out, indent+"  ", n.Content[i].Value, n.Content[i+1])
+			if err := emitNode(out, indent+"  ", n.Content[i].Value, n.Content[i+1], seen); err != nil {
+				return err
+			}
 		}
 	default:
 		*out = append(*out, indent+key+":")
 	}
+	return nil
 }
 
-func emitSeqItem(out *[]string, indent string, n *yaml.Node) {
+func emitSeqItem(out *[]string, indent string, n *yaml.Node, seen map[*yaml.Node]bool) error {
 	if n.Kind == yaml.AliasNode && n.Alias != nil {
-		emitSeqItem(out, indent, n.Alias)
-		return
+		if seen[n] {
+			return &cyclicAliasError{line: n.Line}
+		}
+		if seen == nil {
+			seen = map[*yaml.Node]bool{}
+		}
+		seen[n] = true
+		return emitSeqItem(out, indent, n.Alias, seen)
 	}
 	switch n.Kind {
 	case yaml.ScalarNode:
 		if n.Tag != "!!str" {
 			*out = append(*out, indent+"- "+n.Value)
-			return
+			return nil
 		}
 		emitScalarItem(out, indent, n.Value)
 	case yaml.MappingNode:
 		first := true
 		for i := 0; i+1 < len(n.Content); i += 2 {
 			var sub []string
-			emitNode(&sub, indent+"  ", n.Content[i].Value, n.Content[i+1])
+			if err := emitNode(&sub, indent+"  ", n.Content[i].Value, n.Content[i+1], seen); err != nil {
+				return err
+			}
 			for j, l := range sub {
 				if first && j == 0 {
 					*out = append(*out, indent+"- "+strings.TrimPrefix(l, indent+"  "))
@@ -281,7 +318,9 @@ func emitSeqItem(out *[]string, indent string, n *yaml.Node) {
 	case yaml.SequenceNode:
 		var sub []string
 		for _, item := range n.Content {
-			emitSeqItem(&sub, indent+"  ", item)
+			if err := emitSeqItem(&sub, indent+"  ", item, seen); err != nil {
+				return err
+			}
 		}
 		for j, l := range sub {
 			if j == 0 {
@@ -293,16 +332,17 @@ func emitSeqItem(out *[]string, indent string, n *yaml.Node) {
 	default:
 		*out = append(*out, indent+"-")
 	}
+	return nil
 }
 
 // obligationLines renders one obligation as sequence-item lines, keeping the
 // authored order of its keys. guardOverride, when non-empty, replaces the WHEN
 // value with the conjunction of a carrier's guard and this obligation's own.
-func obligationLines(o *Obligation, guardOverride string) []string {
+func obligationLines(o *Obligation, guardOverride string) ([]string, error) {
 	if !o.Mapping {
 		var sub []string
-		emitSeqItem(&sub, "", o.Node)
-		return sub
+		err := emitSeqItem(&sub, "", o.Node, nil)
+		return sub, err
 	}
 	var lines []string
 	for _, e := range o.Entries {
@@ -310,19 +350,25 @@ func obligationLines(o *Obligation, guardOverride string) []string {
 		if e.Key == "WHEN" && guardOverride != "" {
 			emitScalarValue(&sub, "  ", e.Key, guardOverride)
 		} else {
-			emitNode(&sub, "  ", e.Key, e.Vn)
+			if err := emitNode(&sub, "  ", e.Key, e.Vn, nil); err != nil {
+				return nil, err
+			}
 		}
 		lines = append(lines, sub...)
 	}
 	if len(lines) > 0 {
 		lines[0] = "- " + strings.TrimPrefix(lines[0], "  ")
 	}
-	return lines
+	return lines, nil
 }
 
 // emitDocumentEntries writes every authored top-level entry of a document.
-func emitDocumentEntries(out *[]string, d *Doc) {
+func emitDocumentEntries(out *[]string, d *Doc) error {
+	seen := map[*yaml.Node]bool{}
 	for _, e := range d.Entries {
-		emitNode(out, "", e.Key, e.Vn)
+		if err := emitNode(out, "", e.Key, e.Vn, seen); err != nil {
+			return err
+		}
 	}
+	return nil
 }
