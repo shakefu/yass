@@ -21,61 +21,64 @@ func (a *App) cmdList() (int, error) {
 		return 0, err
 	}
 
-	status := ExitOK
-	for _, abs := range files {
+	// Every addressed file is loaded before any record is written: a status
+	// of 2 through 5 means the program did not get far enough to answer, so
+	// standard output must stay empty when one of them fails.
+	loaded := make([]*File, len(files))
+	for i, abs := range files {
 		f, err := a.Loader.Load(abs)
 		if err != nil {
 			return 0, err
 		}
+		loaded[i] = f
+	}
+
+	status := ExitOK
+	for _, f := range loaded {
 		fileRef := f.Ref
 
 		if !f.Parsed {
 			// A file that yielded no documents is a finding about the spec
 			// set; which rule it breaks is validation's to name, not this
-			// command's.
-			status = ExitFindings
+			// command's. The finding counts only when the file's record is
+			// part of the answer the filter selected.
 			if matchesAny(a.Inv.Filters, fileRef) {
+				status = ExitFindings
 				a.out.line(record(fileRef, "file", "", ""))
 			}
 			continue
 		}
 
+		pre := a.preambleOf(f)
 		description := ""
-		if pre := a.preambleOf(f); pre != nil {
+		if pre != nil {
 			description = truncateScalars(field(pre.Description), descriptionLimit)
-		} else {
-			status = ExitFindings
 		}
 
 		type docRecord struct{ ref, kind, detail string }
-		var docs []docRecord
+		var selected []docRecord
 		count := 0
 		for _, d := range f.Docs {
-			if d.Kind != KindSpec && d.Kind != KindDesign {
-				continue
-			}
-			count++
 			if !d.Addressable() {
 				continue
 			}
+			count++
 			detail := ""
 			if d.Kind == KindSpec {
 				detail = declaredSlotList(d)
 			} else {
 				detail = d.Type
 			}
-			docs = append(docs, docRecord{ref: d.Target(), kind: d.Kind.String(), detail: detail})
-		}
-
-		var selected []docRecord
-		for _, dr := range docs {
-			if matchesAny(a.Inv.Filters, dr.ref) {
-				selected = append(selected, dr)
+			// A document record is never orphaned from the file that holds it.
+			if matchesAny(a.Inv.Filters, d.Target()) {
+				selected = append(selected, docRecord{ref: d.Target(), kind: d.Kind.String(), detail: detail})
 			}
 		}
-		// A document record is never orphaned from the file that holds it.
 		if !matchesAny(a.Inv.Filters, fileRef) && len(selected) == 0 {
 			continue
+		}
+		if pre == nil {
+			status = ExitFindings
 		}
 		a.out.line(record(fileRef, "file", strconv.Itoa(count), description))
 		for _, dr := range selected {
