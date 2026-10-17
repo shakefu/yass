@@ -568,6 +568,74 @@ func TestAscentSkipsDirectoryNamedRoot(t *testing.T) {
 	}
 }
 
+// A filter that selects no record of a failing file leaves the finding out of
+// the answer, and an answer that is empty exits with the ok status.
+func TestListFilterEmptyOverFindingsIsOK(t *testing.T) {
+	dir := project(t)
+	write(t, dir, "bad.yass.yaml", "a: b\n  c: d\n- x\n")
+	got := run(dir, "list", "--filter", "zzz*")
+	wantStatus(t, got, ExitOK)
+	if got.stdout != "" {
+		t.Fatalf("expected zero bytes, got %q", got.stdout)
+	}
+	// A finding whose record is part of the answer still selects the findings
+	// status.
+	got = run(dir, "list", "--filter", "bad*")
+	wantStatus(t, got, ExitFindings)
+	if !strings.Contains(got.stdout, "bad\tfile\t-\t-\n") {
+		t.Fatalf("stdout = %q, want the failing file's record", got.stdout)
+	}
+	// A filter that matches other files' records but not the failing file's
+	// leaves the finding out of the answer's status.
+	got = run(dir, "list", "--filter", "*@Alpha")
+	wantStatus(t, got, ExitOK)
+	if strings.Contains(got.stdout, "bad\t") {
+		t.Fatalf("the filtered-out file must contribute no record:\n%s", got.stdout)
+	}
+	if !strings.Contains(got.stdout, "a@Alpha") {
+		t.Fatalf("stdout = %q, want a@Alpha", got.stdout)
+	}
+}
+
+// Every addressed file is loaded before any record is written, so a file that
+// cannot be read leaves standard output empty alongside the environment
+// status.
+func TestListUnreadableLeavesStdoutEmpty(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("running as root; file permissions are not enforced")
+	}
+	dir := project(t)
+	m := write(t, dir, "m.yass.yaml", modeline+"---\ndescription: m\nversion: v1\n---\nspec: M\nINPUT:\n- MUST: x\n")
+	if err := os.Chmod(m, 0o000); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chmod(m, 0o644) //nolint:errcheck
+	got := run(dir, "list")
+	wantStatus(t, got, ExitEnvironment)
+	if got.stdout != "" {
+		t.Fatalf("stdout must be empty before an environment failure, got %q", got.stdout)
+	}
+	if !strings.Contains(got.stderr, "yass.io.unreadable") || !strings.Contains(got.stderr, "m") {
+		t.Fatalf("stderr = %q, want yass.io.unreadable naming m", got.stderr)
+	}
+}
+
+// The file record's DETAIL is the count of document records that follow it;
+// a document too unnamed to be addressed gets neither a record nor a count.
+func TestListDetailCountsEmittedDocuments(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "root.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\nspec: Named\nINPUT:\n- MUST: x\n---\nspec:\nINPUT:\n- MUST: y\n---\ndesign: D\ntype: t\ncontent: |\n  c\n")
+	got := run(dir, "list")
+	wantStatus(t, got, ExitOK)
+	ls := lines(got.stdout)
+	if len(ls) != 3 {
+		t.Fatalf("record count = %d, want the file record plus two document records:\n%s", len(ls), got.stdout)
+	}
+	if !strings.HasPrefix(ls[0], "root\tfile\t2\t") {
+		t.Fatalf("DETAIL must count the two addressable documents: %q", ls[0])
+	}
+}
+
 // --- find -------------------------------------------------------------------
 
 func TestFindCaseFolding(t *testing.T) {
