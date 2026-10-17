@@ -57,8 +57,14 @@ func (a *App) cmdLint() (int, error) {
 			for _, s := range d.Slots {
 				for _, o := range s.Obligations {
 					for _, r := range o.Refs {
-						rr, code := a.resolveRefFrom(f, r)
-						if code != "" {
+						rr, err := a.resolveRefFrom(d, r)
+						if err != nil {
+							// An unresolvable reference is a validation
+							// finding rather than an edge; anything else is a
+							// failure to serve the request.
+							if !unresolvedFailure(err) {
+								return 0, err
+							}
 							continue
 						}
 						if r.Relation == "USES" && rr.Doc.Kind == KindDesign {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -20,7 +21,8 @@ const yamlIndicators = ",[]{}#&*!|>'\"%@`"
 // something other than a string under the YAML 1.2 core schema.
 func resolvesToNonString(v string) bool {
 	switch v {
-	case "null", "Null", "NULL", "~", "true", "True", "TRUE", "false", "False", "FALSE", "":
+	case "null", "Null", "NULL", "~", "true", "True", "TRUE", "false", "False", "FALSE", "",
+		"+.inf", "+.Inf", "+.INF", "<<":
 		return true
 	}
 	if _, err := strconv.ParseInt(v, 0, 64); err == nil {
@@ -32,6 +34,36 @@ func resolvesToNonString(v string) bool {
 	switch v {
 	case ".inf", ".Inf", ".INF", "-.inf", "-.Inf", "-.INF", ".nan", ".NaN", ".NAN":
 		return true
+	}
+	return resolvesToTimestamp(v)
+}
+
+// timestampFormats mirrors the layouts go-yaml resolves plain scalars against
+// to the !!timestamp tag, so prose that would stop reading back as a string is
+// quoted instead.
+var timestampFormats = []string{
+	"2006-1-2T15:4:5.999999999Z07:00",
+	"2006-1-2t15:4:5.999999999Z07:00",
+	"2006-1-2 15:4:5.999999999",
+	"2006-1-2",
+}
+
+// resolvesToTimestamp mirrors go-yaml's plain-scalar timestamp resolution:
+// four leading digits, a hyphen, then one of the layouts above.
+func resolvesToTimestamp(v string) bool {
+	i := 0
+	for ; i < len(v); i++ {
+		if c := v[i]; c < '0' || c > '9' {
+			break
+		}
+	}
+	if i != 4 || i == len(v) || v[i] != '-' {
+		return false
+	}
+	for _, format := range timestampFormats {
+		if _, err := time.Parse(format, v); err == nil {
+			return true
+		}
 	}
 	return false
 }
@@ -188,6 +220,12 @@ func emitNode(out *[]string, indent, key string, n *yaml.Node) {
 		*out = append(*out, indent+key+":")
 		return
 	}
+	if n.Kind == yaml.AliasNode && n.Alias != nil {
+		// An alias emits the value it names; the anchor's own spelling cannot
+		// survive into a standalone fragment.
+		emitNode(out, indent, key, n.Alias)
+		return
+	}
 	switch n.Kind {
 	case yaml.ScalarNode:
 		if n.Tag == "!!null" {
@@ -215,6 +253,10 @@ func emitNode(out *[]string, indent, key string, n *yaml.Node) {
 }
 
 func emitSeqItem(out *[]string, indent string, n *yaml.Node) {
+	if n.Kind == yaml.AliasNode && n.Alias != nil {
+		emitSeqItem(out, indent, n.Alias)
+		return
+	}
 	switch n.Kind {
 	case yaml.ScalarNode:
 		if n.Tag != "!!str" {
@@ -253,13 +295,14 @@ func emitSeqItem(out *[]string, indent string, n *yaml.Node) {
 	}
 }
 
-// emitObligation writes one obligation as a sequence item, keeping the authored
-// order of its keys. guardOverride, when non-empty, replaces the WHEN value
-// with the conjunction of a carrier's guard and this obligation's own.
-func emitObligation(out *[]string, o *Obligation, guardOverride string) {
+// obligationLines renders one obligation as sequence-item lines, keeping the
+// authored order of its keys. guardOverride, when non-empty, replaces the WHEN
+// value with the conjunction of a carrier's guard and this obligation's own.
+func obligationLines(o *Obligation, guardOverride string) []string {
 	if !o.Mapping {
-		emitSeqItem(out, "", o.Node)
-		return
+		var sub []string
+		emitSeqItem(&sub, "", o.Node)
+		return sub
 	}
 	var lines []string
 	for _, e := range o.Entries {
@@ -271,13 +314,10 @@ func emitObligation(out *[]string, o *Obligation, guardOverride string) {
 		}
 		lines = append(lines, sub...)
 	}
-	for i, l := range lines {
-		if i == 0 {
-			*out = append(*out, "- "+strings.TrimPrefix(l, "  "))
-			continue
-		}
-		*out = append(*out, l)
+	if len(lines) > 0 {
+		lines[0] = "- " + strings.TrimPrefix(lines[0], "  ")
 	}
+	return lines
 }
 
 // emitDocumentEntries writes every authored top-level entry of a document.

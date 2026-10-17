@@ -44,3 +44,11 @@ func asCLIError(err error) *cliError {
 	}
 	return internal(err.Error()).(*cliError)
 }
+
+// unresolvedFailure reports whether err is the diagnostic class a graph
+// consumer skips — an unresolvable reference is a validation finding, not an
+// edge — rather than a failure to serve the request it propagates.
+func unresolvedFailure(err error) bool {
+	e, ok := err.(*cliError)
+	return ok && e.Status == ExitUnresolved
+}

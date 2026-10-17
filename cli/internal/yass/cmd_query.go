@@ -142,9 +142,9 @@ func (a *App) resolveSlots(doc *Doc, slots []*Slot) (*resolution, error) {
 			ins := insertion{before: o, drop: false}
 			transcluded := false
 			for _, r := range o.Refs {
-				rr, code := a.resolveRefFrom(doc.File, r)
-				if code != "" {
-					return nil, fail(ExitUnresolved, code, doc.Target(), r.Line, refMessage(code))
+				rr, err := a.resolveRefFrom(doc, r)
+				if err != nil {
+					return nil, err
 				}
 				switch r.Relation {
 				case "CONFORMS":
@@ -198,11 +198,7 @@ func emitSlot(out *[]string, s *Slot, ins []insertion) {
 		emitNode(out, "", s.Name, s.Vn)
 		return
 	}
-	if len(s.Obligations) == 0 {
-		*out = append(*out, s.Name+": []")
-		return
-	}
-	*out = append(*out, s.Name+":")
+	var body []string
 	for _, o := range s.Obligations {
 		dropped := false
 		for _, in := range ins {
@@ -213,23 +209,34 @@ func emitSlot(out *[]string, s *Slot, ins []insertion) {
 				dropped = true
 				continue
 			}
-			*out = append(*out, "# CONFORMS: "+in.source)
-			emitObligation(out, in.obl, in.guard)
+			body = append(body, "# CONFORMS: "+in.source)
+			body = append(body, obligationLines(in.obl, in.guard)...)
 		}
 		if !dropped {
-			emitObligation(out, o, "")
+			body = append(body, obligationLines(o, "")...)
 		}
 	}
+	// A slot whose every obligation was transcluded away still parses back as
+	// an empty list, never as null.
+	if len(body) == 0 {
+		*out = append(*out, s.Name+": []")
+		return
+	}
+	*out = append(*out, s.Name+":")
+	*out = append(*out, body...)
 }
 
-func refMessage(code string) string {
+// refMessage names the reference target alongside what is wrong with it, the
+// shape 04-query@Resolution::ERROR states: the record's location and line
+// already name the carrying document.
+func refMessage(code, target string) string {
 	switch code {
 	case "yass.ref.syntax":
-		return "reference target is malformed"
+		return "reference target " + target + " is malformed"
 	case "yass.ref.conforms_design":
-		return "conforms target resolves to a design"
+		return "conforms target " + target + " resolves to a design"
 	case "yass.ref.uses_spec":
-		return "uses target resolves to a spec or slot"
+		return "uses target " + target + " resolves to a spec or slot"
 	}
-	return "reference target does not resolve"
+	return "reference target " + target + " does not resolve"
 }
