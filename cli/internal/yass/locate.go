@@ -62,6 +62,16 @@ func discoverRoot(start, label string) (string, error) {
 	}
 }
 
+// startDirectory turns a resolved starting path into the directory path
+// resolution begins from: the path itself when it names a directory, and the
+// directory holding it when it names a file.
+func startDirectory(resolved string) string {
+	if st, err := os.Stat(resolved); err == nil && !st.IsDir() {
+		return filepath.Dir(resolved)
+	}
+	return resolved
+}
+
 // isSpecBasename reports whether a basename ends with the literal .yass.yaml
 // suffix and carries at least one character before it. The comparison is
 // byte-for-byte and case-sensitive on every platform.
@@ -70,17 +80,20 @@ func isSpecBasename(name string) bool {
 }
 
 // collectSpecFiles yields every regular file at or below dir whose basename
-// ends with .yass.yaml, ordered by byte-wise ascending path relative to
-// relBase. It never descends through a symbolic link naming a directory, and
-// never descends into a subdirectory that holds its own root.yass.yaml.
-func collectSpecFiles(dir string, relBase string) ([]string, error) {
+// ends with .yass.yaml, ordered by byte-wise ascending path relative to the
+// project root. It never descends through a symbolic link naming a directory,
+// and never descends into a subdirectory that holds its own root.yass.yaml —
+// including dir itself when dir is not the project root, so a directory
+// operand naming a nested project root yields nothing rather than the files
+// that nearer root governs.
+func collectSpecFiles(dir string, root string) ([]string, error) {
 	var out []string
 	err := filepath.WalkDir(dir, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
-			return unreadable(relTo(relBase, path))
+			return unreadable(relTo(root, path))
 		}
 		if entry.IsDir() {
-			if path != dir && holdsRootFile(path) {
+			if path != root && holdsRootFile(path) {
 				return fs.SkipDir
 			}
 			return nil
@@ -105,10 +118,10 @@ func collectSpecFiles(dir string, relBase string) ([]string, error) {
 		if ce, ok := err.(*cliError); ok {
 			return nil, ce
 		}
-		return nil, unreadable(relTo(relBase, dir))
+		return nil, unreadable(relTo(root, dir))
 	}
 	sort.Slice(out, func(i, j int) bool {
-		return relTo(relBase, out[i]) < relTo(relBase, out[j])
+		return relTo(root, out[i]) < relTo(root, out[j])
 	})
 	return out, nil
 }

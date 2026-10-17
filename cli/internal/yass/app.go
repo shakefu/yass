@@ -107,14 +107,15 @@ func (a *App) run(cmd func() (int, error)) int {
 }
 
 // prepare computes the starting directory and the one project root this
-// invocation uses, and hands the same value to every spec that needs it.
+// invocation uses, and hands the same value to every spec that needs it. A
+// starting path that names a file begins at the directory holding it.
 func (a *App) prepare() error {
 	start, err := resolveStart(a.Inv.StartDir, a.Inv.StartDir)
 	if err != nil {
 		return err
 	}
-	a.StartDir = start
-	root, err := discoverRoot(start, a.Inv.StartDir)
+	a.StartDir = startDirectory(start)
+	root, err := discoverRoot(a.StartDir, a.Inv.StartDir)
 	if err != nil {
 		return err
 	}

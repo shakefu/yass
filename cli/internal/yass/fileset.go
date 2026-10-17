@@ -2,6 +2,7 @@ package yass
 
 import (
 	"os"
+	"path/filepath"
 	"sort"
 )
 
@@ -32,7 +33,17 @@ func (a *App) addressedFiles(paths []string, requireSpecBasename bool) ([]string
 		}
 		switch {
 		case st.IsDir():
-			files, err := collectSpecFiles(abs, a.Root)
+			// The operand names a directory, through a symbolic link when it
+			// uses one; the walk begins at the directory it names, which
+			// walking the link itself would not enter.
+			real, rerr := filepath.EvalSymlinks(abs)
+			if rerr != nil {
+				if os.IsPermission(rerr) {
+					return nil, unreadable(p)
+				}
+				return nil, missingPath(p)
+			}
+			files, err := collectSpecFiles(real, a.Root)
 			if err != nil {
 				return nil, err
 			}

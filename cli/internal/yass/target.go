@@ -89,15 +89,15 @@ type Bound struct {
 
 // filePathFor turns a path token into a file path. A token beginning with `./`
 // or `../` resolves against base; any other token resolves from the project
-// root.
+// root. The suffix is appended to the token exactly as written, and the join
+// cleans nothing, so `.` and `..` segments stay part of the name spelled and
+// the kernel alone resolves what they climb.
 func filePathFor(root, base, token string) string {
-	joined := ""
+	prefix := root
 	if strings.HasPrefix(token, "./") || strings.HasPrefix(token, "../") {
-		joined = filepath.Join(base, filepath.FromSlash(token))
-	} else {
-		joined = filepath.Join(root, filepath.FromSlash(token))
+		prefix = base
 	}
-	return joined + SpecSuffix
+	return prefix + string(filepath.Separator) + filepath.FromSlash(token) + SpecSuffix
 }
 
 // ResolveTarget binds one command-line target against the loaded model. A
