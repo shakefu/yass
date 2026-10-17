@@ -48,13 +48,17 @@ func (a *App) fragment(b *Bound) ([]string, error) {
 		pre := a.preambleOf(b.File)
 		out = append(out, "---")
 		if pre != nil {
-			emitDocumentEntries(&out, pre)
+			if err := emitDocumentEntries(&out, pre); err != nil {
+				return nil, aliasDiagnostic(b.Normal, err)
+			}
 		}
 		return out, nil
 
 	case b.Doc.Kind == KindDesign:
 		out = append(out, "---")
-		emitDocumentEntries(&out, b.Doc)
+		if err := emitDocumentEntries(&out, b.Doc); err != nil {
+			return nil, aliasDiagnostic(b.Normal, err)
+		}
 		return out, nil
 	}
 
@@ -72,7 +76,9 @@ func (a *App) fragment(b *Bound) ([]string, error) {
 		out = append(out, "---")
 		out = append(out, "spec: "+scalarInline(b.Doc.Name))
 		for _, s := range slots {
-			emitSlot(&out, s, nil)
+			if err := emitSlot(&out, s, nil); err != nil {
+				return nil, aliasDiagnostic(b.Normal, err)
+			}
 		}
 		return out, nil
 	}
@@ -84,12 +90,16 @@ func (a *App) fragment(b *Bound) ([]string, error) {
 	out = append(out, "---")
 	out = append(out, "spec: "+scalarInline(b.Doc.Name))
 	for i, s := range slots {
-		emitSlot(&out, s, res.perSlot[i])
+		if err := emitSlot(&out, s, res.perSlot[i]); err != nil {
+			return nil, aliasDiagnostic(b.Normal, err)
+		}
 	}
 	for _, ap := range res.appends {
 		out = append(out, "---")
 		out = append(out, "# USES: "+ap.source)
-		emitDocumentEntries(&out, ap.doc)
+		if err := emitDocumentEntries(&out, ap.doc); err != nil {
+			return nil, aliasDiagnostic(b.Normal, err)
+		}
 	}
 	return out, nil
 }
@@ -193,10 +203,9 @@ func slotOf(d *Doc, name string) *Slot {
 }
 
 // emitSlot writes one slot and the obligations inserted into it.
-func emitSlot(out *[]string, s *Slot, ins []insertion) {
+func emitSlot(out *[]string, s *Slot, ins []insertion) error {
 	if s.Vn != nil && s.Vn.Kind != yaml.SequenceNode {
-		emitNode(out, "", s.Name, s.Vn)
-		return
+		return emitNode(out, "", s.Name, s.Vn, nil)
 	}
 	var body []string
 	for _, o := range s.Obligations {
@@ -210,20 +219,29 @@ func emitSlot(out *[]string, s *Slot, ins []insertion) {
 				continue
 			}
 			body = append(body, "# CONFORMS: "+in.source)
-			body = append(body, obligationLines(in.obl, in.guard)...)
+			lines, err := obligationLines(in.obl, in.guard)
+			if err != nil {
+				return err
+			}
+			body = append(body, lines...)
 		}
 		if !dropped {
-			body = append(body, obligationLines(o, "")...)
+			lines, err := obligationLines(o, "")
+			if err != nil {
+				return err
+			}
+			body = append(body, lines...)
 		}
 	}
 	// A slot whose every obligation was transcluded away still parses back as
 	// an empty list, never as null.
 	if len(body) == 0 {
 		*out = append(*out, s.Name+": []")
-		return
+		return nil
 	}
 	*out = append(*out, s.Name+":")
 	*out = append(*out, body...)
+	return nil
 }
 
 // refMessage names the reference target alongside what is wrong with it, the

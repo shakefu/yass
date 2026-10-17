@@ -58,6 +58,8 @@ ERROR:
 - WHEN: "`--raw` is not given and a relation does not match its target's kind"
   MUST: report the code resolution selects, emit no fragment, and exit with the unresolved status
   SEE: Resolution::ERROR
+- WHEN: an emitted value's alias graph is cyclic, so the addressed document parsed but has no finite rendering
+  MUST: report code yass.document.yaml_feature naming the target, emit no fragment, and exit with the unresolved status
 - MUST: report code yass.internal, emit no fragment, and exit with the environment status for any failure not matched by a guarded obligation in this slot
 - MUST: write every diagnostic in this slot to standard error, since a fragment is the only thing this subcommand puts on standard output
   USES: root@OutputPolicy

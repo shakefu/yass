@@ -1068,6 +1068,31 @@ func TestQueryQuotesNonStringProse(t *testing.T) {
 	}
 }
 
+// A self-referential anchor graph parses but has no finite rendering; the
+// emission cycle guard stops it with a diagnostic instead of a crash.
+func TestQueryCyclicAliasIsDiagnostic(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "root.yass.yaml", modeline+"---\ndescription: &a [*a]\nversion: v1\n---\nspec: R\nINPUT:\n- WHEN: &b [*b]\n  MUST: x\n")
+	file := run(dir, "query", "root")
+	wantStatus(t, file, ExitUnresolved)
+	if file.stdout != "" {
+		t.Fatalf("stdout must be empty: %q", file.stdout)
+	}
+	if !strings.Contains(file.stderr, "yass.document.yaml_feature") || !strings.Contains(file.stderr, "cyclic") {
+		t.Fatalf("stderr = %q, want yass.document.yaml_feature naming the cycle", file.stderr)
+	}
+	doc := run(dir, "query", "root@R")
+	wantStatus(t, doc, ExitUnresolved)
+	if doc.stdout != "" || !strings.Contains(doc.stderr, "yass.document.yaml_feature") {
+		t.Fatalf("the obligation path must stop the same way: stdout %q stderr %q", doc.stdout, doc.stderr)
+	}
+	raw := run(dir, "query", "--raw", "root@R")
+	wantStatus(t, raw, ExitUnresolved)
+	if raw.stdout != "" || !strings.Contains(raw.stderr, "yass.document.yaml_feature") {
+		t.Fatalf("--raw must stop the same way: stdout %q stderr %q", raw.stdout, raw.stderr)
+	}
+}
+
 // An in-file reference to a duplicated document name resolves to neither, and
 // the diagnostic names the carrying document and the reference target.
 func TestQueryDuplicateNameInFileRefResolvesToNeither(t *testing.T) {
