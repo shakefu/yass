@@ -936,8 +936,8 @@ func TestQuerySlotTarget(t *testing.T) {
 	dir := project(t)
 	got := run(dir, "query", "root@Proj::INVARIANT")
 	wantStatus(t, got, ExitOK)
-	if !strings.HasPrefix(got.stdout, "---\nspec: Proj\nINVARIANT:\n") {
-		t.Fatalf("a slot fragment still states what was queried:\n%s", got.stdout)
+	if !strings.HasPrefix(got.stdout, "---\nspec: Proj\nINVARIANT: []\n") {
+		t.Fatalf("a slot fragment still states what was queried, and a slot emptied by transclusion is an empty list, not null:\n%s", got.stdout)
 	}
 	if strings.Contains(got.stdout, "INPUT:") {
 		t.Fatalf("a slot target must emit that slot alone:\n%s", got.stdout)
@@ -990,6 +990,9 @@ func TestQueryUnresolvedReferenceAndRawEscapeHatch(t *testing.T) {
 	if !strings.Contains(got.stderr, "yass.ref.unresolved") {
 		t.Fatalf("stderr = %q", got.stderr)
 	}
+	if !strings.Contains(got.stderr, "nowhere@Gone") {
+		t.Fatalf("the diagnostic must name the reference target: %q", got.stderr)
+	}
 	raw := run(dir, "query", "--raw", "broken@Broken")
 	wantStatus(t, raw, ExitOK)
 	if !strings.Contains(raw.stdout, "SEE: nowhere@Gone") {
@@ -1009,6 +1012,105 @@ func TestQueryRelationKindMismatch(t *testing.T) {
 	wantStatus(t, u, ExitUnresolved)
 	if !strings.Contains(u.stderr, "yass.ref.uses_spec") {
 		t.Fatalf("stderr = %q", u.stderr)
+	}
+}
+
+// A slot whose every obligation was transcluded away — by a reference-only
+// USES, or by a slot-targeted CONFORMS on a slot that declares nothing — emits
+// an empty list, never a null slot.
+func TestQueryEmptySlotEmitsEmptyList(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "root.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\nspec: Empty\nRETURN: []\n---\nspec: C\nINPUT:\n- CONFORMS: root@Empty::RETURN\n")
+	got := run(dir, "query", "root@C::INPUT")
+	wantStatus(t, got, ExitOK)
+	if want := "---\nspec: C\nINPUT: []\n"; got.stdout != want {
+		t.Fatalf("got %q want %q", got.stdout, want)
+	}
+}
+
+// An alias emits the value it names, under --raw and everywhere else, instead
+// of silently dropping the value.
+func TestQueryKeepsAliasValues(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "root.yass.yaml", modeline+"---\ndescription: &d the anchored value\nversion: *d\n---\nspec: R\nINPUT:\n- MUST: *d\n")
+	raw := run(dir, "query", "--raw", "root@R")
+	wantStatus(t, raw, ExitOK)
+	if !strings.Contains(raw.stdout, "- MUST: the anchored value") {
+		t.Fatalf("--raw must keep the alias's value:\n%s", raw.stdout)
+	}
+	file := run(dir, "query", "root")
+	wantStatus(t, file, ExitOK)
+	if !strings.Contains(file.stdout, "version: the anchored value") {
+		t.Fatalf("a preamble alias must keep its value:\n%s", file.stdout)
+	}
+}
+
+// Prose that a plain scalar would resolve to a timestamp, a positive
+// infinity, or a merge key keeps its quotes, because unquoting it would stop
+// it reading back as a string; prose that resolves to nothing unquotes fine.
+func TestQueryQuotesNonStringProse(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "root.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\nspec: T\nINPUT:\n- MUST: \"2001-12-14\"\n- MUST: \"2001-12-14T10:00:00Z\"\n- MUST: \"+.inf\"\n- MUST: \"<<\"\n- MUST: \"2001-13-45\"\n")
+	got := run(dir, "query", "root@T")
+	wantStatus(t, got, ExitOK)
+	for _, q := range []string{
+		"- MUST: \"2001-12-14\"\n",
+		"- MUST: \"2001-12-14T10:00:00Z\"\n",
+		"- MUST: \"+.inf\"\n",
+		"- MUST: \"<<\"\n",
+	} {
+		if !strings.Contains(got.stdout, q) {
+			t.Fatalf("prose that stops reading back as a string must keep its quotes, missing %q:\n%s", q, got.stdout)
+		}
+	}
+	if !strings.Contains(got.stdout, "- MUST: 2001-13-45\n") {
+		t.Fatalf("prose that resolves to nothing unquotes fine:\n%s", got.stdout)
+	}
+}
+
+// An in-file reference to a duplicated document name resolves to neither, and
+// the diagnostic names the carrying document and the reference target.
+func TestQueryDuplicateNameInFileRefResolvesToNeither(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "root.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\nspec: Root\nINPUT:\n- MUST: x\n")
+	write(t, dir, "sub/a.yass.yaml", modeline+"---\ndescription: a\nversion: v1\n---\nspec: A\nINPUT:\n- MUST: first\n---\nspec: A\nINPUT:\n- MUST: second\n")
+	write(t, dir, "c.yass.yaml", modeline+"---\ndescription: c\nversion: v1\n---\nspec: C\nINPUT:\n- CONFORMS: sub/a@A::INPUT\n")
+	got := run(dir, "query", "c@C")
+	wantStatus(t, got, ExitUnresolved)
+	if !strings.Contains(got.stderr, "yass.ref.unresolved") {
+		t.Fatalf("stderr = %q", got.stderr)
+	}
+	if !strings.Contains(got.stderr, "c@C") || !strings.Contains(got.stderr, "sub/a@A::INPUT") {
+		t.Fatalf("the diagnostic must name the carrying document and the target: %q", got.stderr)
+	}
+}
+
+// A referenced file that exists but cannot be read is an environment failure,
+// not an unresolved reference.
+func TestQueryUnreadableReferencedFileIsEnvironmentFailure(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("running as root; file permissions are not enforced")
+	}
+	dir := project(t)
+	b := filepath.Join(dir, "sub", "b.yass.yaml")
+	if err := os.Chmod(b, 0o000); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chmod(b, 0o644) //nolint:errcheck
+	// Through resolution: a@Alpha carries CONFORMS: sub/b@Beta::RETURN.
+	got := run(dir, "query", "a@Alpha")
+	wantStatus(t, got, ExitEnvironment)
+	if got.stdout != "" {
+		t.Fatalf("stdout must be empty before an environment failure, got %q", got.stdout)
+	}
+	if !strings.Contains(got.stderr, "yass.io.unreadable") || !strings.Contains(got.stderr, "sub/b") {
+		t.Fatalf("stderr = %q, want yass.io.unreadable naming sub/b", got.stderr)
+	}
+	// Directly: the target names the unreadable file itself.
+	direct := run(dir, "query", "sub/b@Beta")
+	wantStatus(t, direct, ExitEnvironment)
+	if !strings.Contains(direct.stderr, "yass.io.unreadable") {
+		t.Fatalf("stderr = %q", direct.stderr)
 	}
 }
 

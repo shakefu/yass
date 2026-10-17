@@ -194,70 +194,80 @@ type refResolution struct {
 	Slot string
 }
 
-// resolveRefFrom resolves a reference carried by a document of carrier. It
-// returns the code that names the failure, or "" when the reference resolved.
+// resolveRefFrom resolves one reference carried by a document of carrier. It
+// returns the resolution, or an error that is either the diagnostic the
+// resolution rules select — naming the carrying document and the target — or
+// an environment failure a referenced path turned into an unreadable file.
 // The codes are the ones 04-query@Resolution::ERROR enumerates.
-func (a *App) resolveRefFrom(carrier *File, r *Ref) (*refResolution, string) {
+func (a *App) resolveRefFrom(carrier *Doc, r *Ref) (*refResolution, error) {
+	bad := func(code string) error {
+		return fail(ExitUnresolved, code, carrier.Target(), r.Line, refMessage(code, r.Target))
+	}
 	if !r.IsString {
-		return nil, "yass.ref.syntax"
+		return nil, bad("yass.ref.syntax")
 	}
 	t, ok := parseTarget(r.Target, false)
 	if !ok {
-		return nil, "yass.ref.syntax"
+		return nil, bad("yass.ref.syntax")
 	}
 	if t.HasSlot && !isSlotName(t.Slot) {
-		return nil, "yass.ref.unresolved"
+		return nil, bad("yass.ref.unresolved")
 	}
 
-	abs := carrier.Abs
+	abs := carrier.File.Abs
 	if t.HasPath {
-		abs = filePathFor(a.Root, filepath.Dir(carrier.Abs), t.Path)
+		abs = filePathFor(a.Root, filepath.Dir(carrier.File.Abs), t.Path)
 	}
 	var f *File
-	if abs == carrier.Abs {
-		f = carrier
+	if abs == carrier.File.Abs {
+		f = carrier.File
 	} else {
 		st, err := os.Stat(abs)
 		if err != nil || !st.Mode().IsRegular() {
-			return nil, "yass.ref.unresolved"
+			return nil, bad("yass.ref.unresolved")
 		}
+		// A referenced file that exists but cannot be read is an environment
+		// failure, not an unresolved reference (root@YassCli::ERROR).
 		loaded, lerr := a.Loader.Load(abs)
 		if lerr != nil {
-			return nil, "yass.ref.unresolved"
+			return nil, lerr
 		}
 		f = loaded
 	}
 	if !f.Parsed {
-		return nil, "yass.ref.unresolved"
+		return nil, bad("yass.ref.unresolved")
 	}
 
-	var doc *Doc
+	var found []*Doc
 	for _, d := range f.Docs {
 		if d.Addressable() && d.Name == t.Name {
-			doc = d
-			break
+			found = append(found, d)
 		}
 	}
-	if doc == nil {
-		return nil, "yass.ref.unresolved"
+	// An absent name and a duplicated name alike resolve to neither, the rule
+	// target resolution already states for a command-line target.
+	if len(found) != 1 {
+		return nil, bad("yass.ref.unresolved")
 	}
+	doc := found[0]
+
 	if t.HasSlot {
 		if doc.Kind == KindDesign {
-			return nil, "yass.ref.unresolved"
+			return nil, bad("yass.ref.unresolved")
 		}
 		if !declaresSlot(doc, t.Slot) {
-			return nil, "yass.ref.unresolved"
+			return nil, bad("yass.ref.unresolved")
 		}
 	}
 	switch r.Relation {
 	case "CONFORMS":
 		if doc.Kind == KindDesign {
-			return nil, "yass.ref.conforms_design"
+			return nil, bad("yass.ref.conforms_design")
 		}
 	case "USES":
 		if doc.Kind != KindDesign {
-			return nil, "yass.ref.uses_spec"
+			return nil, bad("yass.ref.uses_spec")
 		}
 	}
-	return &refResolution{File: f, Doc: doc, Slot: t.Slot}, ""
+	return &refResolution{File: f, Doc: doc, Slot: t.Slot}, nil
 }
