@@ -82,19 +82,24 @@ func (a *App) cmdFind() (int, error) {
 }
 
 // matchObligation emits one record per matching field of an obligation, in the
-// authored order of its keys. A reference-only obligation holds no text to
-// match, so it yields nothing.
+// authored order of its keys. A duplicated key is not a second field — the
+// loader records the first occurrence of each — so every entry after the first
+// of a key yields nothing. A reference-only obligation holds no text to match,
+// so it yields nothing.
 func matchObligation(s *Slot, o *Obligation, pattern string) []findRow {
 	var out []findRow
 	ref := s.Target()
+	guardDone, proseDone := false, false
 	for _, e := range o.Entries {
 		switch {
-		case e.Key == "WHEN" && o.HasGuard && o.GuardScalar:
-			if foldContains(o.Guard, pattern) {
+		case e.Key == "WHEN" && !guardDone:
+			guardDone = true
+			if o.HasGuard && o.GuardScalar && foldContains(o.Guard, pattern) {
 				out = append(out, findRow{ref, "WHEN", o.Guard})
 			}
-		case isNormativity(e.Key) && e.Key == o.Keyword && o.HasProse:
-			if foldContains(o.Prose, pattern) {
+		case isNormativity(e.Key) && e.Key == o.Keyword && !proseDone:
+			proseDone = true
+			if o.HasProse && foldContains(o.Prose, pattern) {
 				out = append(out, findRow{ref, o.Keyword, o.Prose})
 			}
 		}

@@ -25,6 +25,35 @@ func (a *App) cmdRefs() (int, error) {
 	status := ExitOK
 	var outgoing, incoming []string
 
+	// The file set is taken and every file in it loaded whatever the direction
+	// flags say, because the parse-failure ERROR arm is not conditioned on
+	// them. Only the edge scans are flag-gated.
+	files, err := a.projectFileSet()
+	if err != nil {
+		return 0, err
+	}
+	var specs []*Doc
+	for _, abs := range files {
+		f, lerr := a.Loader.Load(abs)
+		if lerr != nil {
+			return 0, lerr
+		}
+		if !f.Parsed {
+			status = ExitFindings
+			a.err.line(Diag{
+				Severity: "error", Code: f.FailCode, Location: f.Ref,
+				Line: f.FailLine, Message: failMessage(f.FailCode),
+			}.Record())
+			continue
+		}
+		for _, d := range f.Docs {
+			if d.Kind != KindSpec || !d.Addressable() {
+				continue
+			}
+			specs = append(specs, d)
+		}
+	}
+
 	if wantOut && b.Doc.Kind == KindSpec {
 		for _, s := range b.Doc.Slots {
 			if b.Slot != "" && s.Name != b.Slot {
@@ -49,45 +78,24 @@ func (a *App) cmdRefs() (int, error) {
 	}
 
 	if wantIn {
-		files, err := a.projectFileSet()
-		if err != nil {
-			return 0, err
-		}
-		for _, abs := range files {
-			f, lerr := a.Loader.Load(abs)
-			if lerr != nil {
-				return 0, lerr
-			}
-			if !f.Parsed {
-				status = ExitFindings
-				a.err.line(Diag{
-					Severity: "error", Code: f.FailCode, Location: f.Ref,
-					Line: f.FailLine, Message: failMessage(f.FailCode),
-				}.Record())
-				continue
-			}
-			for _, d := range f.Docs {
-				if d.Kind != KindSpec || !d.Addressable() {
-					continue
-				}
-				for _, s := range d.Slots {
-					for _, o := range s.Obligations {
-						for _, r := range sortedRefs(o) {
-							rr, err := a.resolveRefFrom(d, r)
-							if err != nil {
-								if !unresolvedFailure(err) {
-									return 0, err
-								}
-								continue
+		for _, d := range specs {
+			for _, s := range d.Slots {
+				for _, o := range s.Obligations {
+					for _, r := range sortedRefs(o) {
+						rr, err := a.resolveRefFrom(d, r)
+						if err != nil {
+							if !unresolvedFailure(err) {
+								return 0, err
 							}
-							if rr.Doc != b.Doc {
-								continue
-							}
-							if b.Slot != "" && rr.Slot != b.Slot {
-								continue
-							}
-							incoming = append(incoming, record("in", r.Relation, d.Target()))
+							continue
 						}
+						if rr.Doc != b.Doc {
+							continue
+						}
+						if b.Slot != "" && rr.Slot != b.Slot {
+							continue
+						}
+						incoming = append(incoming, record("in", r.Relation, d.Target()))
 					}
 				}
 			}
