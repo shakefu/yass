@@ -681,6 +681,23 @@ func TestFindGuardAndProse(t *testing.T) {
 	}
 }
 
+// A duplicated key does not make a second field: the loader records the first
+// occurrence, and the field — not the authored entry — is the unit of
+// retrieval, so each field yields exactly one record no matter how many keys
+// carry it.
+func TestFindDuplicateKeyOneRecordPerField(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "root.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\nspec: R\nRETURN:\n- MUST: first prose with umbrella\n  MUST: second prose without\n- WHEN: first guard with umbrella\n  WHEN: second guard without\n  MUST: hold an umbrella\n")
+	got := run(dir, "find", "umbrella")
+	wantStatus(t, got, ExitOK)
+	want := "root@R::RETURN\tMUST\tfirst prose with umbrella\n" +
+		"root@R::RETURN\tWHEN\tfirst guard with umbrella\n" +
+		"root@R::RETURN\tMUST\thold an umbrella\n"
+	if got.stdout != want {
+		t.Fatalf("got:\n%s\nwant:\n%s", got.stdout, want)
+	}
+}
+
 func TestFindSlotRestriction(t *testing.T) {
 	dir := project(t)
 	got := run(dir, "find", "--slot", "RETURN", "yield")
@@ -792,6 +809,22 @@ func TestRefsEmptyIsOK(t *testing.T) {
 	wantStatus(t, got, ExitOK)
 	if got.stdout != "" {
 		t.Fatalf("expected zero bytes: %q", got.stdout)
+	}
+}
+
+// The file set is taken whatever the direction flags say, so a parse failure
+// under the root is a finding even when only outgoing edges were asked for,
+// and the edges of every file that did parse are still emitted.
+func TestRefsOutReportsParseFailure(t *testing.T) {
+	dir := project(t)
+	write(t, dir, "sub/broken.yass.yaml", modeline+"a: b\n  c: d\n- x\n")
+	got := run(dir, "refs", "--out", "root@Proj")
+	wantStatus(t, got, ExitFindings)
+	if !strings.Contains(got.stderr, "yass.document.not_yaml") || !strings.Contains(got.stderr, "sub/broken") {
+		t.Fatalf("stderr = %q", got.stderr)
+	}
+	if !strings.Contains(got.stdout, "out\tUSES\troot@Policy") {
+		t.Fatalf("edges of files that parsed must still be emitted:\n%s", got.stdout)
 	}
 }
 
