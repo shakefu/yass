@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.4.8 - 2026-10-19
+#### Bug Fixes
+- (**cli**) dedupe find fields and surface refs parse failures - (59e9e92) - Jacob Alheid
+
+- - -
+
 ## v0.4.7 - 2026-10-17
 #### Bug Fixes
 - (**cli**) treat alias diamonds as renderable, not cyclic - (5569c33) - Jacob Alheid
