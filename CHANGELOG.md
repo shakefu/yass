@@ -2,6 +2,14 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.4.9 - 2026-10-19
+#### Bug Fixes
+- (**cli**) reject non-regular or empty update binaries; bound update downloads - (4a4d8dc) - Claude, *Claude Opus 5.5*
+#### Refactoring
+- (**cli**) drop the update redirect allow-list - (99e2fb6) - Claude, *Claude Opus 5.5*
+
+- - -
+
 ## v0.4.8 - 2026-10-19
 #### Bug Fixes
 - (**cli**) dedupe find fields and surface refs parse failures - (59e9e92) - Jacob Alheid
