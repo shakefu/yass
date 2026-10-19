@@ -41,7 +41,7 @@ ERROR:
 - MUST: write every diagnostic in this slot to standard error, since the update record is the only thing this command puts on standard output
   USES: root@OutputPolicy
 SIDE-EFFECT:
-- MUST: "connect only to the release host and the asset host its downloads redirect to, never from https down to http, and only to resolve the newest release and fetch its archive and `checksums.txt`"
+- MUST: "connect only to the release host, and only to resolve the newest release and fetch its archive and `checksums.txt`"
   USES: ReleaseLayout
 - MUST: write only the installed binary and a temporary file beside it that the replacement is staged through, so the swap is a rename rather than a partial write
 - WHEN: the host platform is windows
@@ -70,11 +70,8 @@ content: |
   `<os>_<arch>` equals the platform this program was built for, and a platform absent from
   `checksums.txt` is unsupported for that release.
 
-  Downloads redirect from the release host to GitHub's asset host, a host under
-  `githubusercontent.com`; that domain is the only other host a download may follow a
-  redirect to, and at most five redirects are followed. Every download, and the binary
-  extracted from an archive, is bounded at 256 MiB, so a hostile or broken response cannot
-  exhaust memory; a download exceeding the bound cannot be completed.
+  Every download, and the binary extracted from an archive, is bounded at 256 MiB, so a
+  broken response cannot exhaust memory; a download exceeding the bound cannot be completed.
 ---
 design: HomebrewDetection
 type: constraint
