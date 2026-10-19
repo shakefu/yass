@@ -275,3 +275,194 @@ func TestUpdateTakesNoOperandAndNoOption(t *testing.T) {
 		t.Fatalf("stderr = %q", got.stderr)
 	}
 }
+
+// targzEntries builds a release archive from authored headers, so a test can
+// plant non-regular or empty entries a well-formed release never holds.
+func targzEntries(t *testing.T, entries []tar.Header, contents map[string][]byte) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	gz := gzip.NewWriter(&buf)
+	tw := tar.NewWriter(gz)
+	for _, hdr := range entries {
+		body := contents[hdr.Name]
+		hdr.Size = int64(len(body))
+		if err := tw.WriteHeader(&hdr); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := tw.Write(body); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := tw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := gz.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return buf.Bytes()
+}
+
+// wantUpdateFailure runs update against archive and asserts it fails with
+// code, installs nothing, and leaves the installed binary as it was.
+func wantUpdateFailure(t *testing.T, goos, asset string, archive []byte, code string) {
+	t.Helper()
+	h := serveUpdate(t, "9.9.9", asset, archive, false)
+	exe := write(t, t.TempDir(), "yass", "installed")
+	pointUpdateAt(t, h.srv.URL, goos, "amd64", "1.0.0", exe)
+
+	got := run(t.TempDir(), "update")
+	wantStatus(t, got, ExitEnvironment)
+	if got.stdout != "" {
+		t.Fatalf("stdout on a failed update: %q", got.stdout)
+	}
+	if !strings.Contains(got.stderr, code) {
+		t.Fatalf("stderr = %q, want %s", got.stderr, code)
+	}
+	content, _ := os.ReadFile(exe)
+	if string(content) != "installed" {
+		t.Fatalf("a failed update changed the binary: %q", content)
+	}
+}
+
+func TestUpdateArchiveWithoutBinaryInstallsNothing(t *testing.T) {
+	wantUpdateFailure(t, "linux", "yass_9.9.9_linux_amd64.tar.gz",
+		targz(t, "README.md", []byte("not a binary")), "yass.internal")
+}
+
+func TestUpdateEmptyBinaryInstallsNothing(t *testing.T) {
+	wantUpdateFailure(t, "linux", "yass_9.9.9_linux_amd64.tar.gz",
+		targz(t, "yass", nil), "yass.internal")
+}
+
+func TestUpdateNonRegularBinaryEntryInstallsNothing(t *testing.T) {
+	for name, hdr := range map[string]tar.Header{
+		"symlink":   {Name: "yass", Typeflag: tar.TypeSymlink, Linkname: "/bin/sh", Mode: 0o777},
+		"directory": {Name: "yass/", Typeflag: tar.TypeDir, Mode: 0o755},
+	} {
+		t.Run(name, func(t *testing.T) {
+			wantUpdateFailure(t, "linux", "yass_9.9.9_linux_amd64.tar.gz",
+				targzEntries(t, []tar.Header{hdr}, nil), "yass.internal")
+		})
+	}
+}
+
+func TestUpdateSkipsNonRegularEntryForTheBinary(t *testing.T) {
+	newBin := []byte("the regular binary")
+	archive := targzEntries(t, []tar.Header{
+		{Name: "yass", Typeflag: tar.TypeSymlink, Linkname: "bin/yass", Mode: 0o777},
+		{Name: "bin/yass", Typeflag: tar.TypeReg, Mode: 0o755},
+	}, map[string][]byte{"bin/yass": newBin})
+	h := serveUpdate(t, "9.9.9", "yass_9.9.9_linux_amd64.tar.gz", archive, false)
+	exe := write(t, t.TempDir(), "yass", "installed")
+	pointUpdateAt(t, h.srv.URL, "linux", "amd64", "1.0.0", exe)
+
+	got := run(t.TempDir(), "update")
+	wantStatus(t, got, ExitOK)
+	content, _ := os.ReadFile(exe)
+	if !bytes.Equal(content, newBin) {
+		t.Fatalf("installed binary = %q, want the regular entry", content)
+	}
+}
+
+func TestUpdateWindowsNonRegularBinaryEntryInstallsNothing(t *testing.T) {
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	hdr := &zip.FileHeader{Name: "yass.exe"}
+	hdr.SetMode(os.ModeSymlink | 0o777)
+	w, err := zw.CreateHeader(hdr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.Write([]byte("C:/Windows/notepad.exe")); err != nil {
+		t.Fatal(err)
+	}
+	if err := zw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	wantUpdateFailure(t, "windows", "yass_9.9.9_windows_amd64.zip", buf.Bytes(), "yass.internal")
+}
+
+func TestUpdateOversizedDownloadInstallsNothing(t *testing.T) {
+	old := updateMaxBytes
+	updateMaxBytes = 16
+	t.Cleanup(func() { updateMaxBytes = old })
+	wantUpdateFailure(t, "linux", "yass_9.9.9_linux_amd64.tar.gz",
+		targz(t, "yass", []byte("a release binary")), "yass.update.unreachable")
+}
+
+func TestUpdateLatestWithoutLocationIsUnreachable(t *testing.T) {
+	for name, status := range map[string]int{"redirect": http.StatusFound, "ok": http.StatusOK} {
+		t.Run(name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(status)
+			}))
+			t.Cleanup(srv.Close)
+			pointUpdateAt(t, srv.URL, "linux", "amd64", "1.0.0", "/nonexistent/yass")
+
+			got := run(t.TempDir(), "update")
+			wantStatus(t, got, ExitEnvironment)
+			if !strings.Contains(got.stderr, "yass.update.unreachable") ||
+				!strings.Contains(got.stderr, srv.URL+"/latest") {
+				t.Fatalf("stderr = %q", got.stderr)
+			}
+		})
+	}
+}
+
+func TestUpdateRefusesRedirectOffTheReleaseHost(t *testing.T) {
+	foreign := serveUpdate(t, "9.9.9", "yass_9.9.9_linux_amd64.tar.gz", targz(t, "yass", []byte("release")), false)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/latest", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/tag/v9.9.9", http.StatusFound)
+	})
+	// The foreign host is the same server named differently: 127.0.0.1 is the
+	// release host, localhost is not.
+	foreignURL := strings.Replace(foreign.srv.URL, "127.0.0.1", "localhost", 1)
+	mux.HandleFunc("/download/", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, foreignURL+r.URL.Path, http.StatusFound)
+	})
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	exe := write(t, t.TempDir(), "yass", "installed")
+	pointUpdateAt(t, srv.URL, "linux", "amd64", "1.0.0", exe)
+
+	got := run(t.TempDir(), "update")
+	wantStatus(t, got, ExitEnvironment)
+	if !strings.Contains(got.stderr, "yass.update.unreachable") {
+		t.Fatalf("stderr = %q", got.stderr)
+	}
+	if foreign.downloads != 0 {
+		t.Fatalf("a redirect off the release host downloaded %d archive(s)", foreign.downloads)
+	}
+	content, _ := os.ReadFile(exe)
+	if string(content) != "installed" {
+		t.Fatalf("a refused redirect changed the binary: %q", content)
+	}
+}
+
+func TestAssetRedirectAllowList(t *testing.T) {
+	old := updateReleases
+	updateReleases = "https://github.com/shakefu/yass/releases"
+	t.Cleanup(func() { updateReleases = old })
+	for target, allowed := range map[string]bool{
+		"https://github.com/shakefu/yass/releases/download/v1/x": true,
+		"https://objects.githubusercontent.com/x":                true,
+		"https://release-assets.githubusercontent.com/x":         true,
+		"http://objects.githubusercontent.com/x":                 false,
+		"https://example.com/x":                                  false,
+		"https://githubusercontent.com.example.com/x":            false,
+		"https://evilgithubusercontent.com/x":                    false,
+	} {
+		req, err := http.NewRequest(http.MethodGet, target, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := assetRedirect(req, nil) == nil; got != allowed {
+			t.Errorf("redirect to %s allowed = %v, want %v", target, got, allowed)
+		}
+	}
+	req, _ := http.NewRequest(http.MethodGet, "https://github.com/x", nil)
+	if assetRedirect(req, make([]*http.Request, 5)) == nil {
+		t.Error("a sixth redirect was followed")
+	}
+}
