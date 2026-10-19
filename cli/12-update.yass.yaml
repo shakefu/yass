@@ -29,7 +29,7 @@ RETURN:
   USES: ReleaseLayout
 - MUST: exit with the ok status once the one update record is written
 ERROR:
-- WHEN: the newest release cannot be resolved, or a download cannot be completed
+- WHEN: the newest release cannot be resolved, or a download cannot be completed within the bounds of ReleaseLayout
   MUST: report code yass.update.unreachable naming the URL and exit with the environment status
 - WHEN: "no archive for the host platform is listed by the release's `checksums.txt`"
   MUST: report code yass.update.unsupported naming the host platform and exit with the environment status
@@ -41,13 +41,17 @@ ERROR:
 - MUST: write every diagnostic in this slot to standard error, since the update record is the only thing this command puts on standard output
   USES: root@OutputPolicy
 SIDE-EFFECT:
-- MUST: "connect only to the release host, and only to resolve the newest release and fetch its archive and `checksums.txt`"
+- MUST: "connect only to the release host and the asset host its downloads redirect to, never from https down to http, and only to resolve the newest release and fetch its archive and `checksums.txt`"
   USES: ReleaseLayout
 - MUST: write only the installed binary and a temporary file beside it that the replacement is staged through, so the swap is a rename rather than a partial write
+- WHEN: the host platform is windows
+  MUST: "move the installed binary aside to `<binary>.old` before the swap, restore it if the swap fails, and remove it afterward only on a best-effort basis, since a running windows binary cannot be renamed over and may hold the moved file open"
 - MUST: leave the installed binary as it was whenever any step fails, so a failed update preserves the working installation
 - MUST-NOT: create, modify, delete, or rename anything else, and in particular no spec file
 INVARIANT:
 - MUST-NOT: install a binary whose digest was not verified against the published checksum
+- MUST-NOT: install anything but a non-empty regular-file entry of the archive, so a malformed archive fails rather than installing a broken binary reported as updated
+  USES: ReleaseLayout
 - MUST-NOT: select the no-root status, since no answer of this command needs a project root
   USES: root@ExitPolicy
 - MUST-NOT: prompt for confirmation, retry a failed download, or fall back to an unverified source
@@ -59,11 +63,18 @@ content: |
   Releases live at https://github.com/shakefu/yass/releases. The newest stable release is
   what `releases/latest` resolves to, and its tag is `v` followed by the version. Each
   release publishes one archive per supported platform, named
-  `yass_<version>_<os>_<arch>.tar.gz` (`.zip` on windows) and holding a single binary, plus
-  a `checksums.txt` holding one `<sha256-hex>  <archive-name>` line per archive — the layout
-  script/build produces and script/gen-formula and install.sh consume. The archive matching
-  the host is the one whose `<os>_<arch>` equals the platform this program was built for,
-  and a platform absent from `checksums.txt` is unsupported for that release.
+  `yass_<version>_<os>_<arch>.tar.gz` (`.zip` on windows) and holding a single binary as a
+  regular-file entry named `yass` (`yass.exe` on windows), plus a `checksums.txt` holding one
+  `<sha256-hex>  <archive-name>` line per archive — the layout script/build produces and
+  script/gen-formula and install.sh consume. The archive matching the host is the one whose
+  `<os>_<arch>` equals the platform this program was built for, and a platform absent from
+  `checksums.txt` is unsupported for that release.
+
+  Downloads redirect from the release host to GitHub's asset host, a host under
+  `githubusercontent.com`; that domain is the only other host a download may follow a
+  redirect to, and at most five redirects are followed. Every download, and the binary
+  extracted from an archive, is bounded at 256 MiB, so a hostile or broken response cannot
+  exhaust memory; a download exceeding the bound cannot be completed.
 ---
 design: HomebrewDetection
 type: constraint

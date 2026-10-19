@@ -10,6 +10,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -25,8 +26,36 @@ var (
 	updateOS         = runtime.GOOS
 	updateArch       = runtime.GOARCH
 	updateExecutable = installedBinary
-	updateClient     = &http.Client{Timeout: 5 * time.Minute}
+	updateClient     = &http.Client{Timeout: 5 * time.Minute, CheckRedirect: assetRedirect}
+
+	// updateAssetDomain is where the release host's downloads redirect to:
+	// GitHub serves release assets from hosts under this domain.
+	updateAssetDomain = "githubusercontent.com"
+	// updateMaxBytes bounds every download and the extracted binary, so a
+	// hostile or broken response cannot exhaust memory.
+	updateMaxBytes int64 = 256 << 20
 )
+
+// assetRedirect lets a download follow the release host's redirect to the
+// asset host and nowhere else, never from https down to http, per
+// 12-update@Update::SIDE-EFFECT.
+func assetRedirect(req *http.Request, via []*http.Request) error {
+	if len(via) >= 5 {
+		return errors.New("too many redirects")
+	}
+	release, err := url.Parse(updateReleases)
+	if err != nil {
+		return err
+	}
+	if release.Scheme == "https" && req.URL.Scheme != "https" {
+		return errors.New("redirect leaves https")
+	}
+	host := req.URL.Hostname()
+	if host == release.Hostname() || strings.HasSuffix(host, "."+updateAssetDomain) {
+		return nil
+	}
+	return errors.New("redirect leaves the release host")
+}
 
 // installedBinary is the file the running program was executed from, with
 // symbolic links resolved, per 12-update@Update::INPUT.
@@ -133,9 +162,21 @@ func fetch(url string) ([]byte, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, unreachableURL(url)
 	}
-	body, err := io.ReadAll(resp.Body)
+	body, err := readBounded(resp.Body)
 	if err != nil {
 		return nil, unreachableURL(url)
+	}
+	return body, nil
+}
+
+// readBounded reads all of r, failing rather than reading past updateMaxBytes.
+func readBounded(r io.Reader) ([]byte, error) {
+	body, err := io.ReadAll(io.LimitReader(r, updateMaxBytes+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(body)) > updateMaxBytes {
+		return nil, errors.New("exceeds the download size bound")
 	}
 	return body, nil
 }
@@ -177,21 +218,34 @@ func brewManaged(exe string) bool {
 	return false
 }
 
-// extractBinary yields the single binary a release archive holds.
+// extractBinary yields the single binary a release archive holds: the first
+// regular file entry carrying the binary's name, and never an empty one, so a
+// malformed archive fails rather than installing a broken binary.
 func extractBinary(archive []byte, asset string) ([]byte, error) {
+	bin, err := archiveBinary(archive, asset)
+	if err != nil {
+		return nil, err
+	}
+	if len(bin) == 0 {
+		return nil, internal("archive holds an empty binary")
+	}
+	return bin, nil
+}
+
+func archiveBinary(archive []byte, asset string) ([]byte, error) {
 	if strings.HasSuffix(asset, ".zip") {
 		zr, err := zip.NewReader(bytes.NewReader(archive), int64(len(archive)))
 		if err != nil {
 			return nil, internal("archive cannot be read: " + err.Error())
 		}
 		for _, f := range zr.File {
-			if f.Name == "yass.exe" {
+			if f.Name == "yass.exe" && f.Mode().IsRegular() {
 				r, err := f.Open()
 				if err != nil {
 					return nil, internal("archive cannot be read: " + err.Error())
 				}
 				defer r.Close()
-				return io.ReadAll(r)
+				return readBinary(r)
 			}
 		}
 		return nil, internal("archive holds no binary")
@@ -210,10 +264,18 @@ func extractBinary(archive []byte, asset string) ([]byte, error) {
 		if err != nil {
 			return nil, internal("archive cannot be read: " + err.Error())
 		}
-		if filepath.Base(hdr.Name) == "yass" {
-			return io.ReadAll(tr)
+		if filepath.Base(hdr.Name) == "yass" && hdr.Typeflag == tar.TypeReg {
+			return readBinary(tr)
 		}
 	}
+}
+
+func readBinary(r io.Reader) ([]byte, error) {
+	bin, err := readBounded(r)
+	if err != nil {
+		return nil, internal("archive cannot be read: " + err.Error())
+	}
+	return bin, nil
 }
 
 // replaceBinary stages the new binary in a temporary file beside the installed
