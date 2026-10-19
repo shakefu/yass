@@ -10,7 +10,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -26,36 +25,12 @@ var (
 	updateOS         = runtime.GOOS
 	updateArch       = runtime.GOARCH
 	updateExecutable = installedBinary
-	updateClient     = &http.Client{Timeout: 5 * time.Minute, CheckRedirect: assetRedirect}
+	updateClient     = &http.Client{Timeout: 5 * time.Minute}
 
-	// updateAssetDomain is where the release host's downloads redirect to:
-	// GitHub serves release assets from hosts under this domain.
-	updateAssetDomain = "githubusercontent.com"
 	// updateMaxBytes bounds every download and the extracted binary, so a
-	// hostile or broken response cannot exhaust memory.
+	// broken response cannot exhaust memory.
 	updateMaxBytes int64 = 256 << 20
 )
-
-// assetRedirect lets a download follow the release host's redirect to the
-// asset host and nowhere else, never from https down to http, per
-// 12-update@Update::SIDE-EFFECT.
-func assetRedirect(req *http.Request, via []*http.Request) error {
-	if len(via) >= 5 {
-		return errors.New("too many redirects")
-	}
-	release, err := url.Parse(updateReleases)
-	if err != nil {
-		return err
-	}
-	if release.Scheme == "https" && req.URL.Scheme != "https" {
-		return errors.New("redirect leaves https")
-	}
-	host := req.URL.Hostname()
-	if host == release.Hostname() || strings.HasSuffix(host, "."+updateAssetDomain) {
-		return nil
-	}
-	return errors.New("redirect leaves the release host")
-}
 
 // installedBinary is the file the running program was executed from, with
 // symbolic links resolved, per 12-update@Update::INPUT.
