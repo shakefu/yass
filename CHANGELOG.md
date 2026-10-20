@@ -2,6 +2,15 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.4.11 - 2026-10-20
+#### Bug Fixes
+- (**language**) resolve the ambiguities, gaps, and contradictions of issue #77 - (2010d3c) - Jacob Alheid
+#### Documentation
+- (**spec**) clarify list findings-status × --filter and the addressable DETAIL/RETURN contract - (87fb1c6) - Jacob Alheid
+- fix stale and inconsistent documentation and site config - (62aac12) - Claude, *Claude Opus 5.5*
+
+- - -
+
 ## v0.4.10 - 2026-10-20
 #### Bug Fixes
 - (**cli**) report a non-string version as not v1; report an unnamed root spec from lint - (721e556) - Jacob Alheid
