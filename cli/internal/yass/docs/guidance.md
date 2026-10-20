@@ -14,8 +14,10 @@ to be understood or implemented.
 The core failure mode: an LLM, unguided, will slop a single giant spec file for a whole
 codebase. To prevent that:
 
-- **One spec file per code file.** A `.yass.yaml` is paired 1:1 with the code file it
-  describes.
+- **One spec file per unit of specification.** A `.yass.yaml` is paired with the code it
+  describes at the project's chosen unit — a command, module, package, or similar cohesive
+  component — not necessarily one file for one source file. A spec file may hold several
+  `spec:` documents when they share that unit.
 - **One spec definition per public symbol or endpoint.** Each public function, method,
   class, or endpoint gets its own `spec:` document.
 
@@ -49,8 +51,10 @@ prose slot the language does not have.
 ## Deliberate non-goal: no free-prose channel
 
 yass intentionally provides **no formal way to attach non-spec prose or commentary** to
-a spec. Authors get structured obligations only; the sole free-text field is the
-preamble `description`.
+a spec. Authors get structured obligations only. Free text does appear in a few declared
+fields — the preamble `description`, the preamble `related` list of external resource
+locations, and a design block's `type` hint — but each is structural metadata, not a
+commentary channel.
 
 Rationale: when a language allows free prose (as Allium does), the prose goes out of
 control — specs bloat with narrative that isn't behavior. Withholding a prose/comment
@@ -68,7 +72,7 @@ normative force through the reference graph (`USES`); it cannot leak into a `spe
 document, and an unreferenced design block is dead weight that lint flags — declared
 normative content nothing binds to. The forcing function stays intact for spec
 documents: express intent as obligations, or not at all. The preamble `description`
-remains the only free-text field outside a design block.
+and `related` fields remain the only free-text fields outside a design block.
 
 ## Ordering: implementation sequence
 
@@ -182,9 +186,11 @@ checks are the discipline those rules generalize.
    obligation matched (the reading is fixed in `yass.yass.yaml` under
    `Slot.ERROR`). If the guarded cases are instead exhaustive — every input
    rejected by a named guard or accepted as well-formed — state that
-   exhaustiveness and omit the residual: a residual over an empty remainder is
-   dead and can never fire, and asserting one alongside an exhaustive partition
-   is a contradiction.
+   exhaustiveness in the spec's `INVARIANT` and omit the residual from
+   `ERROR`. A residual over an empty remainder is dead and can never fire,
+   asserting one alongside an exhaustive partition is a contradiction, and a
+   guard-less `ERROR` obligation is itself read as the residual so
+   exhaustiveness cannot live there.
 
    Reachability is judged within the component's declared input contract,
    not the composed program. A guarded failure another component prevents

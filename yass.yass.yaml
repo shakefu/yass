@@ -182,6 +182,9 @@ RETURN:
   MUST: read it as the residual policy for any failure not matched by a guarded obligation in the same slot
 - WHEN: the guarded obligations in this slot already account for every possible input
   MUST-NOT: carry a guard-less residual obligation, because the residual set is empty and the obligation can never apply
+- WHEN: a spec states that its cases here are exhaustive
+  MUST: state that exhaustiveness in the spec's INVARIANT rather than here, because a guard-less obligation in this slot is itself read as the residual
+  SEE: Slot.INVARIANT
 ---
 spec: Slot.SIDE-EFFECT
 RETURN:
@@ -190,6 +193,8 @@ RETURN:
 spec: Slot.INVARIANT
 RETURN:
 - MUST: state constraints that always hold, independent of any single call
+- MAY: state that another slot's cases are exhaustive, naming that slot, so the slot can omit a residual
+  SEE: Slot.ERROR
 INVARIANT:
 - SHOULD: be used only when no other slot is suitable
 ---

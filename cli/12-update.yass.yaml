@@ -38,8 +38,6 @@ ERROR:
 - WHEN: the installed binary cannot be replaced
   MUST: report code yass.update.denied naming the binary path and exit with the environment status
 - MUST: report code yass.internal and exit with the environment status for any failure not matched by a guarded obligation in this slot
-- MUST: write every diagnostic in this slot to standard error, since the update record is the only thing this command puts on standard output
-  USES: root@OutputPolicy
 SIDE-EFFECT:
 - MUST: "connect only to the release host, and only to resolve the newest release and fetch its archive and `checksums.txt`"
   USES: ReleaseLayout
@@ -48,6 +46,8 @@ SIDE-EFFECT:
   MUST: "move the installed binary aside to `<binary>.old` before the swap, restore it if the swap fails, and remove it afterward only on a best-effort basis, since a running windows binary cannot be renamed over and may hold the moved file open"
 - MUST: leave the installed binary as it was whenever any step fails, so a failed update preserves the working installation
 - MUST-NOT: create, modify, delete, or rename anything else, and in particular no spec file
+- MUST: write every diagnostic in this slot to standard error, since the update record is the only thing this command puts on standard output
+  USES: root@OutputPolicy
 INVARIANT:
 - MUST-NOT: install a binary whose digest was not verified against the published checksum
 - MUST-NOT: install anything but a non-empty regular-file entry of the archive, so a malformed archive fails rather than installing a broken binary reported as updated

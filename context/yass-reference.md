@@ -139,7 +139,9 @@ specific failure mode, and a **guard-less** obligation is the **residual** — t
 for any failure not matched by a guarded obligation in the same slot. A residual is
 meaningful only when the guards leave inputs unmatched: if the guarded obligations
 already account for every input, the residual set is empty and a guard-less catch-all
-is **dead** — it can never fire, and MUST-NOT be carried.
+is **dead** — it can never fire, and MUST-NOT be carried. State that exhaustiveness in
+the spec's `INVARIANT` instead: a guard-less `ERROR` obligation is itself read as the
+residual, so exhaustiveness cannot live there.
 
 `ERROR` is also where rejections live, and only there: a rule phrased as *be rejected*
 sits in an `ERROR` slot, and validation enforces exactly those rules — a MUST or
@@ -308,7 +310,9 @@ because the keyword constructs are the rule's home, not its conformers.
 
 ## Meta-rules (the spec *system*, distinct from in-spec obligations)
 
-- Every code file MUST be paired with its `.yass.yaml` file.
+- Every unit of specification MUST be paired with its `.yass.yaml` file. A unit is the
+  project's chosen pairing — a command, module, package, or similar cohesive component —
+  not necessarily one source file, and a spec file may hold several `spec:` documents.
 - Every public symbol or endpoint SHOULD have a definition in the `.yass.yaml` file.
 - The `.yass.yaml` file MUST be structured parseably.
 - The `.yass.yaml` file MUST-NOT require special syntax to be read by an AI agent.

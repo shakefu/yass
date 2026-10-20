@@ -4,9 +4,10 @@ description: >
   The conformance subcommand. `yass validate` checks addressed files against every construct
   of the yass language definition and emits one coded diagnostic per rule violation, so an
   agent that has just written a spec learns what is wrong with it in one line per problem.
-  Every check is stated here as its own guarded obligation carrying its own code, so this
-  command is implementable from this file alone; the CONFORMS on each group names the
-  construct Spec that remains the normative statement of the rule.
+  Every check is stated here as its own guarded obligation carrying its own code and its
+  own CONFORMS naming the construct Spec that remains the normative statement of the rule,
+  so this command is implementable from this file alone and no check depends on its
+  position among the others.
 version: v1
 ---
 spec: Validate
@@ -40,97 +41,126 @@ RETURN:
 - WHEN: no violation is found in any addressed file
   MUST: write nothing at all and exit with the ok status
   USES: root@Brevity
-- CONFORMS: ../yass@Document
 - WHEN: a file's bytes are not valid UTF-8, or begin with a UTF-8 BOM
   MUST: emit code yass.document.encoding
+  CONFORMS: ../yass@Document
 - WHEN: a file's stream is not well-formed YAML
   MUST: emit code yass.document.not_yaml
+  CONFORMS: ../yass@Document
 - WHEN: a file uses a YAML anchor, an alias, or an explicit tag
   MUST: emit code yass.document.yaml_feature
+  CONFORMS: ../yass@Document
 - WHEN: a mapping in a file carries the same key more than once, including a repeated normativity keyword or a repeated relation key on one obligation
   MUST: emit code yass.document.duplicate_key
+  CONFORMS: ../yass@Document
 - WHEN: "a document after the first carries neither a `spec` key nor a `design` key"
   MUST: emit code yass.document.unknown_kind
+  CONFORMS: ../yass@Document
 - WHEN: "a document after the first carries both a `spec` key and a `design` key, so neither classification rule may claim it"
   MUST: emit code yass.document.both_keys and no spec, design, or slot check under either reading
+  CONFORMS: ../yass@Document
 - WHEN: two documents of one file carry the same name, whether spec or design
   MUST: emit code yass.document.name_duplicate, because spec and design names share one file-wide namespace
-- CONFORMS: ../yass@Preamble
+  CONFORMS: ../yass@Document
 - WHEN: "a file's first document carries a `spec` key or a `design` key, so the file has no preamble"
   MUST: emit code yass.preamble.missing
+  CONFORMS: ../yass@Preamble
 - WHEN: "a preamble omits `description` or `version`"
   MUST: emit code yass.preamble.incomplete
+  CONFORMS: ../yass@Preamble
 - WHEN: "a preamble's `description` value is not a string"
   MUST: emit code yass.preamble.value_type
+  CONFORMS: ../yass@Preamble
 - WHEN: "a preamble's `version` is not the exact string `v1` byte-for-byte"
   MUST: emit code yass.preamble.version
+  CONFORMS: ../yass@Preamble
 - WHEN: "a preamble carries a key other than `description`, `version`, and `related`"
   MUST: emit code yass.preamble.unknown_key
+  CONFORMS: ../yass@Preamble
 - WHEN: "a preamble's `related` is present and is not a sequence of strings"
   MUST: emit code yass.preamble.related_shape
-- CONFORMS: ../yass@Root
+  CONFORMS: ../yass@Preamble
 - WHEN: "a file named exactly `root.yass.yaml` carries no spec document, or more than one"
   MUST: emit code yass.root.spec_count
+  CONFORMS: ../yass@Root
 - WHEN: no file named `root.yass.yaml` is at or above an addressed file
   MUST: emit code yass.root.not_found
-- CONFORMS: ../yass@Spec
+  CONFORMS: ../yass@Root
 - WHEN: "a document carries a `spec` key whose value is absent, empty, or not a string"
   MUST: emit code yass.spec.unnamed
+  CONFORMS: ../yass@Spec
 - WHEN: "a spec name does not match the regex `^[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*$`, which rejects a leading dot, a trailing dot, consecutive dots, and every character outside the name charset"
   MUST: emit code yass.spec.name_grammar
+  CONFORMS: ../yass@Spec
 - WHEN: a spec name case-insensitively matches any yass keyword, whether a slot keyword, a normativity keyword, WHEN, or a relation keyword
   MUST: emit code yass.spec.name_keyword
-- CONFORMS: ../yass@Design
+  CONFORMS: ../yass@Spec
 - WHEN: "a document carries a `design` key whose value is absent, empty, or not a string"
   MUST: emit code yass.design.unnamed
+  CONFORMS: ../yass@Design
 - WHEN: a design name does not match the spec name regex
   MUST: emit code yass.design.name_grammar
+  CONFORMS: ../yass@Design
 - WHEN: a design name case-insensitively matches any yass keyword, whether a slot keyword, a normativity keyword, WHEN, or a relation keyword
   MUST: emit code yass.design.name_keyword
+  CONFORMS: ../yass@Design
 - WHEN: "a design omits `type` or `content`"
   MUST: emit code yass.design.incomplete
+  CONFORMS: ../yass@Design
 - WHEN: "a design's `type` or `content` value is not a string"
   MUST: emit code yass.design.value_type
+  CONFORMS: ../yass@Design
 - WHEN: "a design carries a key other than `design`, `type`, and `content`, which includes any slot key"
   MUST: emit code yass.design.unknown_key
-- CONFORMS: ../yass@Slot
+  CONFORMS: ../yass@Design
 - WHEN: "a spec document carries a key that is neither `spec` nor one of INPUT, RETURN, ERROR, SIDE-EFFECT, and INVARIANT"
   MUST: emit code yass.slot.unknown
+  CONFORMS: ../yass@Slot
 - WHEN: a slot's value is not a YAML sequence
   MUST: emit code yass.slot.not_a_list
-- CONFORMS: ../yass@Obligation
+  CONFORMS: ../yass@Slot
 - WHEN: an item of a slot's sequence is not a YAML mapping
   MUST: emit code yass.obligation.not_a_mapping
+  CONFORMS: ../yass@Obligation
 - WHEN: an obligation carries a key that is not a normativity keyword, not WHEN, and not a relation key
   MUST: emit code yass.obligation.unknown_key
   CONFORMS: ../yass@Normativity
 - WHEN: an obligation carries more than one distinct normativity keyword
   MUST: emit code yass.obligation.multiple_normativity
+  CONFORMS: ../yass@Normativity
 - WHEN: an obligation carries neither a normativity keyword nor a relation key
   MUST: emit code yass.obligation.empty
+  CONFORMS: ../yass@Obligation
 - WHEN: an obligation carries a WHEN guard and no normativity keyword
   MUST: emit code yass.obligation.guard_alone
   CONFORMS: ../yass@Guard
 - WHEN: "the value of an obligation's normativity keyword or its WHEN guard is not a string, characteristically unquoted prose holding a colon followed by a space"
   MUST: emit code yass.obligation.not_scalar
-- CONFORMS: ../yass@Reference
+  CONFORMS: ../yass@Obligation
 - WHEN: a relation key's value is not a single string
   MUST: emit code yass.ref.not_a_string
+  CONFORMS: ../yass@Reference
 - WHEN: "a reference target is not well formed against the `path@Name::SLOT` grammar, including a path token holding a backslash or a character outside `[A-Za-z0-9._/-]`, a path token beginning with `/`, a name token holding a character outside `[A-Za-z0-9._-]`, and a slot token holding a character outside `[A-Z-]`"
   MUST: emit code yass.ref.syntax
   CONFORMS: ../yass@RefTarget
 - WHEN: a reference target names a file, a spec, or a design that does not exist
   MUST: emit code yass.ref.unresolved
+  CONFORMS: ../yass@Reference
 - WHEN: a CONFORMS target resolves to a design
   MUST: emit code yass.ref.conforms_design
+  CONFORMS: ../yass@Reference
 - WHEN: a USES target resolves to a spec or a slot
   MUST: emit code yass.ref.uses_spec
+  CONFORMS: ../yass@Reference
 - WHEN: "a `::SLOT` token names a slot outside the recognized set"
   MUST: emit code yass.ref.slot_unknown
+  CONFORMS: ../yass@RefTarget
 - WHEN: "a `::SLOT` token is appended to a target that resolves to a design"
   MUST: emit code yass.ref.slot_on_design
+  CONFORMS: ../yass@RefTarget
 - WHEN: "a `::SLOT` token names a slot the referenced spec does not declare in its source document"
   MUST: emit code yass.ref.slot_undeclared
+  CONFORMS: ../yass@Reference
 ERROR:
 - WHEN: at least one diagnostic was emitted
   MUST: exit with the findings status after writing all of them

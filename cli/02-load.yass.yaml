@@ -40,7 +40,6 @@ RETURN:
 ERROR:
 - WHEN: a file cannot be opened or read
   MUST: report code yass.io.unreadable naming the path and exit with the environment status
-- MUST-NOT: carry a guard-less residual, because a file is either unreadable, or yields bytes that parse into documents or do not, and each of those is matched here or answered in RETURN
 INVARIANT:
 - MUST: be the only place this program reads a spec file, so no command reaches the filesystem for content of its own
 - MUST-NOT: exit for a file that parsed but violates a yass rule, since deciding well-formedness belongs to validation alone
@@ -52,6 +51,7 @@ INVARIANT:
 - MUST-NOT: "resolve, fetch, or open a preamble `related` entry"
   CONFORMS: ../yass@Preamble::INVARIANT
 - MUST-NOT: create, modify, or delete any file, or cache the model on disk, in a temporary directory, or in a configuration directory
+- MUST: "treat the cases as exhaustive: a file is either unreadable, or yields bytes that parse into documents or do not, and each of those is matched in ERROR or answered in RETURN, so ERROR carries no residual"
 ---
 spec: TargetResolution
 INPUT:
@@ -100,6 +100,7 @@ ERROR:
 - WHEN: a slot was given and the named spec does not declare it
   MUST: report code yass.ref.slot_undeclared naming the target and exit with the unresolved status
 - MUST: report code yass.ref.unresolved naming the target and exit with the unresolved status for any target that fails to resolve for a reason not matched above, such as a path token that names a directory
+SIDE-EFFECT:
 - MUST: write every diagnostic in this slot to standard error, because a target that will not resolve is a failure to serve the request
   USES: root@OutputPolicy
 INVARIANT:

@@ -67,6 +67,7 @@ ERROR:
 - WHEN: a file under the project root cannot be read at all
   MUST: report code yass.io.unreadable naming it and exit with the environment status
 - MUST: report code yass.internal and exit with the environment status for any failure not matched by a guarded obligation in this slot
+SIDE-EFFECT:
 - MUST: write every diagnostic in this slot to standard error, since the records are the only thing this subcommand puts on standard output
   USES: root@OutputPolicy
 INVARIANT:
