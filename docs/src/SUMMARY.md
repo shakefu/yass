@@ -7,7 +7,7 @@
 - [Installation and updates](installation.md)
 - [Quick start](quick-start.md)
 - [CLI guide](cli.md)
-- [Working with coding agents](agent-workflows.md)
+- [Developing with agents](agent-workflows.md)
 
 # Language
 

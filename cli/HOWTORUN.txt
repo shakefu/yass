@@ -47,8 +47,9 @@ Run
 
   An invocation naming no subcommand runs `overview`, which writes the block a
   reader needs on first contact: what this program is, what project the starting
-  directory sits in, the notation a spec file uses, and the commands that read a
-  spec set. Running `yass` with no arguments is the intended way in.
+  directory sits in, the notation a spec file uses, the commands that read a
+  spec set, and, for eliciting, writing, or changing a spec, the
+  `yass docs brainstorming` flow to follow. Running `yass` with no arguments is the intended way in.
 
   Exit statuses: 0 ok, 1 findings, 2 usage, 3 unresolved, 4 no-root,
   5 environment.
@@ -98,6 +99,8 @@ Test
 
   script/test        (from the repository root)
 
-  or, equivalently:
+  It runs the installer tests (script/test-install), then fails on any file
+  `gofmt -l` lists, and runs `go vet ./...`, `go test ./...`, and `go build`.
+  For the Go checks alone, run from this directory:
 
-  cd cli && gofmt -l . && go vet ./... && go test ./...
+  test -z "$(gofmt -l .)" && go vet ./... && go test ./... && go build -o /dev/null .

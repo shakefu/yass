@@ -23,7 +23,7 @@ a CLI quick start, command examples, and workflows for working with coding agent
 Releases publish prebuilt binaries for macOS (arm64, amd64), Linux (arm64,
 amd64), and Windows (amd64), with sha256 checksums, on the
 [releases page](https://github.com/shakefu/yass/releases). No Go toolchain is
-needed for any path below.
+needed for any path below except building from source.
 
 ### Installer script
 
@@ -39,7 +39,7 @@ a version or choose the directory:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/shakefu/yass/main/install.sh |
-  sh -s -- --version v0.2.0 --bin-dir "$HOME/bin"
+  sh -s -- --version v0.4.3 --bin-dir "$HOME/bin"
 ```
 
 On Windows, download the `windows_amd64` zip from the releases page instead.
