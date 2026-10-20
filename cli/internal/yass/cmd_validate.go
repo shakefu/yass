@@ -202,12 +202,17 @@ func checkNodeFeatures(d *Doc, n *yaml.Node) []Diag {
 func checkPreamble(d *Doc) []Diag {
 	var out []Diag
 	loc := d.File.Ref
-	// The language fixes no type for description, so only its absence is a
-	// violation; a present version of any type is checked against v1.
+	// Only the absence of description or version is an incomplete preamble; a
+	// present description must be a string, and a present version of any type
+	// is checked against v1.
 	descriptionNode, versionNode := d.value("description"), d.value("version")
 	if descriptionNode == nil || versionNode == nil {
 		out = append(out, diag("yass.preamble.incomplete", loc, d.Line,
 			"preamble omits description or version"))
+	}
+	if descriptionNode != nil && !d.HasDescription {
+		out = append(out, diag("yass.preamble.value_type", loc, d.Line,
+			"preamble description is not a string"))
 	}
 	if versionNode != nil && (!d.HasVersion || d.Version != "v1") {
 		out = append(out, diag("yass.preamble.version", loc, d.Line, "preamble version is not v1"))
@@ -284,9 +289,9 @@ func (a *App) checkObligation(s *Slot, o *Obligation) []Diag {
 	for _, e := range o.Entries {
 		switch {
 		case isNormativity(e.Key), e.Key == "WHEN":
-			if !isScalarValue(e.Vn) {
+			if !isStringValue(e.Vn) {
 				out = append(out, diag("yass.obligation.not_scalar", loc, e.Kn.Line,
-					"obligation value is not a scalar"))
+					"obligation value is not a string"))
 			}
 		case isRelation(e.Key):
 			hasRelation = true
@@ -313,10 +318,11 @@ func (a *App) checkObligation(s *Slot, o *Obligation) []Diag {
 	return out
 }
 
-// isScalarValue reports whether a node sits at a scalar position: a mapping, a
-// sequence, or null is a violation.
-func isScalarValue(n *yaml.Node) bool {
-	return n != nil && n.Kind == yaml.ScalarNode && n.Tag != "!!null"
+// isStringValue reports whether a node is a string scalar: prose positions
+// require a string, so a mapping, a sequence, null, or a non-string scalar is a
+// violation.
+func isStringValue(n *yaml.Node) bool {
+	return n != nil && n.Kind == yaml.ScalarNode && n.Tag == "!!str"
 }
 
 // checkRef checks one reference against the ref-target grammar, then against

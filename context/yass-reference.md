@@ -54,8 +54,8 @@ consumes them to drive test (TDD) and implementation generation.
 - Identified structurally by the **absence of a `spec:` or `design:` key**.
 - The file name is the identity of the whole unit; the preamble does **not** repeat it.
 - Keys:
-  - `description` — **required**; file-level summary (block scalar `>` allowed).
-    Surfaced by tooling that summarizes files.
+  - `description` — **required**; a string file-level summary (block scalar `>`
+    allowed). Surfaced by tooling that summarizes files.
   - `version` — **required**; the yass language version the file targets. **Pinned at
     `v1`** in the current revision.
   - `related` — *optional*; a list of freeform external resource locations (paths, URLs,
@@ -169,10 +169,13 @@ An obligation is a **YAML mapping** (a list item under a slot):
   condition. If `WHEN` is present it **MUST** be accompanied by a normativity keyword.
 - **References** (optional) — `CONFORMS` / `USES` / `SEE`, each at most once per
   obligation, value = a **single** ref-target string.
-- **Scalar values** — mappings, sequences, and YAML 1.2 core-schema nulls are rejected.
-  An absent value and unquoted `null`, `Null`, `NULL`, or `~` resolve to null;
-  quoted empty strings and quoted `"null"` or `"~"` remain strings. Resolve YAML tags
-  before checking this rule rather than testing only the scalar text.
+- **Closed key set** — a normativity keyword, `WHEN`, and the relation keys are the
+  only keys an obligation mapping may carry; any other key is a validation error.
+- **Prose values** — a normativity keyword's or `WHEN`'s value must be a **string**:
+  mappings, sequences, core-schema nulls, and non-string scalars (numbers, booleans)
+  are rejected. An absent value and unquoted `null`, `Null`, `NULL`, or `~` resolve
+  to null; quoted empty strings and quoted `"null"` or `"~"` remain strings. Resolve
+  YAML tags before checking this rule rather than testing only the scalar text.
 - **Ref-only** — a mapping with one or more relation keys and **no** normativity keyword
   and **no** `WHEN`. Allowed; it adds no obligation of its own and resolves per its
   relation (a **slot-targeted** `CONFORMS` transcludes; a whole-spec `CONFORMS` stays in
@@ -187,7 +190,8 @@ An obligation is a **YAML mapping** (a list item under a slot):
   - A **bare name** (`SpecName`) addresses a spec or design in the **same file**.
   - `@` separates a path from the spec name (`path@SpecName`) for **other files**.
   - `::` separates the spec name from a slot (`SpecName::SLOT`); omit it to address the
-    whole spec.
+    whole spec. The `SLOT` token must name one of the five recognized slots (see
+    *Slots*); any other slot token is a validation error.
   - **Path resolution:** a `./` or `../` path is **relative to the referencing file**; a
     path with any other lead resolves **from the project root** (see *Project root*
     above) — including one whose leading dot opens a hidden name, such as `.config`,

@@ -182,7 +182,7 @@ type Obligation struct {
 	HasProse    bool
 	Guard       string
 	HasGuard    bool
-	GuardScalar bool
+	GuardString bool
 	Refs        []*Ref
 }
 

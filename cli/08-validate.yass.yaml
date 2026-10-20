@@ -60,6 +60,8 @@ RETURN:
   MUST: emit code yass.preamble.missing
 - WHEN: "a preamble omits `description` or `version`"
   MUST: emit code yass.preamble.incomplete
+- WHEN: "a preamble's `description` value is not a string"
+  MUST: emit code yass.preamble.value_type
 - WHEN: "a preamble's `version` is not the exact string `v1` byte-for-byte"
   MUST: emit code yass.preamble.version
 - WHEN: "a preamble carries a key other than `description`, `version`, and `related`"
@@ -109,7 +111,7 @@ RETURN:
 - WHEN: an obligation carries a WHEN guard and no normativity keyword
   MUST: emit code yass.obligation.guard_alone
   CONFORMS: ../yass@Guard
-- WHEN: "an obligation's value at a scalar position is a mapping, a sequence, or null, characteristically unquoted prose holding a colon followed by a space"
+- WHEN: "the value of an obligation's normativity keyword or its WHEN guard is not a string, characteristically unquoted prose holding a colon followed by a space"
   MUST: emit code yass.obligation.not_scalar
 - CONFORMS: ../yass@Reference
 - WHEN: a relation key's value is not a single string
