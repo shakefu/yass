@@ -14,8 +14,8 @@ It reads spec sets without changing them; writing specs and implementing code ar
 tasks for you and your agent.
 
 Start with [installation](installation.md) and the [quick start](quick-start.md),
-then use the [CLI guide](cli.md) to navigate a project. The
-[agent workflows](agent-workflows.md) show how to elicit and review a new spec,
+then use the [CLI guide](cli.md) to navigate a project. The chapter on
+[developing with agents](agent-workflows.md) shows how to elicit and review a new spec,
 implement an approved one, and adopt Yass in an existing codebase.
 
 The [language reference](reference.md), [authoring guidance](guidance.md), and

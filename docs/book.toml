@@ -10,6 +10,7 @@ build-dir = "book"
 create-missing = false
 
 [output.html]
+site-url = "/yass/"
 git-repository-url = "https://github.com/shakefu/yass"
 default-theme = "rust"
 preferred-dark-theme = "navy"

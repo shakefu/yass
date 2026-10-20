@@ -5,7 +5,7 @@
 #   curl -fsSL https://raw.githubusercontent.com/shakefu/yass/main/install.sh | sh
 #
 # Options (after `sh -s --` when piped):
-#   --version TAG   install that release instead of the latest (v0.2.0 or 0.2.0)
+#   --version TAG   install that release instead of the latest (v0.4.3 or 0.4.3)
 #   --bin-dir DIR   install into DIR instead of the default
 #   --help          write this header and exit
 #
@@ -41,7 +41,7 @@ usage() {
 	#   curl -fsSL https://raw.githubusercontent.com/shakefu/yass/main/install.sh | sh
 	#
 	# Options (after `sh -s --` when piped):
-	#   --version TAG   install that release instead of the latest (v0.2.0 or 0.2.0)
+	#   --version TAG   install that release instead of the latest (v0.4.3 or 0.4.3)
 	#   --bin-dir DIR   install into DIR instead of the default
 	#   --help          write this header and exit
 	#

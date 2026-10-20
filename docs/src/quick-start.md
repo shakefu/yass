@@ -99,5 +99,5 @@ the spec. Use `yass docs reference` and `yass docs guidance` when authoring or
 changing it. These documents are embedded in the binary and work outside a
 project too.
 
-Continue with the worked example in [Agent Workflows](agent-workflows.md)
+Continue with the worked example in [Developing with agents](agent-workflows.md)
 to grow the spec into a project with references and shared contracts.
