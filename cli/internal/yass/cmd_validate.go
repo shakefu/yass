@@ -101,6 +101,13 @@ func (a *App) checkFile(f *File) []Diag {
 		if d.Node != nil {
 			out = append(out, checkNodeFeatures(d, d.Node)...)
 		}
+		if d.Index > 0 && d.hasKey("spec") && d.hasKey("design") {
+			// Neither classification rule may claim the document, so no
+			// spec, design, or slot check runs under either reading.
+			out = append(out, diag("yass.document.both_keys", f.Ref, d.Line,
+				"document carries both a spec key and a design key"))
+			continue
+		}
 		if d.Addressable() {
 			if names[d.Name] {
 				out = append(out, diag("yass.document.name_duplicate", d.Target(), d.Line,

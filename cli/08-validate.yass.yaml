@@ -51,6 +51,8 @@ RETURN:
   MUST: emit code yass.document.duplicate_key
 - WHEN: "a document after the first carries neither a `spec` key nor a `design` key"
   MUST: emit code yass.document.unknown_kind
+- WHEN: "a document after the first carries both a `spec` key and a `design` key, so neither classification rule may claim it"
+  MUST: emit code yass.document.both_keys and no spec, design, or slot check under either reading
 - WHEN: two documents of one file carry the same name, whether spec or design
   MUST: emit code yass.document.name_duplicate, because spec and design names share one file-wide namespace
 - CONFORMS: ../yass@Preamble
@@ -74,14 +76,14 @@ RETURN:
   MUST: emit code yass.spec.unnamed
 - WHEN: "a spec name does not match the regex `^[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*$`, which rejects a leading dot, a trailing dot, consecutive dots, and every character outside the name charset"
   MUST: emit code yass.spec.name_grammar
-- WHEN: a spec name case-insensitively matches a slot keyword or a normativity keyword
+- WHEN: a spec name case-insensitively matches any yass keyword, whether a slot keyword, a normativity keyword, WHEN, or a relation keyword
   MUST: emit code yass.spec.name_keyword
 - CONFORMS: ../yass@Design
 - WHEN: "a document carries a `design` key whose value is absent, empty, or not a string"
   MUST: emit code yass.design.unnamed
 - WHEN: a design name does not match the spec name regex
   MUST: emit code yass.design.name_grammar
-- WHEN: a design name case-insensitively matches a slot keyword or a normativity keyword
+- WHEN: a design name case-insensitively matches any yass keyword, whether a slot keyword, a normativity keyword, WHEN, or a relation keyword
   MUST: emit code yass.design.name_keyword
 - WHEN: "a design omits `type` or `content`"
   MUST: emit code yass.design.incomplete
@@ -112,7 +114,7 @@ RETURN:
 - CONFORMS: ../yass@Reference
 - WHEN: a relation key's value is not a single string
   MUST: emit code yass.ref.not_a_string
-- WHEN: "a reference target is not well formed against the `path@Name::SLOT` grammar, including a path token holding a backslash or a character outside `[A-Za-z0-9._/-]`, a name token holding a character outside `[A-Za-z0-9._-]`, and a slot token holding a character outside `[A-Z-]`"
+- WHEN: "a reference target is not well formed against the `path@Name::SLOT` grammar, including a path token holding a backslash or a character outside `[A-Za-z0-9._/-]`, a path token beginning with `/`, a name token holding a character outside `[A-Za-z0-9._-]`, and a slot token holding a character outside `[A-Z-]`"
   MUST: emit code yass.ref.syntax
   CONFORMS: ../yass@RefTarget
 - WHEN: a reference target names a file, a spec, or a design that does not exist

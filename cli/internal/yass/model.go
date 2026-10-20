@@ -66,8 +66,9 @@ func relationRank(s string) int {
 // nameGrammar is the spec and design name regex the language definition fixes.
 var nameGrammar = regexp.MustCompile(`^[A-Za-z0-9_-]+(\.[A-Za-z0-9_-]+)*$`)
 
-// isReservedName reports whether a document name case-insensitively matches a
-// slot keyword or a normativity keyword.
+// isReservedName reports whether a document name case-insensitively matches any
+// yass keyword: a slot name, a normativity keyword, the guard keyword, or a
+// relation keyword.
 func isReservedName(name string) bool {
 	for _, k := range SlotNames {
 		if strings.EqualFold(name, k) {
@@ -79,7 +80,12 @@ func isReservedName(name string) bool {
 			return true
 		}
 	}
-	return false
+	for _, k := range RelationNames {
+		if strings.EqualFold(name, k) {
+			return true
+		}
+	}
+	return strings.EqualFold(name, "WHEN")
 }
 
 // SpecSuffix is the literal basename suffix of a yass spec file.

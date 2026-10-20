@@ -68,7 +68,7 @@ INPUT:
   SEE: ../yass@RefTarget
 - WHEN: "the path token begins with `./` or `../`"
   MUST: resolve it relative to the starting directory, because a command-line operand has no referencing file to resolve against
-- WHEN: the path token has no leading dot
+- WHEN: the path token begins with any other lead, including a dot that opens a hidden name
   MUST: resolve it from the project root
   CONFORMS: ../yass@RefTarget
 - MUST: "append the literal suffix `.yass.yaml` to the path token to produce the file path"
