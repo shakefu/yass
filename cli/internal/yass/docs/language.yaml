@@ -12,14 +12,15 @@ related:
 ---
 spec: Document
 INPUT:
+- MUST: "be a file whose name ends in `.yass.yaml` with at least one character before that suffix, so a file named exactly `.yass.yaml` is not a yass file"
 - MUST: be encoded as UTF-8
 - MUST: "be a YAML stream of one or more documents separated by `---`"
-- MUST: be parsed under the YAML 1.2 core schema
+- MUST: be parsed under the YAML 1.2 core schema, which reads `yes`, `no`, `on`, and `off` as plain strings
 - MUST-NOT: contain a leading UTF-8 BOM
 - MUST-NOT: use YAML anchors, aliases, or explicit tags
 - MUST-NOT: contain duplicate keys within any mapping
-- MUST: "treat `yes`, `no`, `on`, and `off` as plain strings rather than booleans"
 - MAY: use CRLF or LF line endings, treated equivalently by the YAML 1.2 parser
+- SHOULD: carry the schema modeline naming the derived v1 JSON Schema as its first line, so an editor validates the file with no per-repository configuration
 RETURN:
 - MUST: begin with a single Preamble as its first document
   SEE: Preamble
@@ -32,6 +33,10 @@ RETURN:
 ERROR:
 - MUST: be rejected when the stream is not well-formed YAML
 - MUST: "be rejected when a document after the first has neither a `spec` key nor a `design` key"
+- MUST: "be rejected when a document after the first carries both a `spec` key and a `design` key"
+- MUST: be rejected when it is not valid UTF-8 or begins with a UTF-8 BOM
+- MUST: be rejected when it uses YAML anchors, aliases, or explicit tags
+- MUST: be rejected when any mapping within it carries duplicate keys
 INVARIANT:
 - MUST: preserve document order, since Preamble validity depends on position
 ---
@@ -58,15 +63,16 @@ INVARIANT:
 - MUST: count CONFORMS, USES, and SEE equally as edges of that chain
   SEE: Reference
 - MUST-NOT: be located by any means other than its name, such as a repository marker or the presence of other yass files
+- MUST-NOT: govern a file reached from inside its project root by a Reference whose path token leaves it, since the reached file's own nearest Root governs it
+  SEE: Reference
 ---
 spec: Preamble
 INPUT:
-- MUST: "be a YAML mapping that has neither a `spec` key nor a `design` key"
-- MUST: be present as the first document of every file
+- MUST: be present as the first document of every file, read as the Preamble whatever YAML shape that document takes
+- MUST: be a YAML mapping that has neither a `spec` key nor a `design` key
 - MUST: provide a description of the file
 - MUST: provide a version
-- MUST: set the version to v1 for this revision of yass
-- MUST: "set its version to the exact string `v1` byte-for-byte"
+- MUST: set its version to the exact string `v1` byte-for-byte, the revision of yass the file targets
 - MUST-NOT: case-fold the version or accept alternative spellings such as `V1`, `v1.0`, or any semver form
 - MAY: provide a related list of external resource locations
 - WHEN: "the `related` key is present"
@@ -74,7 +80,7 @@ INPUT:
 RETURN:
 - MUST: declare the yass version of the spec file
 ERROR:
-- MUST: be rejected when no Preamble is present
+- MUST: be rejected when the first document carries a `spec` key or a `design` key, so no Preamble is present
 - MUST: be rejected when it appears at any position other than first
 - MUST: be rejected when more than one is present in a file
 - MUST: be rejected when it omits its description or version
@@ -89,10 +95,8 @@ INPUT:
 - MUST: "be a YAML mapping with a `spec` key naming the spec"
 - MAY: use a namespaced name such as `pkg.Symbol`
 - MUST: "limit its name to the characters `A-Z`, `a-z`, `0-9`, `.`, `_`, and `-`"
-- MUST: "match the regex `^[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*$` as its name"
-- MUST-NOT: "begin or end its name with `.`"
-- MUST-NOT: "contain consecutive `.` characters in its name"
-- MUST-NOT: case-insensitively match any Slot keyword or any Normativity keyword with its name
+- MUST: "match the regex `^[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*$` as its name, which also rejects a leading dot, a trailing dot, and consecutive dots"
+- MUST-NOT: "case-insensitively match any yass keyword with its name: a Slot keyword, a Normativity keyword, the Guard keyword WHEN, or a Relation keyword"
 RETURN:
 - MUST: carry zero or more Slots
   SEE: Slot
@@ -101,11 +105,10 @@ ERROR:
 - MUST: be rejected when a key other than spec is not a valid Slot key
   SEE: Slot
 - MUST: be rejected when its name does not match the composition regex
-- MUST: "be rejected when its name begins or ends with `.`"
-- MUST: "be rejected when its name contains consecutive `.` characters"
-- MUST: be rejected when its name case-insensitively matches a Slot or Normativity keyword
+- MUST: be rejected when its name case-insensitively matches a yass keyword
+- MUST: be rejected when its name equals the name of another Spec or Design in the same file
 INVARIANT:
-- MUST-NOT: depend on its position within the file (documentation guideline; not enforced by validation tooling)
+- MUST: be valid whatever its position within the file, since document order is an authoring convention and carries no normative meaning
 - MUST-NOT: share its name with another Spec or a Design in the same file
 ---
 spec: Design
@@ -114,7 +117,7 @@ INPUT:
 - MUST: follow the same name grammar and keyword restrictions as a Spec name
   SEE: Spec
 - MUST: "carry a `type` key stating a brief freeform interpretation hint"
-- MUST: "carry a `content` key whose value is a block scalar holding the freeform body"
+- MUST: "carry a `content` key whose value is a string holding the freeform body, written as a literal block scalar by convention"
 - MUST-NOT: carry any Slot key
   SEE: Slot
 RETURN:
@@ -126,6 +129,7 @@ ERROR:
 - MUST: "be rejected when it omits `type` or `content`"
 - MUST: "be rejected when its `type` or `content` value is not a string"
 - MUST: "be rejected when it carries a key other than `design`, `type`, or `content`"
+- MUST: be rejected when its name equals the name of another Design or Spec in the same file
 INVARIANT:
 - MUST-NOT: share its name with another Design or a Spec in the same file
 - MUST-NOT: have its `type` value validated against a closed set by tooling
@@ -170,6 +174,7 @@ RETURN:
 spec: Slot.ERROR
 RETURN:
 - MUST: state the failure conditions and how the spec rejects them
+- MUST: "be read as the construct's rejection set: every rule the language phrases as a rejection lives in this slot, and validation enforces exactly those rules and no others"
 - WHEN: an obligation in this slot carries a Guard
   MUST: read it as a specific, foreseeable failure that applies only under that guard
 - WHEN: an obligation in this slot carries no Guard
@@ -203,7 +208,6 @@ RETURN:
   MUST: add no obligation of its own, leaving its references to resolve per their relation
   SEE: Reference
 ERROR:
-- MUST: "be rejected when prose containing `: ` is left unquoted"
 - MUST: be rejected when it carries neither a Normativity keyword nor a Reference
 - MUST: be rejected when it carries a Guard but no Normativity keyword
   SEE: Guard
@@ -260,6 +264,8 @@ RETURN:
   SEE: Guard
 - WHEN: the relation is SEE
   MUST: mean the referenced spec, slot, or design is named for the reader, imposing nothing beyond what the obligation's own prose states
+- WHEN: the relation is CONFORMS and the obligation is reference-only
+  MUST: be read as declaring that the enclosing spec conforms to the referenced spec as a whole, adding no obligation and inlining nothing
 ERROR:
 - MUST: be rejected when its target does not resolve to an existing spec, slot, or design
   SEE: RefTarget
@@ -273,6 +279,7 @@ ERROR:
 SIDE-EFFECT:
 - WHEN: the relation is CONFORMS and its target names a slot
   MUST: be inlined into the referencing spec when resolved
+- MUST: resolve one level in v1, leaving a Reference carried by an inserted obligation or by an appended Design unresolved
 - WHEN: the relation is CONFORMS and its target names a whole spec with no slot
   MUST-NOT: be inlined, because a whole-spec CONFORMS is a conformance reference rather than a slot transclusion
 - WHEN: the relation is USES
@@ -296,8 +303,10 @@ RETURN:
   SEE: Slot
 - WHEN: "the path begins with `./` or `../`"
   MUST: resolve relative to the referencing file
-- WHEN: the path has no leading dot
+- WHEN: the path begins with any other lead, including a dot that opens a hidden name such as `.config`
   MUST: resolve from the project root
+  SEE: Root
+- MAY: address a file outside the referencing file's project root, whose governance then stays with that file's own nearest Root
   SEE: Root
 - MUST: "treat the path token as a POSIX-style relative path with `/` separators"
 - MUST: "append the literal suffix `.yass.yaml` to the path token to produce the target file path"
@@ -312,6 +321,7 @@ ERROR:
 - MUST: "be rejected when `::SLOT` is appended to a target that resolves to a Design, because a Design carries no slots"
   SEE: Design
 - MUST: "be rejected when the path token contains a backslash or any character outside `[A-Za-z0-9._/-]`"
+- MUST: "be rejected when the path token begins with `/`, because a yass path is relative to the referencing file or to the project root and never absolute"
 - MUST: "be rejected when the spec-name token contains any character outside `[A-Za-z0-9._-]`"
 - MUST: "be rejected when the slot token contains any character outside `[A-Z-]`"
 INVARIANT:

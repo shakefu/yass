@@ -63,7 +63,9 @@ func parseTarget(target string, bareIsPath bool) (parsedTarget, bool) {
 	if !inClass(t.Path, pathByte) || !inClass(t.Name, nameByte) || !inClass(t.Slot, slotByte) {
 		return t, false
 	}
-	if t.HasPath && t.Path == "" {
+	if t.HasPath && (t.Path == "" || t.Path[0] == '/') {
+		// An empty path token names no file, and a leading `/` would read as a
+		// POSIX absolute path when yass paths are file-relative or root-relative.
 		return t, false
 	}
 	if t.HasSlot && t.Slot == "" {

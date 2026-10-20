@@ -6,8 +6,9 @@ consumes them to drive test (TDD) and implementation generation.
 
 ## File
 
-- A yass file uses the **`.yass.yaml`** extension and is a **YAML
-  multi-document stream** (`---`-separated).
+- A yass file uses the **`.yass.yaml`** extension — with at least one character
+  before it, so a file named exactly `.yass.yaml` is not a yass file — and is a
+  **YAML multi-document stream** (`---`-separated).
 - Read as UTF-8.
 - SHOULD carry the schema modeline as its first line, so editors validate against the
   JSON Schema with no per-repo config:
@@ -54,19 +55,24 @@ consumes them to drive test (TDD) and implementation generation.
 - The file name is the identity of the whole unit; the preamble does **not** repeat it.
 - Keys:
   - `description` — **required**; file-level summary (block scalar `>` allowed).
-    Surfaced by a file `query`; **truncated** in `list` output.
+    Surfaced by tooling that summarizes files.
   - `version` — **required**; the yass language version the file targets. **Pinned at
     `v1`** in the current revision.
   - `related` — *optional*; a list of freeform external resource locations (paths, URLs,
-    issue links). A distinct channel from the `see` relation; **never resolved** by
+    issue links). A distinct channel from the `SEE` relation; **never resolved** by
     tooling.
 
 ## Spec document
 
 - A `spec:` key naming the spec (may be namespaced, e.g. `pkg.Symbol`) plus zero or
-  more **slots**.
-- **Name charset:** letters, digits, `.`, `_`, and `-` (so a slot-keyword name like
-  `Slot.SIDE-EFFECT` is legal and addressable).
+  more **slots**. A document carries exactly one of `spec:` or `design:` — carrying
+  both is a validation error.
+- **Name charset:** ASCII letters and digits, `.`, `_`, and `-` (so a slot-keyword
+  name like `Slot.SIDE-EFFECT` is legal and addressable). The composition regex
+  `^[A-Za-z0-9_-]+(\.[A-Za-z0-9_-]+)*$` also rejects a leading dot, a trailing dot,
+  and consecutive dots.
+- Names **MUST NOT** case-insensitively match any yass keyword — a slot name, a
+  normativity keyword, `WHEN`, or a relation (`CONFORMS`, `USES`, `SEE`).
 - Names **MUST be unique within a file**, so refs resolve unambiguously.
 - Granularity: **one public symbol / endpoint → one spec.** Also the unit of retrieval.
 - The five slots are themselves defined in `yass.yass.yaml` as `Slot.INPUT`, `Slot.RETURN`,
@@ -94,8 +100,10 @@ consumes them to drive test (TDD) and implementation generation.
   (`pseudocode`, `ordered-steps`, `constraint`, `stack`, …), **opaque to tooling**.
   Deliberately not a closed set: tooling never branches on the value, so there is no
   out-of-set case to pin.
-- `content` — **required block scalar**. The body is **opaque**: no refs are recognized
-  inside it.
+- `content` — **required**; a string holding the freeform body, written as a literal
+  block scalar (`|`) by convention — the rule fixes the value's type, not its scalar
+  style, since a YAML parser cannot distinguish styles after loading. The body is
+  **opaque**: no refs are recognized inside it.
 - **Normative force:** an implementation bound to a design block via reference MUST
   follow it. The block is not commentary; it binds through the reference graph (the
   `USES` relation — see *References*).
@@ -133,6 +141,11 @@ meaningful only when the guards leave inputs unmatched: if the guarded obligatio
 already account for every input, the residual set is empty and a guard-less catch-all
 is **dead** — it can never fire, and MUST-NOT be carried.
 
+`ERROR` is also where rejections live, and only there: a rule phrased as *be rejected*
+sits in an `ERROR` slot, and validation enforces exactly those rules — a MUST or
+MUST-NOT in any other slot binds authoring without being a validation rejection
+(reachability and the modeline SHOULD are lint's advisory domain).
+
 The residual discipline generalizes beyond `ERROR`: whenever a slot branches on a
 **closed set of values** — most commonly an `INPUT` that dispatches on a subcommand,
 mode, or enum — it must state the behavior for a value outside that set, or one that is
@@ -163,7 +176,8 @@ An obligation is a **YAML mapping** (a list item under a slot):
 - **Ref-only** — a mapping with one or more relation keys and **no** normativity keyword
   and **no** `WHEN`. Allowed; it adds no obligation of its own and resolves per its
   relation (a **slot-targeted** `CONFORMS` transcludes; a whole-spec `CONFORMS` stays in
-  place as a conformance reference; a ref-only `USES` — a bare `- USES: Name` list item —
+  place as a declaration that the enclosing spec conforms to the referenced spec as a
+  whole; a ref-only `USES` — a bare `- USES: Name` list item —
   transcludes too, appending its design block's content).
 
 ## References
@@ -175,8 +189,12 @@ An obligation is a **YAML mapping** (a list item under a slot):
   - `::` separates the spec name from a slot (`SpecName::SLOT`); omit it to address the
     whole spec.
   - **Path resolution:** a `./` or `../` path is **relative to the referencing file**; a
-    path without a leading dot is **from the project root** (see *Project root* above).
-    The `.yass.yaml` extension is omitted.
+    path with any other lead resolves **from the project root** (see *Project root*
+    above) — including one whose leading dot opens a hidden name, such as `.config`,
+    which is a root-relative token, not a file-relative one. A path beginning with `/`
+    is **rejected**: yass paths are file-relative or root-relative, never absolute. A
+    path may climb with `../` past the project root; the reached file stays governed by
+    its own nearest root. The `.yass.yaml` extension is omitted.
   - The **slot is the finest addressable unit**. Named anchors, never line numbers.
     Slots belong to specs only: **`::SLOT` on a target that resolves to a design is a
     validation error** — a design carries no slots.
@@ -267,8 +285,9 @@ normativity, unifies the structural vocabulary as one visually distinct layer, a
 disambiguates homographs (`RETURN` the slot vs. "return" the word).
 
 In the self-definition the rule is encoded once as the `Keyword` construct; slots,
-normativity, the `WHEN` guard, and relations declare `CONFORMS: Keyword` rather
-than restating it.
+normativity, the `WHEN` guard, and relations declare `CONFORMS: Keyword::INVARIANT`
+rather than restating it — transcluding the invariant instead of conforming to it,
+because the keyword constructs are the rule's home, not its conformers.
 
 ## Provenance (emitted fragments)
 
@@ -288,7 +307,7 @@ than restating it.
 - Every code file MUST be paired with its `.yass.yaml` file.
 - Every public symbol or endpoint SHOULD have a definition in the `.yass.yaml` file.
 - The `.yass.yaml` file MUST be structured parseably.
-- The `.yass.yaml` file SHALL NOT require special syntax to be read by an AI agent.
+- The `.yass.yaml` file MUST-NOT require special syntax to be read by an AI agent.
 - The `.yass.yaml` file MUST conform to the format when written, and MUST be validatable by
   tooling.
 
