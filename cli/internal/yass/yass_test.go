@@ -1297,6 +1297,7 @@ func TestValidateCodes(t *testing.T) {
 		{"name-dup", modeline + "---\ndescription: d\nversion: v1\n---\nspec: A\nINPUT:\n- MUST: x\n---\ndesign: A\ntype: t\ncontent: |\n  c\n", "yass.document.name_duplicate"},
 		{"preamble-missing", modeline + "---\nspec: A\nINPUT:\n- MUST: x\n", "yass.preamble.missing"},
 		{"preamble-incomplete", modeline + "---\ndescription: d\n", "yass.preamble.incomplete"},
+		{"preamble-description-type", modeline + "---\ndescription: 7\nversion: v1\n", "yass.preamble.value_type"},
 		{"preamble-version", modeline + "---\ndescription: d\nversion: V1\n", "yass.preamble.version"},
 		{"related-shape", modeline + "---\ndescription: d\nversion: v1\nrelated: nope\n", "yass.preamble.related_shape"},
 		{"spec-unnamed", modeline + "---\ndescription: d\nversion: v1\n---\nspec:\nINPUT:\n- MUST: x\n", "yass.spec.unnamed"},
@@ -1322,6 +1323,8 @@ func TestValidateCodes(t *testing.T) {
 		{"obl-not-scalar-null", modeline + "---\ndescription: d\nversion: v1\n---\nspec: A\nINPUT:\n- MUST:\n", "yass.obligation.not_scalar"},
 		{"obl-not-scalar-map", modeline + "---\ndescription: d\nversion: v1\n---\nspec: A\nINPUT:\n- MUST:\n    prose: with a colon\n", "yass.obligation.not_scalar"},
 		{"obl-not-scalar-seq", modeline + "---\ndescription: d\nversion: v1\n---\nspec: A\nWHEN: x\nINPUT:\n- WHEN:\n  - a\n  MUST: x\n", "yass.obligation.not_scalar"},
+		{"obl-not-scalar-int", modeline + "---\ndescription: d\nversion: v1\n---\nspec: A\nINPUT:\n- MUST: 42\n", "yass.obligation.not_scalar"},
+		{"obl-not-scalar-bool", modeline + "---\ndescription: d\nversion: v1\n---\nspec: A\nINPUT:\n- MUST: true\n", "yass.obligation.not_scalar"},
 		{"ref-not-a-string", modeline + "---\ndescription: d\nversion: v1\n---\nspec: A\nINPUT:\n- MUST: x\n  SEE:\n  - A\n", "yass.ref.not_a_string"},
 		{"ref-syntax", modeline + "---\ndescription: d\nversion: v1\n---\nspec: A\nINPUT:\n- MUST: x\n  SEE: \"a b\"\n", "yass.ref.syntax"},
 		{"ref-syntax-absolute", modeline + "---\ndescription: d\nversion: v1\n---\nspec: A\nINPUT:\n- MUST: x\n  SEE: /a@Alpha\n", "yass.ref.syntax"},
@@ -1345,17 +1348,20 @@ func TestValidateCodes(t *testing.T) {
 	}
 }
 
-func TestValidateObligationScalarResolution(t *testing.T) {
+func TestValidateObligationStringValues(t *testing.T) {
 	dir := project(t)
 	for _, c := range []struct {
 		name, value string
-		null        bool
+		reject      bool
 	}{
 		{"absent", "", true},
 		{"null", "null", true},
 		{"null-title", "Null", true},
 		{"null-upper", "NULL", true},
 		{"tilde", "~", true},
+		{"int", "42", true},
+		{"bool", "true", true},
+		{"float", "1.5", true},
 		{"empty-double", `""`, false},
 		{"empty-single", "''", false},
 		{"quoted-null", `"null"`, false},
@@ -1364,10 +1370,10 @@ func TestValidateObligationScalarResolution(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			write(t, dir, "scalar.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\nspec: A\nINPUT:\n- MUST: "+c.value+"\n")
 			codes := validateCodes(t, dir, "scalar.yass.yaml")
-			if got := contains(codes, "yass.obligation.not_scalar"); got != c.null {
-				t.Fatalf("codes = %v, want null rejection = %v", codes, c.null)
+			if got := contains(codes, "yass.obligation.not_scalar"); got != c.reject {
+				t.Fatalf("codes = %v, want string rejection = %v", codes, c.reject)
 			}
-			if !c.null && len(codes) != 0 {
+			if !c.reject && len(codes) != 0 {
 				t.Fatalf("quoted string rejected: %v", codes)
 			}
 		})
@@ -1385,8 +1391,7 @@ func TestValidateRootSpecCount(t *testing.T) {
 
 // A preamble key that is present with a value of the wrong type is not
 // omitted: a version of any other type is a version that is not v1, and a
-// description of another type is nothing, since the language fixes no type
-// for it.
+// description of another type fails the string requirement.
 func TestValidatePreambleValueTypes(t *testing.T) {
 	dir := project(t)
 	for _, c := range []struct {
@@ -1399,8 +1404,9 @@ func TestValidatePreambleValueTypes(t *testing.T) {
 		{"version-null", "description: d\nversion:\n", []string{"yass.preamble.version"}},
 		{"version-list", "description: d\nversion: [v1]\n", []string{"yass.preamble.version"}},
 		{"version-absent", "description: d\n", []string{"yass.preamble.incomplete"}},
-		{"description-int", "description: 123\nversion: v1\n", nil},
-		{"description-null", "description:\nversion: v1\n", nil},
+		{"description-int", "description: 123\nversion: v1\n", []string{"yass.preamble.value_type"}},
+		{"description-null", "description:\nversion: v1\n", []string{"yass.preamble.value_type"}},
+		{"description-list", "description: [d]\nversion: v1\n", []string{"yass.preamble.value_type"}},
 		{"description-absent", "version: v1\n", []string{"yass.preamble.incomplete"}},
 		{"both-absent", "related: []\n", []string{"yass.preamble.incomplete"}},
 	} {

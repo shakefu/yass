@@ -94,7 +94,7 @@ func matchObligation(s *Slot, o *Obligation, pattern string) []findRow {
 		switch {
 		case e.Key == "WHEN" && !guardDone:
 			guardDone = true
-			if o.HasGuard && o.GuardScalar && foldContains(o.Guard, pattern) {
+			if o.HasGuard && o.GuardString && foldContains(o.Guard, pattern) {
 				out = append(out, findRow{ref, "WHEN", o.Guard})
 			}
 		case isNormativity(e.Key) && e.Key == o.Keyword && !proseDone:

@@ -32,7 +32,7 @@
       "required": ["spec"],
       "additionalProperties": false,
       "properties": {
-        "spec": { "type": "string", "pattern": "^[A-Za-z0-9._-]+$" },
+        "spec": { "type": "string", "pattern": "^[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*$" },
         "INPUT": { "$ref": "#/$defs/slot" },
         "RETURN": { "$ref": "#/$defs/slot" },
         "ERROR": { "$ref": "#/$defs/slot" },
@@ -47,7 +47,7 @@
       "required": ["design", "type", "content"],
       "additionalProperties": false,
       "properties": {
-        "design": { "type": "string", "pattern": "^[A-Za-z0-9._-]+$" },
+        "design": { "type": "string", "pattern": "^[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*$" },
         "type": { "type": "string" },
         "content": { "type": "string" }
       }
@@ -62,13 +62,13 @@
     "refTarget": {
       "title": "RefTarget",
       "type": "string",
-      "pattern": "^([A-Za-z0-9_./-]+@)?[A-Za-z0-9._-]+(::[A-Z][A-Z-]*)?$"
+      "pattern": "^([A-Za-z0-9_.-][A-Za-z0-9_./-]*@)?[A-Za-z0-9._-]+(::(INPUT|RETURN|ERROR|SIDE-EFFECT|INVARIANT))?$"
     },
 
     "refTargetNoSlot": {
       "title": "RefTarget (design target; no ::SLOT — a design carries no slots)",
       "type": "string",
-      "pattern": "^([A-Za-z0-9_./-]+@)?[A-Za-z0-9._-]+$"
+      "pattern": "^([A-Za-z0-9_.-][A-Za-z0-9_./-]*@)?[A-Za-z0-9._-]+$"
     },
 
     "obligation": {

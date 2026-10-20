@@ -224,7 +224,7 @@ func buildObligation(s *Slot, index int, item *yaml.Node) *Obligation {
 		case key == "WHEN":
 			if !o.HasGuard {
 				o.HasGuard = true
-				o.Guard, o.GuardScalar = stringOf(vn)
+				o.Guard, o.GuardString = stringOf(vn)
 			}
 		case isRelation(key):
 			target, ok := stringOf(vn)
