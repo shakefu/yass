@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+#
+# script/test-check-specs — behavior tests for script/check-specs.
+#
+# The lint policy is exercised with a stub yass that replays canned output, so
+# each disposition is tested without authoring a spec that provokes it. The
+# end-to-end cases copy the repository's own spec projects into a scratch tree,
+# break one file, and run the real CLI over the copy. YASS names that CLI; when
+# unset it is built from cli/.
+
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+REPO_ROOT="$PWD"
+
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT INT TERM
+
+failures=0
+ok() { echo "ok   $*"; }
+bad() {
+	echo "FAIL $*" >&2
+	failures=$((failures + 1))
+}
+
+if [ -z "${YASS:-}" ]; then
+	(cd cli && go build -o "$work/yass" .)
+	YASS="$work/yass"
+fi
+
+# stub NAME STATUS STDOUT [STDERR] — write a yass stand-in that answers both
+# validate and lint: validate is clean, lint prints STDOUT and STDERR and exits
+# STATUS.
+stub() {
+	local bin="$work/stub-$1"
+	printf '%s' "$3" >"$bin.out"
+	printf '%s' "${4:-}" >"$bin.err"
+	cat >"$bin" <<-EOF
+		#!/bin/sh
+		case "\$3" in
+		lint) cat "$bin.out"; cat "$bin.err" >&2; exit $2 ;;
+		*) exit 0 ;;
+		esac
+	EOF
+	chmod 0755 "$bin"
+	echo "$bin"
+}
+
+# check NAME WANT-STATUS PATTERN YASS PROJECT — run check-specs and assert its
+# exit status and that its output matches PATTERN.
+check() {
+	local name="$1" want="$2" pattern="$3" bin="$4" project="$5" status=0 out
+	out=$(YASS="$bin" GITHUB_ACTIONS="" script/check-specs "$project" 2>&1) || status=$?
+	if [ "$status" -ne "$want" ]; then
+		bad "$name: exit $status, want $want"
+		echo "$out" >&2
+	elif ! grep -qE -- "$pattern" <<<"$out"; then
+		bad "$name: output does not match $pattern"
+		echo "$out" >&2
+	else
+		ok "$name"
+	fi
+}
+
+proj="$work/proj"
+mkdir -p "$proj"
+tab=$'\t'
+
+check "advisory-only lint passes" 0 "^warn .*/proj/a.yass.yaml:1 yass.lint.modeline" \
+	"$(stub advise 1 "warn${tab}yass.lint.modeline${tab}a${tab}1${tab}first line is not the schema modeline
+warn${tab}yass.lint.slot_empty${tab}a@B::INPUT${tab}10${tab}slot declares no obligation
+")" "$proj"
+
+check "blocking lint fails" 1 "^error .*/proj/a.yass.yaml:12 yass.lint.design_unreferenced a@D" \
+	"$(stub fail 1 "warn${tab}yass.lint.design_unreferenced${tab}a@D${tab}12${tab}design is the target of no uses reference
+")" "$proj"
+
+check "undispositioned lint code fails" 1 "lint code yass.lint.novel has no disposition" \
+	"$(stub novel 1 "warn${tab}yass.lint.novel${tab}a${tab}-${tab}something new
+")" "$proj"
+
+check "lint diagnostic on stderr fails" 1 "^error .*/proj/root.yass.yaml:- yass.root.spec_count" \
+	"$(stub stderr 1 "" "error${tab}yass.root.spec_count${tab}root${tab}-${tab}root file carries no spec
+")" "$proj"
+
+check "silent nonzero lint fails" 1 "yass lint exited 5 with no diagnostic" \
+	"$(stub silent 5 "")" "$proj"
+
+check "missing project fails" 1 "not a directory" "$YASS" "$work/nowhere"
+
+# A scratch copy of both projects, laid out as the repository is, so the CLI
+# project's references into the language project still resolve.
+repo="$work/repo"
+mkdir -p "$repo/cli"
+cp "$REPO_ROOT"/*.yass.yaml "$repo"/
+cp "$REPO_ROOT"/cli/*.yass.yaml "$repo/cli"/
+
+check "language project copy passes" 0 "0 failing" "$YASS" "$repo"
+check "cli project copy passes" 0 "0 failing" "$YASS" "$repo/cli"
+
+sed -i.bak 's/^  CONFORMS: 01-locate@FileSet::RETURN$/  CONFORMS: 01-locate@NoSuchSpec::RETURN/' "$repo/cli/09-lint.yass.yaml"
+rm -f "$repo/cli/09-lint.yass.yaml.bak"
+check "dangling cli reference fails" 1 "^error .*/repo/cli/09-lint.yass.yaml:[0-9]+ yass\.ref\.unresolved 09-lint@Lint::INPUT" "$YASS" "$repo/cli"
+
+printf 'spec: [\n' >>"$repo/yass.yass.yaml"
+check "invalid language spec fails" 1 "^error .*/repo/yass.yass.yaml:[0-9]+ yass\.document\." "$YASS" "$repo"
+
+if [ "$failures" -ne 0 ]; then
+	echo "$failures check-specs test(s) failed" >&2
+	exit 1
+fi

@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 #
-# script/test — build and test the yass CLI.
+# script/test — build and test the yass CLI, then check the authored specs.
 #
 # The CLI is a Go module rooted at cli/. This builds it and runs its tests,
-# after the shell-only installer tests, which need no toolchain.
+# after the shell-only installer tests, which need no toolchain. The built CLI
+# then validates and lints the repository's own spec projects (script/check-specs).
 #
 # In CI a missing Go toolchain fails rather than skips: the release workflow
 # gates on the CI test job, and a skip would turn that gate green with no Go
@@ -42,4 +43,14 @@ echo "==> go test"
 go test ./...
 
 echo "==> go build"
-go build -o /dev/null .
+bin=$(mktemp -d)
+trap 'rm -rf "$bin"' EXIT INT TERM
+go build -o "$bin/yass" .
+
+cd ..
+
+echo "==> check-specs tests"
+YASS="$bin/yass" script/test-check-specs
+
+echo "==> check-specs"
+YASS="$bin/yass" script/check-specs
