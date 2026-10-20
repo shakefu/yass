@@ -31,8 +31,9 @@ INPUT:
 - WHEN: "`--filter` excludes a file's own record but matches one of its document records"
   MUST: emit the file record anyway, so a document record is never orphaned from the file that holds it
 RETURN:
-- MUST: emit one file record per addressed file, followed by one record per spec and design document that file holds
+- MUST: emit one file record per addressed file, followed by one record per addressable spec and design document that file holds
   USES: root@RecordFormat
+- MUST: "count as a document that file holds only a spec or design whose REF the CLI can name, so a document too unnamed to be addressed gets neither a record nor a count"
 - MUST: "give every record exactly four fields, in the order REF, KIND, DETAIL, DESCRIPTION"
 - MUST: "set KIND to `file`, `spec`, or `design`"
 - WHEN: "KIND is `file`"
@@ -40,7 +41,7 @@ RETURN:
 - WHEN: "KIND is `spec` or `design`"
   MUST: "set REF to `path@Name`, where path is that same suffix-stripped root-relative path"
 - WHEN: "KIND is `file`"
-  MUST: set DETAIL to the count of spec and design documents the file holds, excluding its preamble, written in decimal
+  MUST: set DETAIL to the count of addressable spec and design documents the file holds, excluding its preamble, written in decimal
 - WHEN: "KIND is `spec`"
   MUST: "set DETAIL to the slot names that spec declares, joined by a single `,` with no space, in the canonical order INPUT, RETURN, ERROR, SIDE-EFFECT, INVARIANT"
 - WHEN: "KIND is `spec` and the spec declares no slot"
@@ -48,6 +49,7 @@ RETURN:
 - WHEN: "KIND is `design`"
   MUST: "set DETAIL to that design's `type` value"
   SEE: ../yass@Design
+- MUST: "give the file record's DETAIL a count the filter does not reduce, because DETAIL is a property of the file and the filter gates record emission only"
 - WHEN: "KIND is `file`"
   MUST: set DESCRIPTION to the file's preamble description, whitespace-collapsed, trimmed, and truncated to at most 100 Unicode scalar values
   SEE: ../yass@Preamble
@@ -73,6 +75,8 @@ ERROR:
 - WHEN: an addressed file parsed but carries no preamble as its first document
   MUST: "emit its file record with `-` for DESCRIPTION, still emit its document records, continue, and exit with the findings status"
   SEE: ../yass@Preamble
+- MUST: "let a parse failure or a missing preamble contribute to the findings status only when that file's record is part of the answer the filter selected, because an answer that excludes every finding exits with the ok status"
+  USES: root@ExitPolicy
 - WHEN: an addressed file cannot be read at all
   MUST: report code yass.io.unreadable naming it and exit with the environment status
 - MUST: report code yass.internal and exit with the environment status for any failure not matched by a guarded obligation in this slot
