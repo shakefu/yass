@@ -79,16 +79,7 @@ func (a *App) cmdLint() (int, error) {
 	}
 
 	// The origin of every reachability chain is the root file's own spec.
-	rootFile := a.findRootFile(files)
-	var origin *Doc
-	rootSpecCount := 0
-	if rootFile != nil && rootFile.Parsed {
-		specs := rootFile.specDocs()
-		rootSpecCount = len(specs)
-		if len(specs) == 1 && specs[0].Addressable() {
-			origin = specs[0]
-		}
-	}
+	origin, noOrigin := a.reachabilityOrigin(files)
 
 	reached := map[*Doc]bool{}
 	if origin != nil {
@@ -156,19 +147,40 @@ func (a *App) cmdLint() (int, error) {
 		a.out.line(d.Record())
 	}
 
-	if rootSpecCount != 1 {
+	if noOrigin != nil {
 		// Reachability has no single origin; every advisory that does not
 		// depend on it has still been written.
-		a.err.line(Diag{
-			Severity: "error", Code: "yass.root.spec_count", Location: refOf(RootBasename),
-			Message: "root file does not carry exactly one spec",
-		}.Record())
+		a.err.line(noOrigin.Record())
 		return ExitFindings, nil
 	}
 	if len(advisories) > 0 {
 		return ExitFindings, nil
 	}
 	return ExitOK, nil
+}
+
+// reachabilityOrigin returns the root file's spec, where every reachability
+// chain begins, or the diagnostic that says why the root file supplies no
+// single origin: it carries a wrong number of specs, or its one spec has no
+// name a reference could address.
+func (a *App) reachabilityOrigin(files []*File) (*Doc, *Diag) {
+	var specs []*Doc
+	if rootFile := a.findRootFile(files); rootFile != nil && rootFile.Parsed {
+		specs = rootFile.specDocs()
+	}
+	if len(specs) != 1 {
+		return nil, &Diag{
+			Severity: "error", Code: "yass.root.spec_count", Location: refOf(RootBasename),
+			Message: "root file does not carry exactly one spec",
+		}
+	}
+	if !specs[0].Addressable() {
+		return nil, &Diag{
+			Severity: "error", Code: "yass.spec.unnamed", Location: refOf(RootBasename), Line: specs[0].Line,
+			Message: "spec key has no string name",
+		}
+	}
+	return specs[0], nil
 }
 
 func (a *App) findRootFile(files []*File) *File {

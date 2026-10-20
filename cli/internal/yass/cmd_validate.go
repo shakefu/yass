@@ -195,11 +195,14 @@ func checkNodeFeatures(d *Doc, n *yaml.Node) []Diag {
 func checkPreamble(d *Doc) []Diag {
 	var out []Diag
 	loc := d.File.Ref
-	if !d.HasDescription || !d.HasVersion {
+	// The language fixes no type for description, so only its absence is a
+	// violation; a present version of any type is checked against v1.
+	descriptionNode, versionNode := d.value("description"), d.value("version")
+	if descriptionNode == nil || versionNode == nil {
 		out = append(out, diag("yass.preamble.incomplete", loc, d.Line,
 			"preamble omits description or version"))
 	}
-	if d.HasVersion && d.Version != "v1" {
+	if versionNode != nil && (!d.HasVersion || d.Version != "v1") {
 		out = append(out, diag("yass.preamble.version", loc, d.Line, "preamble version is not v1"))
 	}
 	for _, e := range d.Entries {
