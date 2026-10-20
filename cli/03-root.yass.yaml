@@ -34,6 +34,7 @@ ERROR:
 - WHEN: a directory on the ascent cannot be read
   MUST: report code yass.io.unreadable naming that directory and exit with the environment status
 - MUST: report code yass.internal and exit with the environment status for any failure not matched by a guarded obligation in this slot
+SIDE-EFFECT:
 - MUST: write every diagnostic in this slot to standard error, since the root record is the only thing this command puts on standard output
   USES: root@OutputPolicy
 INVARIANT:

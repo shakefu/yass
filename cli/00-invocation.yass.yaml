@@ -62,6 +62,7 @@ ERROR:
 - WHEN: a global option that takes a value is given more than once
   MUST: take the last occurrence and report nothing, because a later value overriding an earlier one is the ordinary shell idiom
 - MUST: report code yass.args.unknown_option and exit with the usage status for any argument that is neither a recognized option, an option value, the subcommand token, nor an operand the synopsis accepts
+SIDE-EFFECT:
 - MUST: write every diagnostic in this slot to standard error, because a malformed argument vector is a failure to serve the request rather than the requested answer
   USES: root@OutputPolicy
 INVARIANT:

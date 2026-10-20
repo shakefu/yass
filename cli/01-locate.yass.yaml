@@ -33,7 +33,6 @@ ERROR:
   MUST: report code yass.io.missing naming it and exit with the unresolved status
 - WHEN: a directory on the ascent cannot be read
   MUST: report code yass.io.unreadable naming that directory and exit with the environment status
-- MUST-NOT: carry a guard-less residual, because the ascent terminates only by finding the file, by failing to read a directory, by the starting path being absent, or by reaching the filesystem root, and each of those is matched above
 INVARIANT:
 - MUST: "compare the name `root.yass.yaml` byte-for-byte, so a differently cased name is not a project root"
 - MUST-NOT: "locate a project root by any signal other than that file name, such as a version-control directory, a package manifest, a build directory, or the deepest `.yass.yaml` ancestor"
@@ -41,6 +40,7 @@ INVARIANT:
 - MUST-NOT: descend into a child directory or move sideways during the ascent
 - MUST-NOT: treat the absence of a project root as recoverable by inventing one at the starting directory
 - MUST-NOT: "expand `~`, a glob, or an environment variable inside a starting path"
+- MUST: "treat the ascent's cases as exhaustive: it terminates only by finding the file, by failing to read a directory, by the starting path being absent, or by reaching the filesystem root, and each failure is matched in ERROR, so that slot carries no residual"
 ---
 spec: FileSet
 INPUT:
@@ -63,10 +63,10 @@ RETURN:
 ERROR:
 - WHEN: a directory in the traversal cannot be read
   MUST: report code yass.io.unreadable naming that directory and exit with the environment status
-- MUST-NOT: carry a guard-less residual, because the traversal either reads a directory or fails to read it, and both are matched above
 INVARIANT:
 - MUST: "compare the `.yass.yaml` suffix byte-for-byte and case-sensitively on every platform"
 - MUST-NOT: "match a file whose basename ends in `.yaml` without the `.yass` infix"
 - MUST-NOT: descend through a symbolic link that names a directory, so the traversal cannot cycle
 - MUST: read through a symbolic link that names a regular file, so a linked spec file is a member of the set
 - MUST: "yield at least one member, because the project root holds a `root.yass.yaml` and that basename ends with the suffix, so no command needs an empty-set case"
+- MUST: "treat the traversal's cases as exhaustive: it either reads a directory or fails to read it, and the failure is matched in ERROR, so that slot carries no residual"
