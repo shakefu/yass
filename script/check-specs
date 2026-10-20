@@ -1,0 +1,157 @@
+#!/usr/bin/env bash
+#
+# script/check-specs — validate and lint the repository's authored spec projects.
+#
+# Usage: script/check-specs [PROJECT...]
+#
+# Runs `yass validate` and `yass lint` over each PROJECT directory (default: the
+# language project `.` and the CLI project `cli`), using the CLI built from this
+# checkout so the gate tracks the current language rather than a release. Set
+# YASS to a binary to skip the build.
+#
+# Policy:
+#   validate  every diagnostic fails: a validation error is a language violation.
+#   lint      each advisory code has an explicit disposition below. A code with
+#             no disposition fails, so a new lint check is dispositioned here
+#             before it can pass silently. Any lint diagnostic on standard
+#             error (the project could not be examined) fails.
+#
+# Each finding is printed with its file and line; under GitHub Actions it is
+# also emitted as an annotation.
+
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+# lint_disposition CODE — fail or advise.
+lint_disposition() {
+	case "$1" in
+	# The graph is partial, so every other advisory may be wrong.
+	yass.lint.unparsed) echo fail ;;
+	# A document no chain reaches from the root spec binds nothing.
+	yass.lint.unreachable) echo fail ;;
+	# A design nothing USES is normative content with no force.
+	yass.lint.design_unreferenced) echo fail ;;
+	# A spec with no slot states no obligation and is an empty CONFORMS target.
+	yass.lint.spec_empty) echo fail ;;
+	# The modeline is a SHOULD serving editors; the specs are valid without it.
+	yass.lint.modeline) echo advise ;;
+	# The language permits an empty slot; it adds no obligation and misleads none.
+	yass.lint.slot_empty) echo advise ;;
+	*) echo unknown ;;
+	esac
+}
+
+if [ -z "${YASS:-}" ]; then
+	if ! command -v go >/dev/null 2>&1; then
+		echo "script/check-specs: go toolchain not found and YASS unset" >&2
+		exit 1
+	fi
+	build=$(mktemp -d)
+	trap 'rm -rf "$build"' EXIT INT TERM
+	(cd cli && go build -o "$build/yass" .)
+	YASS="$build/yass"
+fi
+
+if [ "$#" -eq 0 ]; then
+	set -- . cli
+fi
+
+failures=0
+advisories=0
+
+# report LEVEL PROJECT SEVERITY CODE LOCATION LINE MESSAGE — print one finding
+# with the spec file it names, and annotate it under GitHub Actions.
+report() {
+	local level="$1" project="$2" code="$4" location="$5" line="$6" message="$7"
+	local file="${location%%@*}"
+	case "$file" in
+	'' | -) file="$project" ;;
+	*) file="${project%/}/$file.yass.yaml" ;;
+	esac
+	file="${file#./}"
+	echo "$level $file:$line $code $location: $message"
+	if [ -n "${GITHUB_ACTIONS:-}" ]; then
+		local kind=error
+		[ "$level" = "error" ] || kind=warning
+		if [ "$line" = "-" ]; then
+			echo "::$kind file=$file,title=$code::$location: $message"
+		else
+			echo "::$kind file=$file,line=$line,title=$code::$location: $message"
+		fi
+	fi
+}
+
+# record LEVEL PROJECT LINE — report one tab-separated diagnostic line, or the
+# raw line when it is not in the diagnostic format.
+record() {
+	local level="$1" project="$2" severity code location line message
+	IFS=$'\t' read -r severity code location line message <<<"$3"
+	if [ -z "$message" ]; then
+		echo "$level $project: $3"
+		return
+	fi
+	report "$level" "$project" "$severity" "$code" "$location" "$line" "$message"
+}
+
+for project in "$@"; do
+	if [ ! -d "$project" ]; then
+		echo "error $project: not a directory"
+		failures=$((failures + 1))
+		continue
+	fi
+
+	echo "==> validate $project"
+	status=0
+	out=$("$YASS" -C "$project" validate 2>&1) || status=$?
+	if [ -n "$out" ]; then
+		while IFS= read -r diag; do
+			record error "$project" "$diag"
+			failures=$((failures + 1))
+		done <<<"$out"
+	fi
+	if [ "$status" -ne 0 ] && [ -z "$out" ]; then
+		echo "error $project: yass validate exited $status with no diagnostic"
+		failures=$((failures + 1))
+	fi
+
+	echo "==> lint $project"
+	errfile=$(mktemp)
+	status=0
+	out=$("$YASS" -C "$project" lint 2>"$errfile") || status=$?
+	err=$(<"$errfile")
+	rm -f "$errfile"
+	if [ -n "$out" ]; then
+		while IFS= read -r diag; do
+			code=$(cut -f2 <<<"$diag")
+			case "$(lint_disposition "$code")" in
+			fail)
+				record error "$project" "$diag"
+				failures=$((failures + 1))
+				;;
+			advise)
+				record warn "$project" "$diag"
+				advisories=$((advisories + 1))
+				;;
+			*)
+				record error "$project" "$diag"
+				echo "error $project: lint code $code has no disposition in script/check-specs"
+				failures=$((failures + 1))
+				;;
+			esac
+		done <<<"$out"
+	fi
+	if [ -n "$err" ]; then
+		while IFS= read -r diag; do
+			record error "$project" "$diag"
+			failures=$((failures + 1))
+		done <<<"$err"
+	fi
+	if [ "$status" -ne 0 ] && [ -z "$out$err" ]; then
+		echo "error $project: yass lint exited $status with no diagnostic"
+		failures=$((failures + 1))
+	fi
+done
+
+echo "check-specs: $failures failing, $advisories advisory"
+[ "$failures" -eq 0 ]

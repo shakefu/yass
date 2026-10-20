@@ -101,6 +101,9 @@ Test
 
   It runs the installer tests (script/test-install), then fails on any file
   `gofmt -l` lists, and runs `go vet ./...`, `go test ./...`, and `go build`.
+  The built binary then runs script/check-specs, which validates and lints
+  both of the repository's spec projects and fails on any validation error or
+  on a lint advisory its policy marks as failing.
   For the Go checks alone, run from this directory:
 
   test -z "$(gofmt -l .)" && go vet ./... && go test ./... && go build -o /dev/null .
