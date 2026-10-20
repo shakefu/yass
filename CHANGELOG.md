@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.4.12 - 2026-10-20
+#### Bug Fixes
+- (**language**) align the derived schema and the string-value rules of issue #76 - (4161bd7) - Jacob Alheid
+
+- - -
+
 ## v0.4.11 - 2026-10-20
 #### Bug Fixes
 - (**language**) resolve the ambiguities, gaps, and contradictions of issue #77 - (2010d3c) - Jacob Alheid
