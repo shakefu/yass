@@ -63,6 +63,9 @@ ERROR:
 - WHEN: "the project root's `root.yass.yaml` carries no spec, or more than one, so reachability has no single origin"
   MUST: report code yass.root.spec_count, emit every advisory that does not depend on reachability, and exit with the findings status
   CONFORMS: ../yass@Root::ERROR
+- WHEN: "the project root's `root.yass.yaml` carries one spec whose `spec` key has no string name, so reachability has no origin a reference could address"
+  MUST: report code yass.spec.unnamed, emit every advisory that does not depend on reachability, and exit with the findings status
+  CONFORMS: ../yass@Spec::ERROR
 - WHEN: a file of the project file set cannot be read at all
   MUST: report code yass.io.unreadable naming it and exit with the environment status
 - MUST: report code yass.internal and exit with the environment status for any failure not matched by a guarded obligation in this slot

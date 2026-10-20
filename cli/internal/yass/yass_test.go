@@ -1377,6 +1377,37 @@ func TestValidateRootSpecCount(t *testing.T) {
 	}
 }
 
+// A preamble key that is present with a value of the wrong type is not
+// omitted: a version of any other type is a version that is not v1, and a
+// description of another type is nothing, since the language fixes no type
+// for it.
+func TestValidatePreambleValueTypes(t *testing.T) {
+	dir := project(t)
+	for _, c := range []struct {
+		name, body string
+		want       []string
+	}{
+		{"version-int", "description: d\nversion: 1\n", []string{"yass.preamble.version"}},
+		{"version-float", "description: d\nversion: 1.0\n", []string{"yass.preamble.version"}},
+		{"version-bool", "description: d\nversion: true\n", []string{"yass.preamble.version"}},
+		{"version-null", "description: d\nversion:\n", []string{"yass.preamble.version"}},
+		{"version-list", "description: d\nversion: [v1]\n", []string{"yass.preamble.version"}},
+		{"version-absent", "description: d\n", []string{"yass.preamble.incomplete"}},
+		{"description-int", "description: 123\nversion: v1\n", nil},
+		{"description-null", "description:\nversion: v1\n", nil},
+		{"description-absent", "version: v1\n", []string{"yass.preamble.incomplete"}},
+		{"both-absent", "related: []\n", []string{"yass.preamble.incomplete"}},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			write(t, dir, "pre.yass.yaml", modeline+"---\n"+c.body)
+			codes := validateCodes(t, dir, "pre.yass.yaml")
+			if strings.Join(codes, " ") != strings.Join(c.want, " ") {
+				t.Fatalf("codes = %v, want %v", codes, c.want)
+			}
+		})
+	}
+}
+
 func TestValidateFindingsStatus(t *testing.T) {
 	dir := project(t)
 	write(t, dir, "bad.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\nspec: .X\nINPUT:\n- MUST: x\n")
@@ -1493,6 +1524,27 @@ func TestLintRootSpecCount(t *testing.T) {
 	wantStatus(t, got, ExitFindings)
 	if !strings.Contains(got.stderr, "yass.root.spec_count") {
 		t.Fatalf("stderr = %q", got.stderr)
+	}
+}
+
+// A root file whose one spec has no name supplies no origin for reachability,
+// which lint reports rather than passing the project in silence.
+func TestLintRootSpecUnnamed(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "root.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\nspec:\nINPUT:\n- MUST: x\n  SEE: a@A\n")
+	write(t, dir, "a.yass.yaml", "---\ndescription: d\nversion: v1\n---\nspec: A\nINPUT:\n- MUST: x\n---\nspec: Orphan\nINPUT:\n- MUST: y\n")
+	got := run(dir, "lint")
+	wantStatus(t, got, ExitFindings)
+	if want := "error\tyass.spec.unnamed\troot\t6\tspec key has no string name\n"; got.stderr != want {
+		t.Fatalf("stderr = %q, want %q", got.stderr, want)
+	}
+	// Every advisory that does not depend on reachability is still written,
+	// and none that does is guessed at.
+	if !strings.Contains(got.stdout, "yass.lint.modeline") {
+		t.Fatalf("stdout = %q", got.stdout)
+	}
+	if strings.Contains(got.stdout, "yass.lint.unreachable") {
+		t.Fatalf("no origin, so no reachability advisory:\n%s", got.stdout)
 	}
 }
 
