@@ -2,6 +2,15 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.4.14 - 2026-10-21
+#### Bug Fixes
+- (**cli**) name the silent-misresolution shape of an outside-root REF - (d111a5e) - Jacob Alheid
+- (**cli**) reconcile ExitPolicy, signals, REF round-trips, and help text - (3d0928e) - Jacob Alheid
+#### Continuous Integration
+- validate and lint the repository's authored spec projects - (559962f) - Jacob Alheid, *Claude Opus 5.5*
+
+- - -
+
 ## v0.4.13 - 2026-10-20
 #### Bug Fixes
 - (**spec**) stop encoding meaning in obligation order and place exhaustiveness in INVARIANT - (d696aa7) - Jacob Alheid
