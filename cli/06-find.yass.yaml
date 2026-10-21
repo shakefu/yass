@@ -42,7 +42,8 @@ RETURN:
   MUST: emit exactly one record for that field, since the field is the unit of retrieval and not the match
 - MUST: emit the whole matched text on one line, however long it is, after the whitespace collapsing every record obeys
 - MUST: order records by byte-wise ascending project-root-relative file path, then by document position within the file, then by slot in canonical order, then by obligation position within the slot
-- MUST: emit a REF that is a valid ref target the query subcommand accepts unchanged
+- MUST: emit a REF in the form root@RecordFormat fixes, which the query subcommand accepts unchanged for a file under the project root
+  USES: root@RecordFormat
   SEE: 04-query@Query
 - WHEN: no obligation and no design content line matches PATTERN
   MUST: write nothing at all and exit with the ok status, because an empty result is an answer and not a finding
