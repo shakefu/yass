@@ -80,7 +80,7 @@ RETURN:
 - MUST: yield a normalized root-relative rendering of the target, so a command can echo it in a record or a diagnostic
   USES: root@RecordFormat
 - MAY: yield a file outside the project root, because a path token that climbs with `../` is allowed to leave it
-- MUST-NOT: guarantee that a normalized rendering of an outside-root target re-addresses the same document from another starting directory, since a later invocation resolves a leading `./` or `../` token from its own starting directory
+- MUST-NOT: guarantee that a normalized rendering of an outside-root target re-addresses the same document from another starting directory, since a later invocation resolves a leading `./` or `../` token from its own starting directory and may therefore address a different document when a path of that spelling exists relative to that directory
   USES: root@RecordFormat
 ERROR:
 - WHEN: the target does not match the ref-target grammar
