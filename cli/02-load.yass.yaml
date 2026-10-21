@@ -78,7 +78,10 @@ RETURN:
 - MUST: yield every spec and design document of the file in stream order when the target named no document
 - MUST: compare the path token, the document name, and the slot token byte-for-byte and case-sensitively
 - MUST: yield a normalized root-relative rendering of the target, so a command can echo it in a record or a diagnostic
+  USES: root@RecordFormat
 - MAY: yield a file outside the project root, because a path token that climbs with `../` is allowed to leave it
+- MUST-NOT: guarantee that a normalized rendering of an outside-root target re-addresses the same document from another starting directory, since a later invocation resolves a leading `./` or `../` token from its own starting directory
+  USES: root@RecordFormat
 ERROR:
 - WHEN: the target does not match the ref-target grammar
   MUST: report code yass.ref.syntax naming the target and exit with the usage status

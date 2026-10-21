@@ -59,7 +59,8 @@ RETURN:
   MUST: "set DESCRIPTION to a single `-`, since only a file carries a description"
 - MUST: emit a file's own record immediately before the records of the documents it holds
 - MUST: order files by byte-wise ascending project-root-relative path, and documents by stream order within their file
-- MUST: emit a REF that is a valid ref target the query subcommand accepts unchanged
+- MUST: emit a REF in the form root@RecordFormat fixes, which the query subcommand accepts unchanged for a file under the project root
+  USES: root@RecordFormat
   SEE: 04-query@Query
 - WHEN: no file matches the PATHs and the filter
   MUST: write nothing at all and exit with the ok status, because an empty result is an answer

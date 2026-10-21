@@ -52,7 +52,8 @@ RETURN:
 - WHEN: the addressed document neither carries nor receives an edge
   MUST: write nothing at all and exit with the ok status, because an empty result is an answer
   USES: root@Brevity
-- MUST: emit a REF that is a valid ref target the query subcommand accepts unchanged
+- MUST: emit a REF in the form root@RecordFormat fixes, which the query subcommand accepts unchanged for a file under the project root
+  USES: root@RecordFormat
   SEE: 04-query@Query
 ERROR:
 - WHEN: TARGET does not resolve

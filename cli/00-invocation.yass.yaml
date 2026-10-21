@@ -66,6 +66,10 @@ SIDE-EFFECT:
 - MUST: write every diagnostic in this slot to standard error, because a malformed argument vector is a failure to serve the request rather than the requested answer
   USES: root@OutputPolicy
 INVARIANT:
+- MUST: treat the Synopsis design block as both the option table it parses against and the exact text `--help` writes, so nothing is added to that text and nothing is left out of it
+  USES: Synopsis
+- MUST: read each operand placeholder of the synopsis against the rule that defines it, so a TARGET takes the ref-target grammar and a PATH takes a filesystem path
+  SEE: 02-load@TargetResolution
 - MUST-NOT: accept an abbreviated or prefixed subcommand token, so no token resolves by being unique
 - MUST-NOT: "accept a subcommand token in any casing other than the lowercase form the synopsis states"
 - MUST-NOT: accept a clustered short option, since every short option this program recognizes stands alone
@@ -77,9 +81,6 @@ INVARIANT:
 design: Synopsis
 type: usage-text
 content: |
-  This block is both the option table Invocation parses against and the exact text
-  `--help` writes. Nothing is added to it and nothing is left out.
-
   usage: yass [-C DIR] [--version] [--help] [SUBCOMMAND [ARGS...]]
 
     overview                       orient a reader in this program and this project
@@ -104,8 +105,3 @@ content: |
     --out                          report outgoing edges only
 
     0 ok   1 findings   2 usage   3 unresolved   4 no-root   5 environment
-
-  A TARGET is `path@Name::SLOT`, in which `path@` and `::SLOT` are each optional; a TARGET
-  with no `@` addresses a whole file. A PATH is a filesystem path. Options for a subcommand
-  are written after it; global options are written before it. An invocation naming no
-  SUBCOMMAND runs `overview`.

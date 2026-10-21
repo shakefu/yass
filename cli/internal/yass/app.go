@@ -6,8 +6,7 @@ import (
 )
 
 // synopsis is the option table Invocation parses against and the exact text
-// --help writes: a synopsis line, one line per subcommand, one line per option,
-// and the exit-code table.
+// --help writes — the whole of 00-invocation@Synopsis and nothing beside it.
 const synopsis = `usage: yass [-C DIR] [--version] [--help] [SUBCOMMAND [ARGS...]]
 
   overview                       orient a reader in this program and this project

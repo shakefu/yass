@@ -2,12 +2,16 @@ package yass
 
 import (
 	"bytes"
+	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
 	"unicode/utf8"
+
+	"gopkg.in/yaml.v3"
 )
 
 type result struct {
@@ -2031,5 +2035,154 @@ func TestSynopsisNamesEverySubcommand(t *testing.T) {
 		if !strings.Contains(o.String(), "\n  "+name) {
 			t.Fatalf("synopsis does not name subcommand %q:\n%s", name, o.String())
 		}
+	}
+}
+
+// --- contract reconciliation ------------------------------------------------
+
+// The Synopsis design block is the exact text --help writes: nothing is added
+// to it and nothing is left out. The block is checked against the live
+// implementation whenever the checkout that holds the CLI contract is present.
+func TestHelpIsTheSynopsisDesignBlock(t *testing.T) {
+	src := filepath.Join("..", "..", "00-invocation.yass.yaml")
+	data, err := os.ReadFile(src)
+	if err != nil {
+		t.Skipf("cli contract not present beside the package: %v", err)
+	}
+	var content string
+	dec := yaml.NewDecoder(bytes.NewReader(data))
+	for {
+		var doc yaml.Node
+		if err := dec.Decode(&doc); err != nil {
+			if err == io.EOF {
+				break
+			}
+			t.Fatal(err)
+		}
+		if doc.Kind != yaml.DocumentNode || len(doc.Content) == 0 {
+			continue
+		}
+		m := doc.Content[0]
+		if m.Kind != yaml.MappingNode {
+			continue
+		}
+		var design, body string
+		for i := 0; i+1 < len(m.Content); i += 2 {
+			k, v := m.Content[i], m.Content[i+1]
+			switch k.Value {
+			case "design":
+				design = v.Value
+			case "content":
+				body = v.Value
+			}
+		}
+		if design == "Synopsis" {
+			content = body
+			break
+		}
+	}
+	if content == "" {
+		t.Fatal("00-invocation.yass.yaml holds no design: Synopsis")
+	}
+	var o, e bytes.Buffer
+	if st := Main([]string{"--help"}, &o, &e); st != ExitOK {
+		t.Fatalf("status = %d, want %d", st, ExitOK)
+	}
+	if o.String() != content {
+		t.Fatalf("--help has drifted from the Synopsis design block:\nhelp:\n%q\nblock:\n%q", o.String(), content)
+	}
+}
+
+// A REF is written root-relative so it can be passed back to `yass query`
+// unchanged. That holds for a file under the project root from any starting
+// directory. A file outside the root is still spelled root-relative, with
+// `../` segments, but a later invocation resolves a leading `./` or `../` token
+// from its own starting directory — so the spelling re-addresses the same
+// document only when the starting directory is the project root, and a
+// misleading path inside the root is taken instead when one exists.
+func TestEmittedRefRoundTripOutsideRoot(t *testing.T) {
+	base := t.TempDir()
+	write(t, base, "other.yass.yaml", modeline+"---\ndescription: the outside file\nversion: v1\n---\nspec: Doc\nINPUT:\n- MUST: x\n")
+	write(t, base, "project/root.yass.yaml", modeline+"---\ndescription: the project\nversion: v1\n---\nspec: P\nINPUT:\n- MUST: x\n")
+	write(t, base, "project/sub/keep.yass.yaml", modeline+"---\ndescription: the inside file\nversion: v1\n---\nspec: Keep\nINPUT:\n- MUST: y\n")
+	root := filepath.Join(base, "project")
+	sub := filepath.Join(root, "sub")
+
+	// The emitted REF is the project-root-relative spelling.
+	outside := filepath.Join("..", "..", "other.yass.yaml")
+	got := run(sub, "list", outside)
+	wantStatus(t, got, ExitOK)
+	if !strings.Contains(got.stdout, "../other@Doc") {
+		t.Fatalf("list did not emit a root-relative REF for the outside file: %q", got.stdout)
+	}
+
+	// From the project root the spelling round-trips.
+	fromRoot := run(root, "query", "../other@Doc")
+	wantStatus(t, fromRoot, ExitOK)
+	if !strings.Contains(fromRoot.stdout, "spec: Doc") {
+		t.Fatalf("from the project root, the emitted REF must re-address the outside file: %q", fromRoot.stdout)
+	}
+
+	// An in-root REF round-trips from any starting directory.
+	fromSub := run(sub, "query", "sub/keep@Keep")
+	wantStatus(t, fromSub, ExitOK)
+	if !strings.Contains(fromSub.stdout, "spec: Keep") {
+		t.Fatalf("an in-root REF must re-address from a subdirectory: %q", fromSub.stdout)
+	}
+
+	// From a subdirectory with no misleading path, the outside spelling does
+	// not silently reach some other file: it names nothing.
+	miss := run(sub, "query", "../other@Doc")
+	wantStatus(t, miss, ExitUnresolved)
+	if miss.stdout != "" {
+		t.Fatalf("a spelling that addresses nothing must emit nothing: %q", miss.stdout)
+	}
+
+	// With a misleading inside-root path present, the same spelling takes
+	// that file instead — which is why the round-trip is not promised for
+	// files outside the root. The outside file's document carries `MUST: x`;
+	// the misleading one carries `MUST: z`.
+	write(t, base, "project/other.yass.yaml", modeline+"---\ndescription: the misleading file\nversion: v1\n---\nspec: Doc\nINPUT:\n- MUST: z\n")
+	mis := run(sub, "query", "../other@Doc")
+	wantStatus(t, mis, ExitOK)
+	if !strings.Contains(mis.stdout, "MUST: z") {
+		t.Fatalf("want the misleading inside-root file, got %q", mis.stdout)
+	}
+	if strings.Contains(mis.stdout, "MUST: x") {
+		t.Fatalf("the outside file must not be reached from a subdirectory: %q", mis.stdout)
+	}
+}
+
+// Go's SIGPIPE disposition is process-level: a write to a closed standard
+// output must select the ok status the output policy names rather than ending
+// the process with a signal outside the exit-status table. Main alone does not
+// exercise it, so the real binary is run against a pipe with no reader.
+func TestProcessClosedStdoutPipeExitsZero(t *testing.T) {
+	bin := filepath.Join(t.TempDir(), "yass")
+	build := exec.Command("go", "build", "-o", bin, ".")
+	build.Dir = filepath.Join("..", "..")
+	if out, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("go build: %v\n%s", err, out)
+	}
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Close()
+
+	cmd := exec.Command(bin, "-C", project(t), "list")
+	cmd.Stdout = w
+	cmd.Stderr = new(bytes.Buffer)
+	runErr := cmd.Run()
+	w.Close()
+	code := 0
+	if cmd.ProcessState != nil {
+		code = cmd.ProcessState.ExitCode()
+	} else if runErr != nil {
+		t.Fatal(runErr)
+	}
+	if code != 0 {
+		t.Fatalf("closed stdout pipe exited %d, want 0", code)
 	}
 }

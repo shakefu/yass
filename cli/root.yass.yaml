@@ -106,10 +106,9 @@ content: |
   1  findings     the command served its request and reported at least one finding about
                   the spec set: a validation diagnostic, a lint advisory, or a file it
                   could not parse
-  2  usage        the argument vector is malformed: no subcommand, unknown subcommand,
-                  unknown option, missing option value, missing or excess operand, an
-                  empty operand, or a target that fails the ref-target grammar or names
-                  an unrecognized slot
+  2  usage        the argument vector is malformed: unknown subcommand, unknown option,
+                  missing option value, missing or excess operand, an empty operand, or a
+                  target that fails the ref-target grammar or names an unrecognized slot
   3  unresolved   the request is well formed but names something absent: a missing path,
                   or a target that resolves to no document
   4  no-root      no file named root.yass.yaml at or above the starting path
@@ -133,8 +132,11 @@ content: |
   answer, so standard output is empty.
 
   A command that ran and matched nothing exits 0, not 1: an empty result is an answer, and
-  1 is reserved for a finding about the spec set. A signal is not caught, so no status
-  outside this table is ever selected by this program.
+  1 is reserved for a finding about the spec set. This program intercepts SIGPIPE so that a
+  write to a closed standard output selects the ok status the output policy names rather
+  than ending the process with a signal. The table states every status this program
+  selects. It does not fix the process status of an external kill: a signal this program
+  does not intercept ends the process before any status here is selected.
 ---
 design: OutputPolicy
 type: constraint
@@ -223,8 +225,12 @@ content: |
                 FROM        the version this program ran as
                 TO          the newest stable release version
 
-  A REF is written root-relative with `/` separators and the `.yass.yaml` suffix removed, so
-  it can be passed back to `yass query` unchanged.
+  A REF is written root-relative with `/` separators and the `.yass.yaml` suffix removed.
+  When the addressed file lies under the project root, that spelling is what `yass query`
+  takes and re-addresses from any starting directory. A file outside the project root is
+  still written root-relative, with `../` segments, but a later invocation resolves a path
+  token that begins with `./` or `../` from its own starting directory, so that spelling
+  re-addresses the same document only when the starting directory is the project root.
 
   Canonical slot order, wherever a slot sequence is emitted:
   INPUT, RETURN, ERROR, SIDE-EFFECT, INVARIANT.
@@ -242,7 +248,8 @@ content: |
     CODE      `yass.<area>.<name>`, or the bare token `yass.internal`
     LOCATION  the most precise ref target known — `path`, `path@Name`, or `path@Name::SLOT`
               — root-relative with the `.yass.yaml` suffix removed, so the field can be
-              passed back to `yass query` unchanged
+              passed back to `yass query` unchanged for a file under the project root; a
+              file outside the root is spelled root-relative as RecordFormat spells it
     LINE      the 1-based line the offending construct starts on, for an editor to jump to,
               or `-` when no line is known. A line is never a ref anchor: a ref target
               addresses nothing finer than a slot.
@@ -287,8 +294,9 @@ content: |
     which costs more of the context this policy exists to protect than the block does. The
     block earns its lines by replacing that reading, so it carries what a reader cannot get
     more cheaply elsewhere, and nothing that it can.
-  - Help is a synopsis line, one line per subcommand, and one line per global option, plus
-    the exit-code table. No examples, no paragraphs, no epilogue.
+  - Help is exactly the Synopsis design block and nothing else: a synopsis line, one line
+    per subcommand, one line per option, and the exit-code table. No examples, no
+    paragraphs, no epilogue, and no text outside the block.
   - There is no per-subcommand help in v1, because the synopsis states each subcommand's
     operands and options.
   - An obligation's prose is emitted only inside a fragment the agent asked for, or as the
