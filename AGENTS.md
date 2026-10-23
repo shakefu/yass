@@ -26,4 +26,4 @@ YAML specification language and a read-only Go CLI for serving specs to coding a
 - Update the affected `AGENTS.md` files in the same change when paths, responsibilities, commands, dependencies, or conventions change.
 - Keep indexes brief: record semantic entry points and non-obvious constraints; link to existing documentation instead of duplicating it.
 - Add a directory index only when it provides useful navigation beyond its parent; omit generated, vendored, and fixture trees.
-- Every `AGENTS.md` must have a sibling `CLAUDE.md` containing only `@AGENTS.md`.
+- Do not add `CLAUDE.md` files; Claude Code reads `AGENTS.md` natively, and a `CLAUDE.md` anywhere in the tree stops every `AGENTS.md` from loading.
