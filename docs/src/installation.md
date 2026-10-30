@@ -162,6 +162,27 @@ when an older Homebrew-managed binary is detected. For `homebrew`, run
 installed a pinned version. To keep or change a pin, rerun the installer with
 `--version` or manually install the selected release instead.
 
+## Pre-commit and prek hooks
+
+The repository publishes two hooks for [pre-commit](https://pre-commit.com) and
+[prek](https://github.com/j178/prek): `yass-validate` runs `yass validate` and
+`yass-lint` runs `yass lint` on staged `.yass.yaml` files. Both run the `yass`
+already on PATH and never install it. When it is missing, the hook fails and
+prints the install commands above. Pin `rev` to a release tag:
+
+```yaml
+repos:
+  - repo: https://github.com/shakefu/yass
+    rev: vX.Y.Z
+    hooks:
+      - id: yass-validate
+      - id: yass-lint
+```
+
+Each file is checked in the project that its nearest `root.yass.yaml` governs,
+so a nested project resolves its own references. `yass-lint` fails on any
+advisory. Leave it out to enforce only validation.
+
 ## Building from source
 
 A source build needs Go 1.24 or newer and network access on the first build to

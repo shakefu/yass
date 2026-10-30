@@ -1,0 +1,14 @@
+# Hooks for pre-commit and prek. Both run the yass CLI already on PATH and never
+# install it; see https://shakefu.github.io/yass/installation.html.
+- id: yass-validate
+  name: yass validate
+  description: Check yass spec files against the yass language definition.
+  entry: script/pre-commit-hook validate
+  language: script
+  files: \.yass\.yaml$
+- id: yass-lint
+  name: yass lint
+  description: Report graph-hygiene advisories for yass spec files.
+  entry: script/pre-commit-hook lint
+  language: script
+  files: \.yass\.yaml$

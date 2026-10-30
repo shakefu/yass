@@ -52,5 +52,8 @@ cd ..
 echo "==> check-specs tests"
 YASS="$bin/yass" script/test-check-specs
 
+echo "==> pre-commit-hook tests"
+YASS="$bin/yass" script/test-pre-commit-hook
+
 echo "==> check-specs"
 YASS="$bin/yass" script/check-specs

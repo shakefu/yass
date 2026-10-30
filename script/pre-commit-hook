@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+#
+# script/pre-commit-hook — run `yass validate` or `yass lint` for the
+# pre-commit and prek hooks declared in .pre-commit-hooks.yaml.
+#
+# Usage: script/pre-commit-hook SUBCOMMAND [OPTION...] FILE...
+#
+# The hooks use the yass already on PATH (or the one YASS names) and never
+# install it, so a missing binary fails with install instructions instead.
+#
+# A hook runs from the repository root and passes every staged path, but yass
+# discovers the project root from where it starts, not from each file. Files
+# are therefore grouped by their nearest root.yass.yaml and each project is
+# checked with `yass -C ROOT`, so a nested project resolves its own references.
+# Arguments starting with `-` are passed to every invocation.
+
+set -uo pipefail
+
+prog="yass-${1:-}"
+yass="${YASS:-yass}"
+
+usage() {
+	echo "usage: script/pre-commit-hook validate|lint [OPTION...] FILE..." >&2
+	exit 2
+}
+
+[ "$#" -ge 1 ] || usage
+subcommand="$1"
+shift
+case "$subcommand" in
+validate | lint) ;;
+*) usage ;;
+esac
+
+if ! command -v "$yass" >/dev/null 2>&1; then
+	cat >&2 <<-MSG
+		$prog: `$yass` was not found on PATH.
+		This hook runs the installed binary and does not install it. Install yass:
+
+		  brew tap shakefu/yass https://github.com/shakefu/yass && brew install yass
+		  curl -fsSL https://raw.githubusercontent.com/shakefu/yass/main/install.sh | sh
+
+		See https://shakefu.github.io/yass/installation.html for other options.
+	MSG
+	exit 1
+fi
+
+# project_root FILE — print the absolute nearest directory at or above FILE
+# holding root.yass.yaml, matching the CLI's own root discovery.
+project_root() {
+	local dir
+	dir=$(cd "$(dirname "$1")" 2>/dev/null && pwd -P) || return 1
+	while :; do
+		if [ -f "$dir/root.yass.yaml" ]; then
+			echo "$dir"
+			return 0
+		fi
+		[ "$dir" = / ] && return 1
+		dir=$(dirname "$dir")
+	done
+}
+
+options=()
+roots=()
+file_roots=()
+file_paths=()
+status=0
+
+for arg in "$@"; do
+	case "$arg" in
+	-*)
+		options+=("$arg")
+		continue
+		;;
+	esac
+	if ! root=$(project_root "$arg"); then
+		echo "$prog: no root.yass.yaml at or above $arg" >&2
+		status=4
+		continue
+	fi
+	file_dir=$(cd "$(dirname "$arg")" && pwd -P)
+	file_roots+=("$root")
+	file_paths+=("${file_dir#"$root"}/$(basename "$arg")")
+	seen=
+	for r in ${roots[@]+"${roots[@]}"}; do
+		[ "$r" = "$root" ] && seen=1 && break
+	done
+	[ -n "$seen" ] || roots+=("$root")
+done
+
+for root in ${roots[@]+"${roots[@]}"}; do
+	files=()
+	for i in "${!file_roots[@]}"; do
+		[ "${file_roots[$i]}" = "$root" ] && files+=("${file_paths[$i]#/}")
+	done
+	"$yass" -C "$root" "$subcommand" ${options[@]+"${options[@]}"} "${files[@]}"
+	rc=$?
+	if [ "$rc" -ne 0 ]; then
+		echo "$prog: findings in the project at $root (exit $rc)" >&2
+		[ "$status" -ne 0 ] || status=$rc
+	fi
+done
+
+exit "$status"
