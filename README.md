@@ -69,6 +69,12 @@ reported as such; upgrade it with `brew upgrade yass`.
 
 Verify any installation with `yass --version`.
 
+### Pre-commit and prek hooks
+
+`yass-validate` and `yass-lint` check staged `.yass.yaml` files with the
+installed `yass`; they never install it. See
+[the installation guide](https://shakefu.github.io/yass/installation.html#pre-commit-and-prek-hooks).
+
 ### From source
 
 Build with Go per [`cli/HOWTORUN.txt`](./cli/HOWTORUN.txt).

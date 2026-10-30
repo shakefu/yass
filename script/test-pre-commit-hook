@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+#
+# script/test-pre-commit-hook — behavior tests for script/pre-commit-hook.
+#
+# A stub yass that records its arguments checks how files are grouped by
+# project and which options reach each invocation. The end-to-end cases copy
+# the repository's own spec projects into a scratch tree, keeping the CLI
+# project nested under the language project, and run the real CLI through the
+# hook. YASS names that CLI; when unset it is built from cli/.
+
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+REPO_ROOT="$PWD"
+HOOK="$REPO_ROOT/script/pre-commit-hook"
+
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT INT TERM
+work=$(cd "$work" && pwd -P)
+
+failures=0
+ok() { echo "ok   $*"; }
+bad() {
+	echo "FAIL $*" >&2
+	failures=$((failures + 1))
+}
+
+if [ -z "${YASS:-}" ]; then
+	(cd cli && go build -o "$work/yass" .)
+	YASS="$work/yass"
+fi
+
+# check NAME WANT-STATUS PATTERN YASS DIR ARG... — run the hook from DIR and
+# assert its exit status and that its combined output matches PATTERN.
+check() {
+	local name="$1" want="$2" pattern="$3" bin="$4" dir="$5" status=0 out
+	shift 5
+	out=$(cd "$dir" && YASS="$bin" "$HOOK" "$@" 2>&1) || status=$?
+	if [ "$status" -ne "$want" ]; then
+		bad "$name: exit $status, want $want"
+		echo "$out" >&2
+	elif ! grep -qE -- "$pattern" <<<"$out"; then
+		bad "$name: output does not match $pattern"
+		echo "$out" >&2
+	else
+		ok "$name"
+	fi
+}
+
+# A scratch copy of both projects, laid out as the repository is, so the CLI
+# project's references into the language project resolve only when the hook
+# checks it from its own root.
+repo="$work/repo"
+mkdir -p "$repo/cli"
+cp "$REPO_ROOT"/*.yass.yaml "$repo"/
+cp "$REPO_ROOT"/cli/*.yass.yaml "$repo/cli"/
+all=()
+while IFS= read -r f; do all+=("$f"); done < <(cd "$repo" && ls ./*.yass.yaml cli/*.yass.yaml)
+
+stub="$work/stub-yass"
+printf '#!/bin/sh\necho "yass $*"\n' >"$stub"
+chmod 0755 "$stub"
+
+check "missing yass fails with install instructions" 1 "brew install yass" \
+	"$work/no-such-yass" "$repo" validate root.yass.yaml
+
+check "unknown subcommand is a usage error" 2 "^usage: " "$stub" "$repo" query root.yass.yaml
+
+check "files are grouped by nearest project root" 0 \
+	"^yass -C $repo/cli validate 08-validate.yass.yaml root.yass.yaml$" \
+	"$stub" "$repo" validate root.yass.yaml cli/08-validate.yass.yaml cli/root.yass.yaml
+
+check "outer project is checked on its own" 0 "^yass -C $repo validate root.yass.yaml$" \
+	"$stub" "$repo" validate root.yass.yaml cli/08-validate.yass.yaml
+
+check "options reach every invocation" 0 "^yass -C $repo/cli lint --flag 09-lint.yass.yaml$" \
+	"$stub" "$repo" lint --flag cli/09-lint.yass.yaml
+
+check "paths resolve from a subdirectory" 0 "^yass -C $repo/cli validate 09-lint.yass.yaml$" \
+	"$stub" "$repo/cli" validate 09-lint.yass.yaml
+
+mkdir -p "$work/loose"
+printf 'spec: Loose\n' >"$work/loose/a.yass.yaml"
+check "file without a project root fails" 4 "no root.yass.yaml at or above a.yass.yaml" \
+	"$stub" "$work/loose" validate a.yass.yaml
+
+check "validate passes across nested projects" 0 "" "$YASS" "$repo" validate "${all[@]}"
+check "lint passes across nested projects" 0 "" "$YASS" "$repo" lint "${all[@]}"
+
+sed -i.bak 's/^  CONFORMS: 01-locate@FileSet::RETURN$/  CONFORMS: 01-locate@NoSuchSpec::RETURN/' "$repo/cli/09-lint.yass.yaml"
+rm -f "$repo/cli/09-lint.yass.yaml.bak"
+check "dangling nested reference fails" 1 "yass\.ref\.unresolved	09-lint@Lint::INPUT" \
+	"$YASS" "$repo" validate "${all[@]}"
+
+if [ "$failures" -ne 0 ]; then
+	echo "$failures pre-commit-hook test(s) failed" >&2
+	exit 1
+fi
