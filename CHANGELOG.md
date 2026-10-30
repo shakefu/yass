@@ -2,6 +2,14 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.5.0 - 2026-10-30
+#### Features
+- publish yass-validate and yass-lint pre-commit hooks - (e7f2659) - Jacob Alheid
+#### Miscellaneous Chores
+- drop CLAUDE.md shim; AGENTS.md is read natively - (677218e) - Jacob Alheid
+
+- - -
+
 ## v0.4.14 - 2026-10-21
 #### Bug Fixes
 - (**cli**) name the silent-misresolution shape of an outside-root REF - (d111a5e) - Jacob Alheid
