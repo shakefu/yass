@@ -295,8 +295,8 @@ content: |
     block earns its lines by replacing that reading, so it carries what a reader cannot get
     more cheaply elsewhere, and nothing that it can.
   - Help is exactly the Synopsis design block and nothing else: a synopsis line, one line
-    per subcommand, one line per option, and the exit-code table. No examples, no
-    paragraphs, no epilogue, and no text outside the block.
+    per subcommand, one line per option, the exit-code table, and one closing line pointing
+    at the orientation block. No examples, no paragraphs, and no text outside the block.
   - There is no per-subcommand help in v1, because the synopsis states each subcommand's
     operands and options.
   - An obligation's prose is emitted only inside a fragment the agent asked for, or as the

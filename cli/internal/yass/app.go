@@ -30,7 +30,9 @@ const synopsis = `usage: yass [-C DIR] [--version] [--help] [SUBCOMMAND [ARGS...
   --in                           report incoming edges only
   --out                          report outgoing edges only
 
-  0 ok   1 findings   2 usage   3 unresolved   4 no-root   5 environment`
+  0 ok   1 findings   2 usage   3 unresolved   4 no-root   5 environment
+
+  yass overview                  this program, the governing project, and the notation`
 
 // App carries the one project root computed per invocation and the streams
 // every command writes through.
