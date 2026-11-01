@@ -105,3 +105,5 @@ content: |
     --out                          report outgoing edges only
 
     0 ok   1 findings   2 usage   3 unresolved   4 no-root   5 environment
+
+    yass overview                  this program, the governing project, and the notation
