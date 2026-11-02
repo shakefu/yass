@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.6.0 - 2026-11-02
+#### Features
+- (**cli**) point the synopsis at the orientation block - (f3c2494) - Jacob Alheid
+
+- - -
+
 ## v0.5.0 - 2026-10-30
 #### Features
 - publish yass-validate and yass-lint pre-commit hooks - (e7f2659) - Jacob Alheid
