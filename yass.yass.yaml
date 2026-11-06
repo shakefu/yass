@@ -39,6 +39,7 @@ ERROR:
 - MUST: be rejected when any mapping within it carries duplicate keys
 INVARIANT:
 - MUST: preserve document order, since Preamble validity depends on position
+- MUST-NOT: "carry an undecided point anywhere, including a comment: no question left for a later reader, no placeholder such as `TBD` or `TODO`, and no choice deferred to the implementer, because a spec is a contract whose implementer builds what it says, and an undecided point becomes a guess"
 ---
 spec: Root
 INPUT:
@@ -97,7 +98,7 @@ INPUT:
 - MAY: use a namespaced name such as `pkg.Symbol`
 - MUST: "limit its name to the characters `A-Z`, `a-z`, `0-9`, `.`, `_`, and `-`"
 - MUST: "match the regex `^[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*$` as its name, which also rejects a leading dot, a trailing dot, and consecutive dots"
-- MUST-NOT: "case-insensitively match any yass keyword with its name: a Slot keyword, a Normativity keyword, the Guard keyword WHEN, or a Relation keyword"
+- MUST-NOT: "case-insensitively match any yass keyword with its name: a Slot keyword, a Normativity keyword, the Guard keyword `WHEN`, or a Relation keyword"
 RETURN:
 - MUST: carry zero or more Slots
   SEE: Slot
@@ -218,18 +219,18 @@ ERROR:
 - MUST: be rejected when it carries a Guard but no Normativity keyword
   SEE: Guard
 - MUST: "be rejected when it carries a key other than a Normativity keyword, `WHEN`, or a Relation keyword"
-- MUST: "be rejected when the value a Normativity keyword or the Guard keyword WHEN carries is not a string as resolved by the YAML 1.2 core schema, so a mapping, a sequence, null, or a non-string scalar such as `42` or `true` is rejected; an absent value, unquoted null, Null, NULL, or ~ is null, whereas a quoted empty string is a string"
+- MUST: "be rejected when the value a Normativity keyword or the Guard keyword `WHEN` carries is not a string as resolved by the YAML 1.2 core schema, so a mapping, a sequence, null, or a non-string scalar such as `42` or `true` is rejected; an absent value, unquoted null, Null, NULL, or ~ is null, whereas a quoted empty string is a string"
 - MUST: be rejected when it carries more than one distinct Normativity keyword
   SEE: Normativity
 INVARIANT:
 - MUST-NOT: carry the same Reference relation key more than once
-- MUST: be defined as reference-only iff it carries at least one Reference relation key AND carries no Normativity keyword AND carries no WHEN guard
+- MUST: be defined as reference-only iff it carries at least one Reference relation key and carries no Normativity keyword and carries no `WHEN` guard
   SEE: Reference
 ---
 spec: Normativity
 INPUT:
 - MUST: be used as the obligation mapping key
-- MUST: "be one of MUST, MUST-NOT, SHOULD, SHOULD-NOT, or MAY"
+- MUST: "be one of `MUST`, `MUST-NOT`, `SHOULD`, `SHOULD-NOT`, or `MAY`"
 - MUST: spell negatives with a hyphen so they remain clean YAML keys
 - MUST: take a value that is the obligation prose
 RETURN:
@@ -242,7 +243,7 @@ INVARIANT:
 ---
 spec: Guard
 INPUT:
-- MUST: be expressed with the WHEN key
+- MUST: be expressed with the `WHEN` key
 - MUST: take a value stating the condition prose
 RETURN:
 - MUST: express a sufficient condition under which the obligation applies

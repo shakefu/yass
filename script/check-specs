@@ -34,6 +34,10 @@ lint_disposition() {
 	yass.lint.design_unreferenced) echo fail ;;
 	# A spec with no slot states no obligation and is an empty CONFORMS target.
 	yass.lint.spec_empty) echo fail ;;
+	# A spec is a contract: an undecided point is implemented as a guess.
+	yass.lint.open_question) echo fail ;;
+	# A condition, keyword, or reference in prose is structure no reader parses.
+	yass.lint.prose_keyword) echo fail ;;
 	# The modeline is a SHOULD serving editors; the specs are valid without it.
 	yass.lint.modeline) echo advise ;;
 	# The language permits an empty slot; it adds no obligation and misleads none.

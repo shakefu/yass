@@ -100,10 +100,11 @@ const Modeline = "# yaml-language-server: $schema=https://shakefu.github.io/yass
 // File is one loaded spec file: either its parsed documents or a parse
 // failure, never both and never neither.
 type File struct {
-	Abs       string // absolute path on disk
-	Rel       string // project-root-relative, `/` separators, suffix kept
-	Ref       string // Rel with the .yass.yaml suffix removed
-	FirstLine string // the file's first line, for the modeline check
+	Abs       string   // absolute path on disk
+	Rel       string   // project-root-relative, `/` separators, suffix kept
+	Ref       string   // Rel with the .yass.yaml suffix removed
+	FirstLine string   // the file's first line, for the modeline check
+	Lines     []string // every line, for lint's marker scan
 	Parsed    bool
 	FailCode  string // yass.document.not_yaml or yass.document.encoding
 	FailLine  int

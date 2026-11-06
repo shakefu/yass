@@ -57,7 +57,7 @@ func refOf(rel string) string { return strings.TrimSuffix(rel, SpecSuffix) }
 
 // parseBytes turns a file's bytes into documents, or into a parse failure.
 func parseBytes(abs, rel string, data []byte) *File {
-	f := &File{Abs: abs, Rel: rel, Ref: refOf(rel), FirstLine: firstLine(data)}
+	f := &File{Abs: abs, Rel: rel, Ref: refOf(rel), FirstLine: firstLine(data), Lines: fileLines(data)}
 
 	if bytes.HasPrefix(data, bom) {
 		f.FailCode = "yass.document.encoding"
@@ -102,6 +102,19 @@ func parseBytes(abs, rel string, data []byte) *File {
 		f.Docs = append(f.Docs, buildDoc(f, i, doc, content))
 	}
 	return f
+}
+
+// fileLines returns the file's lines without their terminators.
+func fileLines(data []byte) []string {
+	s := strings.TrimSuffix(string(data), "\n")
+	if s == "" {
+		return nil
+	}
+	lines := strings.Split(s, "\n")
+	for i, l := range lines {
+		lines[i] = strings.TrimSuffix(l, "\r")
+	}
+	return lines
 }
 
 func firstLine(data []byte) string {

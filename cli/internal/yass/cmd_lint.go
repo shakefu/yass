@@ -111,11 +111,13 @@ func (a *App) cmdLint() (int, error) {
 			// A partial graph can yield a false reachability advisory, so the
 			// reader must know the graph was partial.
 			warn("yass.lint.unparsed", f.Ref, f.FailLine, "file yielded no documents")
+			advisories = append(advisories, proseAdvisories(f)...)
 			continue
 		}
 		if f.FirstLine != Modeline {
 			warn("yass.lint.modeline", f.Ref, 1, "first line is not the schema modeline")
 		}
+		advisories = append(advisories, proseAdvisories(f)...)
 		for _, d := range f.Docs {
 			if !d.Addressable() {
 				continue
