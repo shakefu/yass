@@ -4,11 +4,10 @@ YAML specification language and a read-only Go CLI for serving specs to coding a
 
 ## Entry points
 
-- `yass.yass.yaml`, `context/yass-reference.md`, `context/GUIDANCE.md`, `context/BRAINSTORMING.md`: authoritative language definition, reference, authoring guidance, and the spec-elicitation flow the CLI serves as `yass docs brainstorming`.
+- `yass.yass.yaml`: authoritative language definition; `context/`: authoritative reference, authoring guidance, and brainstorming flow (see its index). The CLI embeds copies of these four documents: after editing a source, run `./script/sync-docs`; never edit the copies.
 - `yass.v1.schema.json`: derived editor-validation schema; keep consistent with the language.
 - `root.yass.yaml`: repository spec root; `cli/`: separate spec project and Go module with implementation and tests (see its index).
-- `context/`: authoritative language guides (see its index).
-- `docs/`: mdBook site published to GitHub Pages (see its index); chapters `{{#include}}` the authoritative `context/` documents and the workflow publishes `yass.v1.schema.json` at the site root as `v1.schema.json`.
+- `docs/`: mdBook site published to GitHub Pages (see its index).
 - `install.sh`: curl-able release installer (README's Install section documents it); `Formula/yass.rb`: Homebrew formula, regenerated per release by `script/gen-formula` — never edit it by hand.
 - `.pre-commit-hooks.yaml`: published `yass-validate`/`yass-lint` hooks; `script/pre-commit-hook` runs the installed CLI per nearest project root and never installs it.
 - `script/build [version]`: cross-platform release archives in `dist/`; `script/gen-formula [version]`: formula from `dist/checksums.txt` (both are cog pre-bump hooks).
@@ -16,10 +15,11 @@ YAML specification language and a read-only Go CLI for serving specs to coding a
 
 ## Development
 
-- `./script/test`: installer tests, then gofmt check, vet, tests, build, and the authored-spec gate (the Go parts skip without Go); `./script/test-install`: install.sh and gen-formula tests alone.
+- `prek install` once per clone: installs the pre-commit and commit-msg (conventional commit) hooks.
+- PRs are rebase-merged, so every commit lands on `main` and feeds cog's changelog: each must be a conventional commit.
+- `./script/test`: installer tests, then gofmt check, vet, Go tests, build, script tests, and the authored-spec gate. Without Go the Go parts skip locally but fail in CI. `./script/test-install`: install.sh and gen-formula tests alone.
 - `./script/check-specs [PROJECT...]`: validate and lint `.` and `cli/` with the CLI built from this checkout; every validation error fails, and its lint policy table dispositions each lint code as failing or advisory (an undispositioned code fails). Add a disposition when a lint code is added. `./script/test-check-specs`: its tests. `./script/test-pre-commit-hook`: tests for the hook wrapper.
-- `./script/sync-docs`: refresh the CLI's embedded corpus after changing authoritative language documents; never edit those copies directly.
-- `prek run --all-files`: repository hooks. Use conventional commits.
+- `prek run --all-files`: repository hooks.
 - CLI build/run instructions: `cli/HOWTORUN.txt`.
 
 ## Maintaining this index
