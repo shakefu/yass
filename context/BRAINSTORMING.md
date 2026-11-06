@@ -21,6 +21,8 @@ while it is still cheap.
 - Skip a question only when the request or the repository already answers it — never
   because the answer seems obvious.
 - WHEN no user can answer: MUST-NOT pass a gate; report the open questions and stop.
+- MUST-NOT write an open question, a `TBD`/`TODO` placeholder, or a choice deferred to
+  the implementer into a spec file. Ask it now, or report it and stop.
 - MAY read the repository and run `yass` commands at any stage.
 
 ## Stage 1 — Classify, out loud
@@ -82,6 +84,8 @@ mid-flow means stop and decompose then; nothing shrinks a class once taken.
   `yass docs reference` settles a construct in doubt.
 - MUST write only obligations: nothing from the conversation survives except inside a
   `design:` block something `USES`.
+- MUST resolve every undecided point with the user before it reaches a file; a draft
+  holds decisions only (guidance's *No open questions*).
 - MUST run `yass validate` and `yass lint` and fix every finding before showing a draft.
 
 ## Stage 5 — Review
@@ -112,3 +116,4 @@ mid-flow means stop and decompose then; nothing shrinks a class once taken.
 | "The request already says what they want" | It says the purpose. It rarely says the edges. |
 | "I'll pick a sensible default" | A default the user never saw is a decision the implementer remakes. Propose it, marked. |
 | "It's a small feature; the gate is overkill" | The gate is the yes, not the size. |
+| "I'll list it as an open question in the spec" | The implementer reads it as spec and guesses. Ask now, or stop and report it. |

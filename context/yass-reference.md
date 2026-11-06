@@ -13,6 +13,10 @@ consumes them to drive test (TDD) and implementation generation.
 - SHOULD carry the schema modeline as its first line, so editors validate against the
   JSON Schema with no per-repo config:
   `# yaml-language-server: $schema=https://shakefu.github.io/yass/v1.schema.json`
+- **MUST NOT carry an undecided point** anywhere, comments included: no question left
+  for a later reader, no `TBD`/`TODO` placeholder, no choice deferred to the
+  implementer. A spec is a contract; its implementer builds an undecided point as a
+  guess. `yass lint` reports the markers it can see as `yass.lint.open_question`.
 
 ## Project root (`root.yass.yaml`)
 
@@ -171,6 +175,11 @@ An obligation is a **YAML mapping** (a list item under a slot):
   condition. If `WHEN` is present it **MUST** be accompanied by a normativity keyword.
 - **References** (optional) — `CONFORMS` / `USES` / `SEE`, each at most once per
   obligation, value = a **single** ref-target string.
+- **Structure stays in keys** — a condition on when the obligation applies is its
+  `WHEN` guard, not a clause in its prose; a second requirement is a second
+  obligation; a reference is a relation key. A keyword mentioned rather than used is
+  written in backticks. `yass lint` reports the prose forms it can see as
+  `yass.lint.prose_keyword`.
 - **Closed key set** — a normativity keyword, `WHEN`, and the relation keys are the
   only keys an obligation mapping may carry; any other key is a validation error.
 - **Prose values** — a normativity keyword's or `WHEN`'s value must be a **string**:

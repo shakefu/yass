@@ -9,6 +9,34 @@ seen this project, with no prior prompting and no other documents open. Tooling 
 working with specs faster, but a spec must never *require* tooling or a companion document
 to be understood or implemented.
 
+## No open questions: a spec holds only decisions
+
+**A spec file MUST NOT carry an open question — not in an obligation, a design, the
+preamble, or a comment.** A spec is a contract: its implementer builds what it says, and
+an undecided point becomes a guess nobody approved. That covers a question, a `TBD`,
+`TODO`, or `FIXME` placeholder, an "open questions" list, and a choice handed to the
+implementer ("pick a sensible default", "to be decided").
+
+- Resolve each ambiguity with the user before writing the obligation it touches.
+- When no one can answer, stop and report the question to the user. Never write it
+  into the spec to settle later.
+- `yass lint` reports the markers it can see as `yass.lint.open_question`. A clean lint
+  does not prove a set is decided; the reader still has to look.
+
+## Structure, not prose: keywords belong in keys
+
+An agent reads a spec's structure first. A condition, requirement, or reference written
+into prose is structure the reader may miss.
+
+- A condition on when an obligation applies is a `WHEN` guard:
+  `- WHEN: the queue is full` then `MUST: reject the item`, never
+  `- MUST: reject the item, when the queue is full`. A clause that narrows *what* the
+  obligation requires ("accept the flag even when it begins with `-`") stays in prose.
+- One normativity keyword per obligation: two requirements are two obligations.
+- A reference is a relation key (`USES: Policy`), never prose naming a target.
+- A keyword mentioned rather than used goes in backticks (`` `WHEN` ``).
+- `yass lint` reports the forms it can see as `yass.lint.prose_keyword`.
+
 ## Granularity: keep specs small and located
 
 The core failure mode: an LLM, unguided, will slop a single giant spec file for a whole

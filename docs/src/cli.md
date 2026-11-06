@@ -181,13 +181,15 @@ YAML structure, preambles, names, slots, obligations, reference syntax, target
 existence, and relation/target kinds. It reports errors without repairing files.
 
 `lint [PATH...]` checks project hygiene: unreachable documents, unbound designs,
-missing schema modelines, empty slots, and specs without slots. It builds the
+missing schema modelines, empty slots, specs without slots, open questions or
+placeholders left in a file (`TBD`, `TODO`, a `?` in obligation prose), and
+conditions, keywords, or references written into prose instead of keys. It builds the
 whole project graph even when paths restrict which files' advisories it reports.
 Lint does not run validation first; it remains usable during authoring.
 
 Both commands are silent and exit `0` when clean. Findings go to standard output
-and exit `1`. They check structure and graph properties; they do not assess prose
-correctness, completeness, or whether code meets the spec.
+and exit `1`. They check structure, graph properties, and fixed text patterns; they
+do not assess prose correctness, completeness, or whether code meets the spec.
 
 ## Read authoring documents: `docs`
 
