@@ -15,8 +15,11 @@ description: >
 version: v1
 related:
 - ../yass.yass.yaml
-- ../context/yass-reference.md
-- ../context/GUIDANCE.md
+- ../context/AUTHORING.md
+- ../context/DOCUMENTS.md
+- ../context/OBLIGATIONS.md
+- ../context/REFERENCES.md
+- ../context/COVERAGE.md
 ---
 spec: YassCli
 INPUT:
@@ -287,13 +290,19 @@ content: |
     answer and not an ornament on one. `overview` writes a fixed orientation block; `docs`
     writes a language document the reader named. Both stay bounded: the block's wording is
     fixed by a design block and nothing is added to it per invocation, and `docs` writes the
-    corpus document byte-for-byte with nothing beside it. Neither is written unless it was
+    corpus document byte-for-byte with nothing beside it but the length line the line budget
+    below requires of a document too long for it. Neither is written unless it was
     asked for, and an invocation naming no subcommand is the asking.
   - That exemption is about total context, not generosity with it. A reader who cannot tell
     what a project is, or what notation its files are written in, opens files until it can —
     which costs more of the context this policy exists to protect than the block does. The
     block earns its lines by replacing that reading, so it carries what a reader cannot get
     more cheaply elsewhere, and nothing that it can.
+  - Every answer written as a document rather than as records — the orientation block, help,
+    and a carried document — fits in 200 lines. An agent commonly reads such an answer
+    through `head -200` and never learns what the cut dropped, so the line budget is what a
+    reader is sure to see. A carried document too long for it opens with one line stating
+    its length, so a cut read is a known one.
   - Help is exactly the Synopsis design block and nothing else: a synopsis line, one line
     per subcommand, one line per option, the exit-code table, and one closing line pointing
     at the orientation block. No examples, no paragraphs, and no text outside the block.

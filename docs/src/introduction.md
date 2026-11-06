@@ -18,8 +18,8 @@ then use the [CLI guide](cli.md) to navigate a project. The chapter on
 [developing with agents](agent-workflows.md) shows how to elicit and review a new spec,
 implement an approved one, and adopt Yass in an existing codebase.
 
-The [language reference](reference.md), [authoring guidance](guidance.md), and
-[brainstorming flow](brainstorming.md) publish the authoritative source documents
+The [brainstorming flow](brainstorming.md) and the write path, from
+[authoring](authoring.md) through [case coverage](coverage.md), publish the authoritative source documents
 that the CLI embeds and serves with `yass docs`. The [JSON Schema](schema.md)
 supports editor validation. Tooling checks do not establish that a contract
 captures the intended behavior or that its implementation is correct.

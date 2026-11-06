@@ -28,7 +28,8 @@ func (a *App) docsIndex() (int, error) {
 }
 
 // docsWrite writes one carried document byte-for-byte, adding no header, no
-// footer, no provenance comment, and no trailing summary. The document is prose
+// footer, no provenance comment, and no trailing summary, except the length
+// line before a document longer than the line budget. The document is prose
 // rather than a sequence of fields, so the record grammar does not govern it.
 func (a *App) docsWrite(name string) (int, error) {
 	d, ok := corpusDoc(name)
@@ -41,6 +42,9 @@ func (a *App) docsWrite(name string) (int, error) {
 	text, err := d.text()
 	if err != nil {
 		return 0, err
+	}
+	if countLines(text) > LineBudget {
+		a.out.raw(lengthLine(d.Name, text))
 	}
 	a.out.raw(text)
 	return ExitOK, nil

@@ -48,8 +48,9 @@ Run
   An invocation naming no subcommand runs `overview`, which writes the block a
   reader needs on first contact: what this program is, what project the starting
   directory sits in, the notation a spec file uses, the commands that read a
-  spec set, and, for eliciting, writing, or changing a spec, the
-  `yass docs brainstorming` flow to follow. Running `yass` with no arguments is the intended way in.
+  spec set, and, for eliciting, writing, or changing a spec, the reading paths
+  through the carried documents. Running `yass` with no arguments is the
+  intended way in.
 
   Exit statuses: 0 ok, 1 findings, 2 usage, 3 unresolved, 4 no-root,
   5 environment.
@@ -71,7 +72,7 @@ Examples, run from this directory
   ./yass validate
   ./yass lint
   ./yass docs
-  ./yass docs reference
+  ./yass docs authoring
 
   The repository holds two projects: this directory (the CLI) and the directory
   above it (the yass language definition). Each has its own root.yass.yaml, so
@@ -85,6 +86,13 @@ Carried documents
   it, and `yass docs NAME` writes one whole. They are embedded in the binary,
   so they travel with it and are served from any directory, with or without a
   project root.
+
+  They are read in paths, every document in order, and `yass overview` lists
+  the paths: the write path (authoring, documents, obligations, references,
+  coverage), the elicit path (brainstorming, then the write path), and the
+  language (language, then the write path). Each fits in 200 lines, so a read
+  through `head -200` loses nothing; the language definition is longer and
+  opens with a line stating its length.
 
   Read one when you are eliciting, writing, or changing a spec. Implementing
   code against a spec set that already exists needs none of them: the notation

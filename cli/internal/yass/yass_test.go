@@ -2030,6 +2030,9 @@ func TestDocsWritesADocumentWhole(t *testing.T) {
 		if got.status != ExitOK {
 			t.Fatalf("%s: status = %d, want %d", d.Name, got.status, ExitOK)
 		}
+		if countLines(want) > LineBudget {
+			want = lengthLine(d.Name, want) + want
+		}
 		if got.stdout != want {
 			t.Fatalf("%s: served text is not the carried text byte-for-byte", d.Name)
 		}
@@ -2064,10 +2067,69 @@ func TestDocsUnknownName(t *testing.T) {
 // The corpus is a property of the program, not of a tree, so it is served from
 // a directory no project root governs.
 func TestDocsNeedsNoProjectRoot(t *testing.T) {
-	for _, args := range [][]string{{"docs"}, {"docs", "reference"}} {
+	for _, args := range [][]string{{"docs"}, {"docs", "authoring"}} {
 		got := run(t.TempDir(), args...)
 		if got.status != ExitOK {
 			t.Fatalf("%v: status = %d, want %d", args, got.status, ExitOK)
+		}
+	}
+}
+
+// Every document-form answer fits the line budget a reader commonly cuts its
+// read at; a carried document too long for it opens with a computed length
+// line. Only the language definition, a spec file, is that long.
+func TestDocumentAnswersFitTheLineBudget(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "root.yass.yaml", modeline+"---\ndescription: "+strings.Repeat("word ", 400)+"\nversion: v1\n---\nspec: R\n")
+	for _, args := range [][]string{{}, {"--help"}} {
+		if n := countLines(run(dir, args...).stdout); n > LineBudget {
+			t.Errorf("%v writes %d lines, over the %d-line budget", args, n, LineBudget)
+		}
+	}
+	for _, d := range Corpus {
+		text, err := d.text()
+		if err != nil {
+			t.Fatal(err)
+		}
+		n := countLines(text)
+		got := run(t.TempDir(), "docs", d.Name).stdout
+		if d.Name == "language" {
+			want := "# yass docs language: " + strconv.Itoa(n) + " lines total."
+			if n <= LineBudget || !strings.HasPrefix(got, want) {
+				t.Errorf("language: first line %q, want prefix %q", strings.SplitN(got, "\n", 2)[0], want)
+			}
+			continue
+		}
+		if n > LineBudget {
+			t.Errorf("%s holds %d lines, over the %d-line budget: divide it by topic", d.Name, n, LineBudget)
+		}
+		if strings.HasPrefix(got, "# yass docs ") {
+			t.Errorf("%s: a document within the budget carries a length line", d.Name)
+		}
+	}
+}
+
+// Every markdown document names its reading path on its first lines and the
+// next document on its last, and every document of a path is in the corpus.
+func TestCorpusDocumentsNameTheirPath(t *testing.T) {
+	for _, d := range Corpus {
+		if !strings.HasSuffix(d.File, ".md") {
+			continue
+		}
+		text, _ := d.text()
+		ls := lines(strings.TrimRight(text, "\n"))
+		if len(ls) < 3 || !strings.Contains(ls[2], " path") {
+			t.Errorf("%s: third line does not name its reading path: %q", d.Name, ls[2])
+		}
+		last := ls[len(ls)-1]
+		if !strings.HasPrefix(last, "Next in the ") && last != "End of the write path." {
+			t.Errorf("%s: last line does not name the next document: %q", d.Name, last)
+		}
+		if i := strings.Index(last, "`yass docs "); i >= 0 {
+			next := strings.TrimSuffix(strings.TrimPrefix(last[i:], "`yass docs "), "`.")
+			if _, ok := corpusDoc(next); !ok {
+				t.Errorf("%s: next document %q is not in the corpus", d.Name, next)
+			}
 		}
 	}
 }

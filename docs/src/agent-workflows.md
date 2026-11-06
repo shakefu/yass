@@ -10,8 +10,10 @@ location and access to the CLI. Start a fresh session for implementation and
 independent review: the spec set must carry the decisions those agents need.
 
 The [brainstorming flow](brainstorming.md) owns the authoring process and its
-approval gates. The [authoring guidance](guidance.md) owns coverage and structure;
-the [reference](reference.md) owns language syntax. The prompts below ask agents
+approval gates. [Authoring](authoring.md) and [case coverage](coverage.md) own
+structure and coverage; [files and documents](documents.md),
+[slots and obligations](obligations.md), and [references](references.md) own
+language syntax. The prompts below ask agents
 to read those sources rather than substitute a second authoring procedure.
 
 ## 1. Explore an idea
@@ -78,7 +80,8 @@ the reviewer has to locate behavior in the contract.
 Review the proposed spec set in [project directory] against [requirements].
 This is a review request; do not edit files or implement code.
 
-Run yass, read yass docs guidance and reference, and discover the set with
+Run yass, read the write path it lists (yass docs authoring through coverage),
+and discover the set with
 list, find, refs, and query. Run validate and lint. Apply all five Case
 coverage checks, then rehearse implementation from each queried fragment
 and the whole-spec CONFORMS and SEE references it leaves visible.

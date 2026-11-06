@@ -196,15 +196,26 @@ do not assess prose correctness, completeness, or whether code meets the spec.
 ```sh
 yass docs
 yass docs brainstorming
-yass docs reference
-yass docs guidance
+yass docs authoring
 yass docs language
 ```
 
-`docs` indexes the embedded language documents with the task that warrants reading
-each. `docs NAME` writes one document whole. Use `brainstorming` to elicit a new
-spec, `reference` and `guidance` to author specs, and `language` to change yass
-itself. These documents travel with the installed version and work without a
+`docs` indexes the embedded language documents with their line counts and the task
+that warrants reading each. `docs NAME` writes one document whole. Each fits in 200
+lines, so a read through `head -200` loses nothing; the language definition is the
+one exception and opens with a line stating its length.
+
+The documents are read in paths, every document in order, and bare `yass` lists
+them:
+
+| Path | Documents |
+|---|---|
+| Write or change a spec | `authoring`, `documents`, `obligations`, `references`, `coverage` |
+| Elicit a new spec | `brainstorming`, then the write path |
+| Change yass itself | `language`, then the write path |
+
+Each document's first line names its path and its place in it, and its last line
+names the next one. These documents travel with the installed version and work without a
 project root. For implementing an existing spec, start with overview and the
 project's own query results.
 

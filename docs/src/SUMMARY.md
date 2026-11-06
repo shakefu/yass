@@ -11,9 +11,12 @@
 
 # Language
 
-- [Language Reference](reference.md)
-- [Authoring Guidance](guidance.md)
 - [Brainstorming a Spec](brainstorming.md)
+- [Authoring](authoring.md)
+- [Files and Documents](documents.md)
+- [Slots and Obligations](obligations.md)
+- [References](references.md)
+- [Case Coverage and Review](coverage.md)
 
 # Reference
 

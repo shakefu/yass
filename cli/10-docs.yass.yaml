@@ -10,8 +10,11 @@ description: >
 version: v1
 related:
 - ../context/BRAINSTORMING.md
-- ../context/yass-reference.md
-- ../context/GUIDANCE.md
+- ../context/AUTHORING.md
+- ../context/DOCUMENTS.md
+- ../context/OBLIGATIONS.md
+- ../context/REFERENCES.md
+- ../context/COVERAGE.md
 - ../yass.yass.yaml
 ---
 spec: Docs
@@ -32,8 +35,11 @@ RETURN:
 - WHEN: NAME is omitted
   MUST: write one docs record for each document of the corpus, in the order the corpus declares them
   USES: root@RecordFormat
-- WHEN: NAME names a corpus document
+- WHEN: NAME names a corpus document holding at most 200 lines
   MUST: write that document's text to standard output byte-for-byte as the corpus carries it, adding no header, no footer, no provenance comment, and no trailing summary
+- WHEN: NAME names a corpus document holding more than 200 lines
+  MUST: "write first one line holding `# yass docs `, NAME, `: `, the count of lines the document holds in decimal, and ` lines total. Read every line; a read cut short drops rules.`, then the document's text byte-for-byte as the corpus carries it, adding nothing else"
+  USES: root@Brevity
 - WHEN: NAME names a corpus document
   MUST: write the document as a text stream rather than as records, since a document is prose and not a sequence of fields
   SEE: root@RecordFormat
@@ -54,7 +60,10 @@ SIDE-EFFECT:
 INVARIANT:
 - MUST: carry exactly the documents named authoritative for the yass language or for writing specs in it, so the corpus stays a language corpus and does not grow into a general file store
   USES: Corpus
-- MUST: serve text identical to the source document the corpus was built from, so a reader of the served copy and a reader of the checkout read the same words
+- MUST: serve text identical to the source document the corpus was built from, after the length line where one is written, so a reader of the served copy and a reader of the checkout read the same words
+- MUST: compute the length line's count from the carried text each time the document is served, so the count cannot drift from the text
+- SHOULD: carry each document within 200 lines, dividing a long topic into cohesive documents a reading path orders, so the length line is the exception
+  USES: Corpus
 - MUST-NOT: carry a Markdown table in any document, because an agent copies the shape of what it reads into the specs it writes, and a spec has no table
 - MUST-NOT: require a project root, discover one, or vary its answer with the starting directory, since the corpus is a property of the program and not of a tree
 - MUST-NOT: resolve, validate, lint, summarize, or otherwise interpret a document it serves, since this command is a courier and the language it carries is not its subject
@@ -70,11 +79,27 @@ content: |
   for writing specs in it, and nothing else. A project's own spec files are never corpus
   documents — they are served by `query`, `list`, `find`, and `refs`, which read the tree.
 
-    NAME           SOURCE                      WHEN TO READ
-    brainstorming  context/BRAINSTORMING.md    starting a project or feature that has no spec yet
-    reference      context/yass-reference.md   writing or changing a spec file
-    guidance       context/GUIDANCE.md         writing or changing a spec file
-    language       yass.yass.yaml              changing the yass language itself
+    NAME           SOURCE                    WHEN TO READ
+    brainstorming  context/BRAINSTORMING.md  eliciting a spec set with a user: elicit path, then the write path
+    authoring      context/AUTHORING.md      writing or changing a spec: write path 1 of 5
+    documents      context/DOCUMENTS.md      writing or changing a spec: write path 2 of 5
+    obligations    context/OBLIGATIONS.md    writing or changing a spec: write path 3 of 5
+    references     context/REFERENCES.md     writing or changing a spec: write path 4 of 5
+    coverage       context/COVERAGE.md       writing or changing a spec: write path 5 of 5
+    language       yass.yass.yaml            changing the yass language itself, then the write path
+
+  The reading paths. A task that needs the corpus reads a path whole, every document in
+  order, because each document is one cohesive topic and none restates another:
+
+    elicit path    brainstorming, then the write path
+    write path     authoring, documents, obligations, references, coverage
+    language       language, then the write path
+
+  A path is front and center twice: the orientation block names every path, and each
+  markdown document opens with a line naming its path and its place in it and closes with a
+  line naming the next document. The language definition is a spec file and carries neither
+  line, so it is the one document longer than the line budget, and its length line stands
+  in for them.
 
   An embedded name never ends in `.yass.yaml`. Every file with that suffix under a project
   root is collected as part of that project, so a copy carrying it would be indexed,

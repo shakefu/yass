@@ -49,6 +49,10 @@ INVARIANT:
 - MUST: hold the notation summary to exactly what a reader needs in order to read a spec file, leaving what an author needs in order to write one to the corpus
   SEE: 10-docs@Corpus
 - MUST-NOT: restate the option table, the operand grammar, or the exit-code table, since the synopsis owns them and one concern has one home
+- MUST: name every reading path the corpus declares, in the order the corpus declares the documents of each
+  SEE: 10-docs@Corpus
+- MUST: fit within 200 lines however long the project's description, so a reader that truncates its read sees the whole block
+  USES: root@Brevity
   SEE: 00-invocation@Synopsis
 ---
 design: OrientationBlock
@@ -119,10 +123,15 @@ content: |
 
   5 — the corpus:
 
-    elicit, write, or change a spec with the user
-      yass docs brainstorming      the dialogue that turns their request into a spec set
-      yass docs                    index every carried document
-      yass docs NAME               write one of those documents whole
+    elicit, write, or change a spec: run every command of a path in order; read each whole
+      new spec       yass docs brainstorming, then the write path
+      write path     yass docs authoring
+                     yass docs documents
+                     yass docs obligations
+                     yass docs references
+                     yass docs coverage
+      the language   yass docs language, then the write path
+      yass docs      index every carried document, with its line count
 
   6 — the rule for spending the corpus, which is the whole reason it is a command rather
   than another section of this block:
