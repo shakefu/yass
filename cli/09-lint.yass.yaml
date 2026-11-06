@@ -3,7 +3,8 @@
 description: >
   The graph-hygiene subcommand. `yass lint` reports what is well formed but wrong about a
   spec set as a whole — a design nothing binds, a document no reference chain reaches, a
-  missing schema modeline, an empty slot, a spec with no slot — each as one coded advisory.
+  missing schema modeline, an empty slot, a spec with no slot, an unresolved question left in
+  a file, a keyword written into prose — each as one coded advisory.
   It runs its own checks and never runs validation first, so a spec set that is being
   authored can still be linted; a file that would not parse is reported as an advisory of its
   own, because reachability computed over a partial graph can be wrong.
@@ -46,6 +47,24 @@ RETURN:
 - WHEN: a spec declares no slot at all
   MUST: emit code yass.lint.spec_empty, because it states no obligation and can bind nothing
   SEE: ../yass@Spec
+- WHEN: "a line of a selected file holds, outside a backtick code span, `TBD`, `TODO`, `FIXME`, or `XXX` as a whole word in capitals, the phrase `open question` in any casing, or the characters `??`, whatever that line holds: a key, a value, or a comment"
+  MUST: emit code yass.lint.open_question at that line, because a spec is a contract and its implementer builds an undecided point as a guess
+  SEE: ../yass@Document::INVARIANT
+- WHEN: "the prose of an obligation's normativity keyword or of its guard, or the description of a preamble, holds outside a backtick code span a `?` that ends the value or is followed by whitespace"
+  MUST: emit code yass.lint.open_question at the line of that obligation or description, because a question in a spec is a decision nobody made
+  SEE: ../yass@Document::INVARIANT
+- WHEN: "the prose of an obligation's normativity keyword begins with `when`, `if`, `unless`, or `whenever` in any casing, or holds outside a backtick code span a comma or semicolon followed by whitespace and one of those words in lower case"
+  MUST: emit code yass.lint.prose_keyword at the line of that obligation, because a condition written into prose is an unguarded obligation whose condition a reader can miss
+  SEE: ../yass@Guard
+- WHEN: "the prose of an obligation's normativity keyword or of its guard holds outside a backtick code span `MUST`, `SHOULD`, `MAY`, or `WHEN` as a whole word in capitals"
+  MUST: emit code yass.lint.prose_keyword at the line of that obligation, because a keyword inside prose packs a second obligation or a guard into text no reader parses as one
+  SEE: ../yass@Obligation::RETURN
+- WHEN: "the prose of an obligation's normativity keyword or of its guard holds outside a backtick code span `CONFORMS`, `USES`, or `SEE` in capitals, then an optional colon, whitespace, and a word holding `@`"
+  MUST: emit code yass.lint.prose_keyword at the line of that obligation, because a reference written into prose is an edge no command follows
+  SEE: ../yass@Reference
+- MUST: "treat as a backtick code span the text between a backtick and the next backtick on the same line, so a keyword or marker a spec mentions rather than uses is written inside one"
+- MUST: emit at most one advisory of a given code at a given line
+- MUST: "name, in an open-question or prose-keyword advisory, the slot holding its line, or else the document holding it, or else the file, a slot holding the lines from its key to the next slot or document"
 - WHEN: a file of the project file set yielded a parse failure
   MUST: emit code yass.lint.unparsed naming that file, and emit every other advisory anyway, because a partial graph can yield a false reachability advisory and the reader must know the graph was partial
   SEE: 02-load@Load::RETURN
@@ -77,7 +96,7 @@ SIDE-EFFECT:
 INVARIANT:
 - MUST-NOT: emit an advisory that repeats a diagnostic validation emits, so the two commands partition the checks between them and a reader runs both without reading anything twice
   SEE: 08-validate@Validate
-- MUST-NOT: judge the wording, ordering, granularity, or completeness of an obligation, so no advisory depends on reading prose
+- MUST-NOT: judge the wording, ordering, granularity, or completeness of an obligation, so no advisory depends on understanding prose; the open-question and prose-keyword advisories match fixed character patterns and weigh nothing they match
 - MUST-NOT: judge whether a slot states a residual, since that is a property of what obligations say rather than of the graph
   SEE: ../yass@Slot.ERROR
 - MUST-NOT: cross a project root boundary when computing reachability, so a nested project's documents are reached from that project's own root spec

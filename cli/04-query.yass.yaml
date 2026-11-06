@@ -95,7 +95,7 @@ RETURN:
 - MUST: "precede each inserted obligation with a comment line holding `# CONFORMS: ` followed by the source ref target as written"
 - MUST: "precede each appended design document with a comment line holding `# USES: ` followed by the source ref target as written"
 - WHEN: an inserted obligation carries its own guard and the carrier obligation also carries a guard
-  MUST: "emit the inserted obligation with a WHEN whose value is the carrier's guard prose, one ASCII space, the word `and`, one ASCII space, and the inserted obligation's own guard prose, so the conjunction is readable without the carrier in view"
+  MUST: "emit the inserted obligation with a `WHEN` whose value is the carrier's guard prose, one ASCII space, the word `and`, one ASCII space, and the inserted obligation's own guard prose, so the conjunction is readable without the carrier in view"
   SEE: ../yass@Guard
 - WHEN: an obligation is reference-only and its relation transcludes
   MUST: resolve it exactly as a carrier obligation resolves, then emit no obligation of its own, since a reference-only obligation adds none

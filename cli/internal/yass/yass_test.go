@@ -1574,6 +1574,84 @@ func TestLintDoesNotCrossProjectRoot(t *testing.T) {
 	}
 }
 
+// lintAt runs lint over a one-file project whose root spec carries body, and
+// returns each advisory of code as "LOCATION:LINE".
+func lintAt(t *testing.T, description, body, code string) []string {
+	t.Helper()
+	dir := t.TempDir()
+	write(t, dir, "root.yass.yaml", modeline+"---\ndescription: "+description+"\nversion: v1\n---\nspec: R\n"+body)
+	got := run(dir, "lint")
+	var out []string
+	for _, l := range lines(got.stdout) {
+		f := strings.Split(l, "\t")
+		if f[1] == code {
+			out = append(out, f[2]+":"+f[3])
+		}
+	}
+	return out
+}
+
+func TestLintOpenQuestionMarkers(t *testing.T) {
+	body := `INPUT:
+- MUST: accept a thing # TODO pick the format
+- MUST: emit TBD
+- MUST: yield an Open Question
+- MUST: "mention ` + "`TODO`" + ` and ` + "`??`" + ` as text"
+- MUST: keep TODOS and xxx alone
+RETURN:
+- MUST: return a ?? b
+# FIXME later
+`
+	got := lintAt(t, "d", body, "yass.lint.open_question")
+	want := []string{"root@R::INPUT:8", "root@R::INPUT:9", "root@R::INPUT:10", "root@R::RETURN:14", "root@R::RETURN:15"}
+	if strings.Join(got, " ") != strings.Join(want, " ") {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+}
+
+func TestLintOpenQuestionInUnparsedFile(t *testing.T) {
+	dir := project(t)
+	write(t, dir, "bad.yass.yaml", "a: b\n  c: d # TBD\n")
+	got := run(dir, "lint")
+	if !strings.Contains(got.stdout, "yass.lint.open_question\tbad\t2\t") {
+		t.Fatalf("marker in an unparsed file not reported:\n%s", got.stdout)
+	}
+}
+
+func TestLintOpenQuestionMark(t *testing.T) {
+	body := `INPUT:
+- MUST: accept a thing?
+- WHEN: is it empty? maybe
+  MUST: reject it
+- MUST: "match ` + "`a?b`" + ` and ` + "`?`" + `"
+- MUST: match a?b as a glob
+`
+	got := lintAt(t, "is this the project?", body, "yass.lint.open_question")
+	want := []string{"root:3", "root@R::INPUT:8", "root@R::INPUT:9"}
+	if strings.Join(got, " ") != strings.Join(want, " ") {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+}
+
+func TestLintProseKeyword(t *testing.T) {
+	body := `INPUT:
+- MUST: call the handler, when the queue is full
+- MUST: If the queue is empty, wait
+- MUST: retry and MUST-NOT give up
+- MUST: emit a record USES root@Policy
+- WHEN: the queue is full and MAY drain
+  MUST: wait
+- MUST: accept a flag even when it begins with a dash
+- MUST: "set the ` + "`WHEN`" + ` key and quote ` + "`USES a@B`" + `"
+- MUST: report the error, then stop; when done, exit
+`
+	got := lintAt(t, "d", body, "yass.lint.prose_keyword")
+	want := []string{"root@R::INPUT:8", "root@R::INPUT:9", "root@R::INPUT:10", "root@R::INPUT:11", "root@R::INPUT:12", "root@R::INPUT:16"}
+	if strings.Join(got, " ") != strings.Join(want, " ") {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+}
+
 // --- cross-cutting ----------------------------------------------------------
 
 func TestNorwayWordsStayStrings(t *testing.T) {

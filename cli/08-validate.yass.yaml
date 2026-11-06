@@ -92,7 +92,7 @@ RETURN:
 - WHEN: "a spec name does not match the regex `^[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*$`, which rejects a leading dot, a trailing dot, consecutive dots, and every character outside the name charset"
   MUST: emit code yass.spec.name_grammar
   CONFORMS: ../yass@Spec
-- WHEN: a spec name case-insensitively matches any yass keyword, whether a slot keyword, a normativity keyword, WHEN, or a relation keyword
+- WHEN: a spec name case-insensitively matches any yass keyword, whether a slot keyword, a normativity keyword, `WHEN`, or a relation keyword
   MUST: emit code yass.spec.name_keyword
   CONFORMS: ../yass@Spec
 - WHEN: "a document carries a `design` key whose value is absent, empty, or not a string"
@@ -101,7 +101,7 @@ RETURN:
 - WHEN: a design name does not match the spec name regex
   MUST: emit code yass.design.name_grammar
   CONFORMS: ../yass@Design
-- WHEN: a design name case-insensitively matches any yass keyword, whether a slot keyword, a normativity keyword, WHEN, or a relation keyword
+- WHEN: a design name case-insensitively matches any yass keyword, whether a slot keyword, a normativity keyword, `WHEN`, or a relation keyword
   MUST: emit code yass.design.name_keyword
   CONFORMS: ../yass@Design
 - WHEN: "a design omits `type` or `content`"
@@ -122,7 +122,7 @@ RETURN:
 - WHEN: an item of a slot's sequence is not a YAML mapping
   MUST: emit code yass.obligation.not_a_mapping
   CONFORMS: ../yass@Obligation
-- WHEN: an obligation carries a key that is not a normativity keyword, not WHEN, and not a relation key
+- WHEN: an obligation carries a key that is not a normativity keyword, not `WHEN`, and not a relation key
   MUST: emit code yass.obligation.unknown_key
   CONFORMS: ../yass@Normativity
 - WHEN: an obligation carries more than one distinct normativity keyword
@@ -131,10 +131,10 @@ RETURN:
 - WHEN: an obligation carries neither a normativity keyword nor a relation key
   MUST: emit code yass.obligation.empty
   CONFORMS: ../yass@Obligation
-- WHEN: an obligation carries a WHEN guard and no normativity keyword
+- WHEN: an obligation carries a `WHEN` guard and no normativity keyword
   MUST: emit code yass.obligation.guard_alone
   CONFORMS: ../yass@Guard
-- WHEN: "the value of an obligation's normativity keyword or its WHEN guard is not a string, characteristically unquoted prose holding a colon followed by a space"
+- WHEN: "the value of an obligation's normativity keyword or its `WHEN` guard is not a string, characteristically unquoted prose holding a colon followed by a space"
   MUST: emit code yass.obligation.not_scalar
   CONFORMS: ../yass@Obligation
 - WHEN: a relation key's value is not a single string
@@ -184,7 +184,7 @@ INVARIANT:
 - MUST-NOT: judge whether an obligation's prose is correct, complete, achievable, or well worded, since verification is out of scope and staying out of it is what keeps the program independent of the language a spec describes
 - MUST-NOT: emit an advisory, so a validation diagnostic always names a rule the language definition states as a rejection
   SEE: 09-lint@Lint
-- MUST-NOT: report a missing schema modeline, which the language states as a SHOULD and lint reports as an advisory
+- MUST-NOT: report a missing schema modeline, which the language states as a `SHOULD` and lint reports as an advisory
   SEE: 09-lint@Lint
 - MUST-NOT: report an unreachable document, which the language states as a Root invariant and lint reports as an advisory
   SEE: 09-lint@Lint
