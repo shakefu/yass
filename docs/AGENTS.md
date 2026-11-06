@@ -1,9 +1,10 @@
 # Documentation site
 
 - `book.toml`: mdBook configuration; `src/SUMMARY.md`: chapter navigation.
-- `src/reference.md`, `src/guidance.md`, `src/brainstorming.md`: `{{#include}}`
-  stubs over the authoritative documents in `../context/` — edit the sources,
-  never write copies here.
+- `src/brainstorming.md`, `src/authoring.md`, `src/documents.md`, `src/obligations.md`,
+  `src/references.md`, `src/coverage.md`: `{{#include}}` stubs over the authoritative
+  documents in `../context/` — edit the sources, never write copies here.
+  `book.toml` redirects the retired `reference.html` and `guidance.html`.
 - `src/installation.md`, `src/quick-start.md`, `src/cli.md`: installation and
   command guides; verify examples against the CLI specs and implementation.
 - `src/agent-workflows.md`: prompts and worked examples grounded in the

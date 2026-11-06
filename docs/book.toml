@@ -16,6 +16,10 @@ default-theme = "rust"
 preferred-dark-theme = "navy"
 smart-punctuation = true
 
+[output.html.redirect]
+"/reference.html" = "documents.html"
+"/guidance.html" = "authoring.html"
+
 [output.html.search]
 enable = true
 limit-results = 30

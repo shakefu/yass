@@ -4,7 +4,7 @@ YAML specification language and a read-only Go CLI for serving specs to coding a
 
 ## Entry points
 
-- `yass.yass.yaml`: authoritative language definition; `context/`: authoritative reference, authoring guidance, and brainstorming flow (see its index). The CLI embeds copies of these four documents: after editing a source, run `./script/sync-docs`; never edit the copies.
+- `yass.yass.yaml`: authoritative language definition; `context/`: authoritative reference, authoring, and brainstorming documents (see its index). The CLI embeds copies of all of them and the language definition (`cli/10-docs.yass.yaml` lists the corpus and its reading paths): after editing a source, run `./script/sync-docs`; never edit the copies. Each markdown document stays under 200 lines (a test enforces it); split a growing one by topic.
 - `yass.v1.schema.json`: derived editor-validation schema; keep consistent with the language.
 - `root.yass.yaml`: repository spec root; `cli/`: separate spec project and Go module with implementation and tests (see its index).
 - `docs/`: mdBook site published to GitHub Pages (see its index).

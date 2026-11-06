@@ -44,10 +44,15 @@ const overviewReading = `read a spec set
   yass validate                check the files against the language definition
   yass lint                    report graph hygiene`
 
-const overviewWriting = `elicit, write, or change a spec with the user
-  yass docs brainstorming      the dialogue that turns their request into a spec set
-  yass docs                    index every carried document
-  yass docs NAME               write one of those documents whole`
+const overviewWriting = `elicit, write, or change a spec: run every command of a path in order; read each whole
+  new spec       yass docs brainstorming, then the write path
+  write path     yass docs authoring
+                 yass docs documents
+                 yass docs obligations
+                 yass docs references
+                 yass docs coverage
+  the language   yass docs language, then the write path
+  yass docs      index every carried document, with its line count`
 
 const overviewSpending = `Read a carried document when you are eliciting, writing, or changing a spec, not when
 you are implementing one. Implementing against a spec set that already exists needs

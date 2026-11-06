@@ -2,6 +2,7 @@ package yass
 
 import (
 	"embed"
+	"strconv"
 	"strings"
 )
 
@@ -38,28 +39,49 @@ var Corpus = []CorpusDoc{
 		Name:   "brainstorming",
 		File:   "brainstorming.md",
 		Source: "context/BRAINSTORMING.md",
-		When:   "starting a project or feature that has no spec yet",
+		When:   "eliciting a spec set with a user: elicit path, then the write path",
 		Title:  "yass — Brainstorming a Spec",
 	},
 	{
-		Name:   "reference",
-		File:   "reference.md",
-		Source: "context/yass-reference.md",
-		When:   "writing or changing a spec file",
-		Title:  "yass — Language Reference",
+		Name:   "authoring",
+		File:   "authoring.md",
+		Source: "context/AUTHORING.md",
+		When:   "writing or changing a spec: write path 1 of 5",
+		Title:  "yass — Authoring",
 	},
 	{
-		Name:   "guidance",
-		File:   "guidance.md",
-		Source: "context/GUIDANCE.md",
-		When:   "writing or changing a spec file",
-		Title:  "yass — Authoring Guidance",
+		Name:   "documents",
+		File:   "documents.md",
+		Source: "context/DOCUMENTS.md",
+		When:   "writing or changing a spec: write path 2 of 5",
+		Title:  "yass — Files and Documents",
+	},
+	{
+		Name:   "obligations",
+		File:   "obligations.md",
+		Source: "context/OBLIGATIONS.md",
+		When:   "writing or changing a spec: write path 3 of 5",
+		Title:  "yass — Slots and Obligations",
+	},
+	{
+		Name:   "references",
+		File:   "references.md",
+		Source: "context/REFERENCES.md",
+		When:   "writing or changing a spec: write path 4 of 5",
+		Title:  "yass — References",
+	},
+	{
+		Name:   "coverage",
+		File:   "coverage.md",
+		Source: "context/COVERAGE.md",
+		When:   "writing or changing a spec: write path 5 of 5",
+		Title:  "yass — Case Coverage and Review",
 	},
 	{
 		Name:   "language",
 		File:   "language.yaml",
 		Source: "yass.yass.yaml",
-		When:   "changing the yass language itself",
+		When:   "changing the yass language itself, then the write path",
 		Title:  "the yass language defined in yass",
 	},
 }
@@ -82,6 +104,18 @@ func (d CorpusDoc) text() (string, error) {
 		return "", internal("carried document " + d.File + " is missing from the build")
 	}
 	return string(b), nil
+}
+
+// LineBudget is the most lines a document-form answer holds, per root@Brevity:
+// a reader commonly cuts its read there.
+const LineBudget = 200
+
+// lengthLine is the line written before a carried document longer than the
+// line budget, per 10-docs@Docs::RETURN, so a cut read is a known one. The
+// count is computed from the carried text, so it cannot drift from it.
+func lengthLine(name, text string) string {
+	return "# yass docs " + name + ": " + strconv.Itoa(countLines(text)) +
+		" lines total. Read every line; a read cut short drops rules.\n"
 }
 
 // countLines counts the lines a text holds: one per LF, plus a final unterminated

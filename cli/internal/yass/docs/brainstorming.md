@@ -1,5 +1,7 @@
 # yass — Brainstorming a Spec
 
+*Elicit path: **brainstorming**, then the whole write path, starting at `yass docs authoring`, before stage 3. Run each as `yass docs NAME` and read it whole.*
+
 How an agent turns a user's request into a spec set that another agent can implement
 cold. The keywords below bind the agent running this flow, in the RFC 2119 sense.
 
@@ -59,8 +61,9 @@ mid-flow means stop and decompose then; nothing shrinks a class once taken.
 
 ## Stage 3 — Round the edges
 
-- MUST read `yass docs guidance` first: it owns the edge cases this stage asks about, and
-  this document does not restate them. Section names below are its.
+- MUST have read the write path first: `authoring` and `coverage` own the edge cases
+  this stage asks about, and this document does not restate them. Section names below
+  are theirs.
 - Interview by slot, for each spec the set will hold: propose every answer with a marked
   default and let the user correct in one reply, one slot per message where the user must
   decide and batched where the request, the repository, or the code already answers.
@@ -80,12 +83,12 @@ mid-flow means stop and decompose then; nothing shrinks a class once taken.
 
 ## Stage 4 — Draft
 
-- MUST lay files out as guidance's *Granularity*, *The root file*, and *Ordering* say;
-  `yass docs reference` settles a construct in doubt.
+- MUST lay files out as authoring's *Granularity*, *The root file*, and *Ordering* say;
+  `documents`, `obligations`, and `references` settle a construct in doubt.
 - MUST write only obligations: nothing from the conversation survives except inside a
   `design:` block something `USES`.
 - MUST resolve every undecided point with the user before it reaches a file; a draft
-  holds decisions only (guidance's *No open questions*).
+  holds decisions only (authoring's *No open questions*).
 - MUST run `yass validate` and `yass lint` and fix every finding before showing a draft.
 
 ## Stage 5 — Review
@@ -93,7 +96,7 @@ mid-flow means stop and decompose then; nothing shrinks a class once taken.
 - MUST put every spec document in front of the user and ask whether it is right: in
   chat, a short file whole and a long one spec by spec; or, WHEN the set is large or the
   work lives on a branch, as a pushed diff reviewed there.
-- Before showing, MUST apply guidance's *Case coverage* pass and its *Implementer view*
+- Before showing, MUST apply coverage's *Case coverage* pass and its *Implementer view*
   rehearsal to the draft and check what the tools cannot: an obligation with two readings,
   two that contradict. Fix, then show.
 - The user's corrections go back into the files. Re-run validate and lint after each.
@@ -103,7 +106,7 @@ mid-flow means stop and decompose then; nothing shrinks a class once taken.
 - WHEN the user approves the spec set: report where the root is and, WHEN there is code
   to write, how to begin — an implementing agent starts fresh in the project directory,
   runs `yass`, and builds what the spec set describes — then MUST stop.
-- Before handing off, MUST re-apply guidance's *Implementer view* rehearsal to the
+- Before handing off, MUST re-apply coverage's *Implementer view* rehearsal to the
   approved set and fix and re-show whatever it surfaces.
 - Implementing here is a new request. WHEN the user makes it: MUST work from the spec set
   through `yass query`, not from memory of this conversation — a gap that surfaces there
@@ -118,3 +121,7 @@ mid-flow means stop and decompose then; nothing shrinks a class once taken.
 - "It's a small feature; the gate is overkill." The gate is the yes, not the size.
 - "I'll list it as an open question in the spec." The implementer reads it as spec and
   guesses. Ask now, or stop and report it.
+
+---
+
+Next in the elicit path: `yass docs authoring`.

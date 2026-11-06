@@ -95,8 +95,8 @@ For an existing spec, a useful starting instruction is:
 > contract.
 
 For a new feature, use `yass docs brainstorming` to elicit behavior before writing
-the spec. Use `yass docs reference` and `yass docs guidance` when authoring or
-changing it. These documents are embedded in the binary and work outside a
+the spec. When authoring or changing it, read the write path bare `yass` lists,
+`yass docs authoring` through `yass docs coverage`. These documents are embedded in the binary and work outside a
 project too.
 
 Continue with the worked example in [Developing with agents](agent-workflows.md)

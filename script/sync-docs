@@ -22,8 +22,11 @@ corpus=cli/internal/yass/docs
 
 pairs=(
   "context/BRAINSTORMING.md:brainstorming.md"
-  "context/yass-reference.md:reference.md"
-  "context/GUIDANCE.md:guidance.md"
+  "context/AUTHORING.md:authoring.md"
+  "context/DOCUMENTS.md:documents.md"
+  "context/OBLIGATIONS.md:obligations.md"
+  "context/REFERENCES.md:references.md"
+  "context/COVERAGE.md:coverage.md"
   "yass.yass.yaml:language.yaml"
 )
 
