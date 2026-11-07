@@ -102,8 +102,8 @@ works with any agent that can run a shell command.
      than making you compose them), and drafts the spec. Nothing gets built until
      you have read the spec and said yes.
    - **Implementing a spec that exists** — the agent reads the spec set through
-     `yass`, one document at a time rather than whole files, and builds what it
-     says.
+     `yass`, one document at a time rather than whole files, and builds and tests
+     what it says, following `yass docs implementing`.
    - **Changing a spec** — the agent reads the documents carried inside the
      binary (`yass docs`), edits the spec files, and checks them with
      `yass validate` and `yass lint`.
@@ -121,8 +121,8 @@ opening a single file by hand.
 
 The documents that define the language and how to write specs in it are
 carried inside the binary and served by `yass docs`, so they travel with it
-wherever it is installed. Read one when you are eliciting, writing, or changing
-a spec; implementing against specs that already exist needs none of them.
+wherever it is installed, and are read in paths: eliciting, writing or changing,
+and implementing a spec each have one, and `yass` lists them.
 
 ## License
 

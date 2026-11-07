@@ -2,7 +2,7 @@
 
 - `book.toml`: mdBook configuration; `src/SUMMARY.md`: chapter navigation.
 - `src/brainstorming.md`, `src/authoring.md`, `src/documents.md`, `src/obligations.md`,
-  `src/references.md`, `src/coverage.md`: `{{#include}}` stubs over the authoritative
+  `src/references.md`, `src/coverage.md`, `src/implementing.md`: `{{#include}}` stubs over the authoritative
   documents in `../context/` — edit the sources, never write copies here.
   `book.toml` redirects the retired `reference.html` and `guidance.html`.
 - `src/installation.md`, `src/quick-start.md`, `src/cli.md`: installation and

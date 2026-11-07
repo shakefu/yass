@@ -2151,7 +2151,7 @@ func TestCorpusDocumentsNameTheirPath(t *testing.T) {
 			t.Errorf("%s: third line does not name its reading path: %q", d.Name, ls[2])
 		}
 		last := ls[len(ls)-1]
-		if !strings.HasPrefix(last, "Next in the ") && last != "End of the write path." {
+		if !strings.HasPrefix(last, "Next in the ") && last != "End of the write path." && last != "End of the implement path." {
 			t.Errorf("%s: last line does not name the next document: %q", d.Name, last)
 		}
 		if i := strings.Index(last, "`yass docs "); i >= 0 {

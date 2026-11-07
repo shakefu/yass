@@ -44,7 +44,7 @@ const overviewReading = `read a spec set
   yass validate                check the files against the language definition
   yass lint                    report graph hygiene`
 
-const overviewWriting = `elicit, write, or change a spec: run every command of a path in order; read each whole
+const overviewWriting = `per task: run every command of its path in order, and read each document whole
   new spec       yass docs brainstorming, then the write path
   write path     yass docs authoring
                  yass docs documents
@@ -52,12 +52,12 @@ const overviewWriting = `elicit, write, or change a spec: run every command of a
                  yass docs references
                  yass docs coverage
   the language   yass docs language, then the write path
+  implement      yass docs implementing
   yass docs      index every carried document, with its line count`
 
-const overviewSpending = `Read a carried document when you are eliciting, writing, or changing a spec, not when
-you are implementing one. Implementing against a spec set that already exists needs
-neither: the notation above is all a spec file takes to read, and the behaviour to
-build is in the spec files themselves.`
+const overviewSpending = `Read a carried document only when your task matches its path. Implementing against a
+spec set that already exists takes the implement path alone: the notation above is all
+a spec file takes to read, and the behaviour to build is in the spec files themselves.`
 
 const overviewResidue = `  yass --help                  every global option, subcommand operand, and exit code`
 

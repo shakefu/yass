@@ -15,6 +15,7 @@ related:
 - ../context/OBLIGATIONS.md
 - ../context/REFERENCES.md
 - ../context/COVERAGE.md
+- ../context/IMPLEMENTING.md
 - ../yass.yass.yaml
 ---
 spec: Docs
@@ -86,6 +87,7 @@ content: |
     obligations    context/OBLIGATIONS.md    writing or changing a spec: write path 3 of 5
     references     context/REFERENCES.md     writing or changing a spec: write path 4 of 5
     coverage       context/COVERAGE.md       writing or changing a spec: write path 5 of 5
+    implementing   context/IMPLEMENTING.md   implementing code and tests against an approved spec set: implement path
     language       yass.yass.yaml            changing the yass language itself, then the write path
 
   The reading paths. A task that needs the corpus reads a path whole, every document in
@@ -94,10 +96,11 @@ content: |
     elicit path    brainstorming, then the write path
     write path     authoring, documents, obligations, references, coverage
     language       language, then the write path
+    implement      implementing
 
   A path is front and center twice: the orientation block names every path, and each
   markdown document opens with a line naming its path and its place in it and closes with a
-  line naming the next document. The language definition is a spec file and carries neither
+  line naming the next document, or, at a path's end, a line saying the path ends. The language definition is a spec file and carries neither
   line, so it is the one document longer than the line budget, and its length line stands
   in for them.
 
@@ -106,9 +109,9 @@ content: |
   validated, and linted as though it were a document of this program's own spec set.
 
   WHEN TO READ is a field of the index, and it is load-bearing rather than decorative. An
-  agent implementing code against a spec set that already exists needs no corpus document
-  at all: the notation it must read is summarized by `overview`, and the behaviour it must
-  produce is in the spec files themselves. A corpus document costs hundreds of lines of a
+  agent implementing code against a spec set that already exists reads one corpus document,
+  on turning obligations into code and tests: the notation it must read is summarized by
+  `overview`, and the behaviour it must produce is in the spec files themselves. A corpus document costs hundreds of lines of a
   reader's context, so the index states the task that earns the cost, and a reader spends
   it only when its own task matches. That is the whole reason the corpus is served on
   demand rather than written by `overview`.

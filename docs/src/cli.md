@@ -213,11 +213,12 @@ them:
 | Write or change a spec | `authoring`, `documents`, `obligations`, `references`, `coverage` |
 | Elicit a new spec | `brainstorming`, then the write path |
 | Change yass itself | `language`, then the write path |
+| Implement and test an approved spec | `implementing` |
 
 Each document's first line names its path and its place in it, and its last line
-names the next one. These documents travel with the installed version and work without a
-project root. For implementing an existing spec, start with overview and the
-project's own query results.
+names the next one or says the path ends. These documents travel with the installed version and work without a
+project root. For implementing an existing spec, read `implementing`, then work
+from overview and the project's own query results.
 
 ## Keep current: `update`
 

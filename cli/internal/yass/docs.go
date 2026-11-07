@@ -78,6 +78,13 @@ var Corpus = []CorpusDoc{
 		Title:  "yass — Case Coverage and Review",
 	},
 	{
+		Name:   "implementing",
+		File:   "implementing.md",
+		Source: "context/IMPLEMENTING.md",
+		When:   "implementing code and tests against an approved spec set: implement path",
+		Title:  "yass — Implementing and Testing a Spec",
+	},
+	{
 		Name:   "language",
 		File:   "language.yaml",
 		Source: "yass.yass.yaml",
