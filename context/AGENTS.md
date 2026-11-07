@@ -9,3 +9,5 @@ closes with its path line; edit sources here, then run `../script/sync-docs`.
   obligations, references and resolution, the case-coverage and implementer passes.
 - `BRAINSTORMING.md`: the dialogue an agent runs to elicit a spec set from a user
   before one exists; read before the write path.
+- `IMPLEMENTING.md`: the implement path, alone: reading an approved set into code and
+  tests.

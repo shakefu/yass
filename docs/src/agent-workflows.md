@@ -112,8 +112,8 @@ the authoring transcript as an extra source of behavior.
 Implement the approved spec set in [project directory], scoped to [scope].
 The set has been approved; this is the request to implement it.
 
-Start by running yass. Discover the project with list, find, and refs, then
-read behavior through query. Follow whole-spec CONFORMS and SEE references
+Start by running yass, then read yass docs implementing whole. Discover the
+project with list, find, and refs, then read behavior through query. Follow whole-spec CONFORMS and SEE references
 and the USES constraints. Treat the set as the source of requirements, not
 earlier conversation or plausible defaults.
 
@@ -128,8 +128,9 @@ Report changed files, verification results, and any remaining limitations.
 **Expected artifact:** implementation and verification evidence traceable to
 the approved obligations. **Human decision:** resolve any spec defect before
 dependent work proceeds, then review the implementation. Implementing code
-against an existing set needs the notation summary from `yass`; the authoring
-documents are needed when the contract itself must change.
+against an existing set needs the notation summary from `yass` and the
+implement path (`yass docs implementing`); the authoring documents are needed
+when the contract itself must change.
 
 ## 5. Maintain behavior and specs together
 

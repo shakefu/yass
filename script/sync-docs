@@ -27,6 +27,7 @@ pairs=(
   "context/OBLIGATIONS.md:obligations.md"
   "context/REFERENCES.md:references.md"
   "context/COVERAGE.md:coverage.md"
+  "context/IMPLEMENTING.md:implementing.md"
   "yass.yass.yaml:language.yaml"
 )
 
