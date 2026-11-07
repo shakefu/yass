@@ -55,6 +55,7 @@ INVARIANT:
 - MUST: carry exactly the documents named authoritative for the yass language or for writing specs in it, so the corpus stays a language corpus and does not grow into a general file store
   USES: Corpus
 - MUST: serve text identical to the source document the corpus was built from, so a reader of the served copy and a reader of the checkout read the same words
+- MUST-NOT: carry a Markdown table in any document, because an agent copies the shape of what it reads into the specs it writes, and a spec has no table
 - MUST-NOT: require a project root, discover one, or vary its answer with the starting directory, since the corpus is a property of the program and not of a tree
 - MUST-NOT: resolve, validate, lint, summarize, or otherwise interpret a document it serves, since this command is a courier and the language it carries is not its subject
 ---
