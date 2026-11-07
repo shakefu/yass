@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 // The open-question and prose-keyword advisories of 09-lint@Lint::RETURN match
@@ -22,9 +23,28 @@ var (
 	trailingCondition = regexp.MustCompile(`[,;]\s+(when|if|unless|whenever)\b`)
 	// proseNormativity matches a normativity or guard keyword inside prose.
 	proseNormativity = regexp.MustCompile(`\b(MUST|SHOULD|MAY|WHEN)\b`)
-	// proseRelation matches a relation keyword followed by a ref target.
-	proseRelation = regexp.MustCompile(`\b(CONFORMS|USES|SEE)\b:?\s+\S*@`)
+	// proseRef matches a token of the ref-target grammar's other-file form.
+	proseRef = regexp.MustCompile(`[\w./-]*@[A-Za-z_]`)
+
+	// shapeClauses matches a clause break: a semicolon, or a sentence end
+	// followed by a capitalized word.
+	shapeClauses = regexp.MustCompile(`; |[\w)\]"'][.!] +[A-Z]`)
+	// shapeAbbrev matches the abbreviations whose period ends no sentence.
+	shapeAbbrev = regexp.MustCompile(`\b(e\.g|i\.e|etc|vs|cf)\.`)
+	// shapeProcedure matches a connective that sequences steps.
+	shapeProcedure = regexp.MustCompile(`(?i)\b(and then|which then|after that|afterwards)\b`)
+	// shapeAside matches a parenthetical that opens with a reason.
+	shapeAside = regexp.MustCompile(`(?i)\((so|because|since) `)
+	// shapeCode matches code written into prose: an assignment, an interface
+	// literal, or a struct literal.
+	shapeCode = regexp.MustCompile(`:=|\binterface ?\{|\{\s*[A-Z]\w*: `)
+	// shapeErrorMap matches a mapping of errors, which belongs in ERROR.
+	shapeErrorMap = regexp.MustCompile(`(?i)\bmap(s|ping)? (its|the|every|each|all|any|other) (\w+ )?errors?\b`)
 )
+
+// ShapeLength is the length, in characters, beyond which obligation prose is
+// reported as more than one requirement.
+const ShapeLength = 400
 
 // outsideCode blanks every backtick code span of each line of s: the text
 // between a backtick and the next backtick on the same line. An unpaired
@@ -99,9 +119,12 @@ func proseAdvisories(f *File) []Diag {
 				case proseNormativity.MatchString(prose) || proseNormativity.MatchString(guard):
 					warn("yass.lint.prose_keyword", s.Target(), o.Line,
 						"keyword written into prose; split it into its own obligation or guard")
-				case proseRelation.MatchString(prose) || proseRelation.MatchString(guard):
+				case proseRef.MatchString(prose) || proseRef.MatchString(guard):
 					warn("yass.lint.prose_keyword", s.Target(), o.Line,
 						"reference written into prose; state it under its relation key")
+				}
+				if msg := shapeProblem(o, s.Name, prose, guard); msg != "" {
+					warn("yass.lint.obligation_shape", s.Target(), o.Line, msg)
 				}
 			}
 		}
@@ -115,6 +138,28 @@ func proseAdvisories(f *File) []Diag {
 		}
 	}
 	return out
+}
+
+// shapeProblem names the first way an obligation's prose or guard, with code
+// spans blanked, holds more than one requirement, or returns "".
+func shapeProblem(o *Obligation, slot, prose, guard string) string {
+	both := prose + "\n" + guard
+	switch {
+	case utf8.RuneCountInString(o.Prose) > ShapeLength:
+		return "obligation prose runs " + strconv.Itoa(utf8.RuneCountInString(o.Prose)) +
+			" characters; state one requirement per obligation and move the mechanism to a design"
+	case shapeCode.MatchString(both):
+		return "code written into prose; name the symbol and move the mechanism to a design"
+	case shapeProcedure.MatchString(both):
+		return "procedure written into prose; state one requirement per obligation and move the steps to a design"
+	case shapeClauses.MatchString(shapeAbbrev.ReplaceAllString(both, "")):
+		return "several clauses in one obligation; split each requirement into its own obligation"
+	case shapeAside.MatchString(both):
+		return "rationale aside in prose; state the requirement alone"
+	case slot != "ERROR" && shapeErrorMap.MatchString(prose):
+		return "error mapping outside ERROR; state each failure as an ERROR obligation"
+	}
+	return ""
 }
 
 // locationOf names the slot holding a line, or else the addressable document

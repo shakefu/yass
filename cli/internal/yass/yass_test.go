@@ -1644,9 +1644,38 @@ func TestLintProseKeyword(t *testing.T) {
 - MUST: accept a flag even when it begins with a dash
 - MUST: "set the ` + "`WHEN`" + ` key and quote ` + "`USES a@B`" + `"
 - MUST: report the error, then stop; when done, exit
+- MUST: emit a REF in the form root@Policy fixes
+- MUST: mail ops at ` + "`a@B`" + `
 `
 	got := lintAt(t, "d", body, "yass.lint.prose_keyword")
-	want := []string{"root@R::INPUT:8", "root@R::INPUT:9", "root@R::INPUT:10", "root@R::INPUT:11", "root@R::INPUT:12", "root@R::INPUT:16"}
+	want := []string{"root@R::INPUT:8", "root@R::INPUT:9", "root@R::INPUT:10", "root@R::INPUT:11", "root@R::INPUT:12", "root@R::INPUT:16", "root@R::INPUT:17"}
+	if strings.Join(got, " ") != strings.Join(want, " ") {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+}
+
+func TestLintObligationShape(t *testing.T) {
+	body := `INPUT:
+- MUST: accept ` + strings.Repeat("a long clause ", 29) + `
+- MUST: accept ` + strings.Repeat("a long clause ", 28) + `
+- MUST: set x := 1
+- MUST: "return Order{ID: id}"
+- WHEN: the store implements interface { Get() }
+  MUST: use it
+- MUST: write the order and then enqueue the job
+- MUST: accept a flag; reject a bare dash
+- MUST: accept a flag. Reject a bare dash
+- MUST: accept a flag, e.g. Foo, or a bare dash
+- MUST: accept a flag (because callers send one)
+- MUST: accept a flag (so-called switch)
+- MUST: "match ` + "`x := 1; then`" + ` literally"
+- MUST: map its errors to 500
+ERROR:
+- MUST: map every other error to 500
+`
+	got := lintAt(t, "d", body, "yass.lint.obligation_shape")
+	want := []string{"root@R::INPUT:8", "root@R::INPUT:10", "root@R::INPUT:11", "root@R::INPUT:12",
+		"root@R::INPUT:14", "root@R::INPUT:15", "root@R::INPUT:16", "root@R::INPUT:18", "root@R::INPUT:21"}
 	if strings.Join(got, " ") != strings.Join(want, " ") {
 		t.Fatalf("got %v, want %v", got, want)
 	}
