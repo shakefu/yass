@@ -2,6 +2,16 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.7.0 - 2026-11-07
+#### Features
+- (**lint**) flag open questions and keywords written into prose - (2a254d5) - Jacob Alheid
+#### Documentation
+- carry no Markdown tables in the documents served to agents - (f4e2041) - Jacob Alheid
+- forbid open questions in specs and keep keywords in keys - (b897091) - Jacob Alheid
+- tighten AGENTS.md indexes and record dev flow - (ab0f8b5) - Jacob Alheid
+
+- - -
+
 ## v0.6.0 - 2026-11-02
 #### Features
 - (**cli**) point the synopsis at the orientation block - (f3c2494) - Jacob Alheid
