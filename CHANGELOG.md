@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.10.0 - 2026-11-07
+#### Features
+- (**docs**) carry an implementing document and lead with an implement path - (47bc624) - Jacob Alheid
+
+- - -
+
 ## v0.9.0 - 2026-11-07
 #### Features
 - (**lint**) flag obligations that hold more than one requirement - (59c5786) - Jacob Alheid
