@@ -219,7 +219,9 @@ ERROR:
 - MUST: be rejected when it carries a Guard but no Normativity keyword
   SEE: Guard
 - MUST: "be rejected when it carries a key other than a Normativity keyword, `WHEN`, or a Relation keyword"
-- MUST: "be rejected when the value a Normativity keyword or the Guard keyword `WHEN` carries is not a string as resolved by the YAML 1.2 core schema, so a mapping, a sequence, null, or a non-string scalar such as `42` or `true` is rejected; an absent value, unquoted null, Null, NULL, or ~ is null, whereas a quoted empty string is a string"
+- MUST: "be rejected when the value a Normativity keyword or the Guard keyword `WHEN` carries is not a string as resolved by the YAML 1.2 core schema: a mapping, a sequence, null, or a non-string scalar such as `42` or `true`"
+- MUST: "be rejected when the value a Normativity keyword or the Guard keyword `WHEN` carries is absent or is an unquoted `null`, `Null`, `NULL`, or `~`, each of which resolves to null"
+- MUST-NOT: "be rejected when the value a Normativity keyword or the Guard keyword `WHEN` carries is a quoted empty string, which is a string"
 - MUST: be rejected when it carries more than one distinct Normativity keyword
   SEE: Normativity
 INVARIANT:

@@ -38,6 +38,8 @@ lint_disposition() {
 	yass.lint.open_question) echo fail ;;
 	# A condition, keyword, or reference in prose is structure no reader parses.
 	yass.lint.prose_keyword) echo fail ;;
+	# An obligation holding several requirements is a program no reader checks.
+	yass.lint.obligation_shape) echo fail ;;
 	# The modeline is a SHOULD serving editors; the specs are valid without it.
 	yass.lint.modeline) echo advise ;;
 	# The language permits an empty slot; it adds no obligation and misleads none.
