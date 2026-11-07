@@ -218,11 +218,12 @@ An obligation is a **YAML mapping** (a list item under a slot):
     bare names means no target ever leads with an indicator, so none need quoting.)
 - **Relations:**
 
-  | Relation   | Target                | Resolution                     | Meaning                                          |
-  |------------|-----------------------|--------------------------------|--------------------------------------------------|
-  | `CONFORMS` | spec or slot          | slot: inlined; whole-spec: not | hard requirement — must match the spec or slot   |
-  | `USES`     | design block          | content appended + provenance  | binding design the implementation must follow    |
-  | `SEE`      | spec, slot, or design | pointer, never inlined         | open-ended pointer — imposes nothing on its own  |
+  - `CONFORMS` targets a spec or a slot. A hard requirement: the carrier must match the
+    spec or slot. A slot target is inlined; a whole-spec target is not.
+  - `USES` targets a design block. Binding design the implementation must follow: its
+    content is appended with provenance.
+  - `SEE` targets a spec, a slot, or a design. An open-ended pointer, never inlined, that
+    imposes nothing on its own.
 
   **`CONFORMS` and `USES` each pin a target kind; `SEE` takes any.** A
   relation/target-kind mismatch — `USES` → spec, `CONFORMS` → design — is a **validation

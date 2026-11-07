@@ -111,9 +111,10 @@ mid-flow means stop and decompose then; nothing shrinks a class once taken.
 
 ## Red flags
 
-| Thought | Reality |
-|---|---|
-| "The request already says what they want" | It says the purpose. It rarely says the edges. |
-| "I'll pick a sensible default" | A default the user never saw is a decision the implementer remakes. Propose it, marked. |
-| "It's a small feature; the gate is overkill" | The gate is the yes, not the size. |
-| "I'll list it as an open question in the spec" | The implementer reads it as spec and guesses. Ask now, or stop and report it. |
+- "The request already says what they want." It says the purpose. It rarely says the
+  edges.
+- "I'll pick a sensible default." A default the user never saw is a decision the
+  implementer remakes. Propose it, marked.
+- "It's a small feature; the gate is overkill." The gate is the yes, not the size.
+- "I'll list it as an open question in the spec." The implementer reads it as spec and
+  guesses. Ask now, or stop and report it.

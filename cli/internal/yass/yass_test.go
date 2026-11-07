@@ -2072,6 +2072,22 @@ func TestDocsNeedsNoProjectRoot(t *testing.T) {
 	}
 }
 
+// No carried document holds a Markdown table: an agent copies the shape of
+// what it reads into the specs it writes.
+func TestCorpusCarriesNoTable(t *testing.T) {
+	for _, d := range Corpus {
+		text, err := d.text()
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i, l := range strings.Split(text, "\n") {
+			if strings.HasPrefix(strings.TrimSpace(l), "|") {
+				t.Errorf("%s:%d holds a Markdown table row: %q", d.Name, i+1, l)
+			}
+		}
+	}
+}
+
 func TestDocsTakesAtMostOneName(t *testing.T) {
 	got := run(t.TempDir(), "docs", "reference", "guidance")
 	if got.status != ExitUsage {
