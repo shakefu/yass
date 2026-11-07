@@ -2,6 +2,14 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.9.0 - 2026-11-07
+#### Features
+- (**lint**) flag obligations that hold more than one requirement - (59c5786) - Jacob Alheid
+#### Documentation
+- state the absolute rules of obligation shape and both forms of a dead obligation - (76fc566) - Jacob Alheid
+
+- - -
+
 ## v0.8.0 - 2026-11-07
 #### Features
 - (**docs**) split the carried documents to fit a 200-line read and lead with reading paths - (f846469) - Jacob Alheid
