@@ -38,6 +38,8 @@ into prose is structure the reader may miss.
 - A reference is a relation key (`USES: Policy`), never prose naming a target.
 - A keyword mentioned rather than used goes in backticks (`` `WHEN` ``).
 - `yass lint` reports the forms it can see as `yass.lint.prose_keyword`.
+- An obligation is one requirement, never a procedure, code, or another spec restated:
+  *Obligation shape* in `yass docs obligations` holds the absolute rules.
 
 ## Granularity: keep specs small and located
 

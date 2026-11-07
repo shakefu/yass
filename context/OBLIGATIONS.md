@@ -81,6 +81,32 @@ An obligation is a **YAML mapping** (a list item under a slot):
   whole; a ref-only `USES` — a bare `- USES: Name` list item —
   transcludes too, appending its design block's content).
 
+## Obligation shape
+
+An obligation states one requirement a reader checks against the code; it is never the
+code. Naming the symbol it describes, with its signature, flags, defaults, and exact
+names, is right: those are the behavior. Beyond that, these rules are absolute:
+
+- **One requirement.** A second requirement, step, or effect is a second obligation.
+- **No procedure.** No call sequence and no step order ("and then", "after that"). A
+  mechanism the implementer must follow is a `design:` block bound by `USES`.
+- **No restatement of another spec.** What another spec guarantees is its `CONFORMS`
+  key (it binds) or `SEE` key (it points), never a paraphrase in prose.
+- **No reference by prose token.** A `path@Name` in prose is an edge no command follows.
+- **No literal code** beyond the symbol's own name and signature: no assignments, struct
+  literals, interface bodies, or arguments for the tests to pass.
+- **No error mapping outside `ERROR`.** Each failure and its outcome is its own `ERROR`
+  obligation under a `WHEN` guard.
+- **No reading of another obligation** ("the guard above"): each one stands alone.
+- **At most one reason, carrying no requirement.** One trailing clause may say why
+  (", because …"). If deleting it would change what an implementer builds or tests, it
+  hid a requirement: state that as its own obligation. A parenthetical aside never stays.
+
+`yass lint` reports the forms it can see as `yass.lint.obligation_shape`: prose over 400
+characters, several clauses or sentences, procedural connectives, a parenthetical reason,
+code shapes, and an error mapping outside `ERROR`. Validation rejects none of them,
+because each depends on what the prose says and validation rejects only structure.
+
 ## Casing convention
 
 Fixed-meaning keywords are written **UPPERCASE**; content-bearing field keys are

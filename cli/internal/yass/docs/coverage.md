@@ -73,13 +73,16 @@ checks are the discipline those rules generalize.
 
    Reachability is judged within the component's declared input contract,
    not the composed program. A guarded failure another component prevents
-   in this composition is **shadowed**, not dead: it stays, its prose
-   states the preventing guarantee or check and names the spec that owns
-   it (`CONFORMS` if that contract binds this component, `SEE` to point),
-   and *Trusted inputs* still applies to the violation side. A **dead**
-   obligation contributes no behavior within its owning contract — the
-   guard-less residual over an empty remainder above; that prohibition is
-   specific to guard-less `ERROR` — and is removed or revised. Apparent
+   in this composition is **shadowed**, not dead: it stays, it names the
+   spec owning the preventing guarantee or check under a relation key
+   (`CONFORMS` if that contract binds this component, `SEE` to point)
+   rather than restating it in prose, and *Trusted inputs* still applies
+   to the violation side. A **dead**
+   obligation contributes no behavior within its owning contract, and is
+   removed or revised. It takes two forms: the guard-less residual over an
+   empty remainder above, and a guarded obligation whose guard no input the
+   declared contract admits can satisfy. The second form is a contradiction
+   between the guard and `INPUT`: fix whichever is wrong. Apparent
    shadowing may instead reveal redundancy, a contradiction, or a
    mistaken reading: verify each claim. Obligation order settles nothing
    — state the shadowing explicitly, never by list position. For review
