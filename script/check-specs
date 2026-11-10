@@ -40,6 +40,10 @@ lint_disposition() {
 	yass.lint.prose_keyword) echo fail ;;
 	# An obligation holding several requirements is a program no reader checks.
 	yass.lint.obligation_shape) echo fail ;;
+	# Source code in a schema or algorithm is an implementation, not a design.
+	yass.lint.design_code) echo fail ;;
+	# A Markdown table is a second syntax no tool checks: rows are a catalog.
+	yass.lint.design_table) echo fail ;;
 	# The modeline is a SHOULD serving editors; the specs are valid without it.
 	yass.lint.modeline) echo advise ;;
 	# The language permits an empty slot; it adds no obligation and misleads none.

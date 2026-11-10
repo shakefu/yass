@@ -2505,3 +2505,104 @@ func TestFindSearchesCatalogRecords(t *testing.T) {
 		t.Fatalf("one record per matching record: %q", got.stdout)
 	}
 }
+
+// --- design-content lint ----------------------------------------------------
+
+// designLint writes one design of the given type and content, bound by the
+// fixture's root spec, and returns the lint records naming it.
+func designLint(t *testing.T, typ, content string) []string {
+	t.Helper()
+	dir := project(t)
+	format := "# no format\n"
+	if typ == "schema" {
+		format = "format: text\n"
+	}
+	body := "content: |\n"
+	for _, l := range strings.Split(content, "\n") {
+		body += "  " + l + "\n"
+	}
+	write(t, dir, "z.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\ndesign: Z\ntype: "+typ+"\n"+format+body)
+	got := run(dir, "lint", "z.yass.yaml")
+	var out []string
+	for _, l := range lines(got.stdout) {
+		if f := strings.Split(l, "\t"); len(f) == 5 && (f[1] == "yass.lint.design_code" || f[1] == "yass.lint.design_table") {
+			out = append(out, f[1]+"\t"+f[3])
+		}
+	}
+	return out
+}
+
+func TestLintDesignCode(t *testing.T) {
+	for _, c := range []struct{ name, typ, content string }{
+		{"go-qualified-call", "algorithm", `cfg := huma.DefaultConfig("Service Name", version.Version)`},
+		{"go-map-literal", "schema", `cfg.Formats = map[string]huma.Format{"json": huma.DefaultJSONFormat}`},
+		{"go-slice-literal", "schema", `cfg.Servers = []*huma.Server{{URL: "http://localhost:8080"}}`},
+		{"go-func", "algorithm", "func Resolve(t Target) (*Doc, error) {"},
+		{"go-method", "algorithm", "func (l *Loader) Load(abs string) (*File, error) {"},
+		{"go-err-check", "algorithm", "if err != nil {"},
+		{"python-def", "algorithm", "def resolve(target, root):"},
+		{"js-function", "algorithm", "function resolve(target) {"},
+		{"rust-fn", "algorithm", "pub fn resolve(target: &str) -> Doc {"},
+		{"c-assignment", "algorithm", "count = count + 1;"},
+		{"c-call", "algorithm", "printf(\"%d\", count);"},
+		{"c-if-brace", "algorithm", "if (count > 0) {"},
+		{"else-brace", "algorithm", "} else {"},
+		{"import", "schema", `import "fmt"`},
+		{"python-import", "schema", "from os import path"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			got := designLint(t, c.typ, c.content)
+			if len(got) != 1 || got[0] != "yass.lint.design_code\t10" {
+				t.Fatalf("got %v, want one design_code advisory at line 10", got)
+			}
+		})
+	}
+}
+
+// Pseudocode is what an algorithm holds, and a schema states data, so neither
+// shape is reported.
+func TestLintDesignCodeSkipsPseudocodeAndData(t *testing.T) {
+	for _, c := range []struct{ name, typ, content string }{
+		{"pseudo-assign", "algorithm", "x := x + 1"},
+		{"pseudo-arrow", "algorithm", "best ← max(best, score)"},
+		{"pseudo-for-each", "algorithm", "for each node in graph:\n  visit(node)"},
+		{"pseudo-if-then", "algorithm", "if count > 0 then\n  return count\nend if"},
+		{"pseudo-while", "algorithm", "while queue is not empty:\n  node ← pop(queue)"},
+		{"pseudo-function", "algorithm", "function Search(tree, key)\n  return Search(tree.left, key)"},
+		{"pseudo-call", "algorithm", "queue.push(start)\nreturn dist[target]"},
+		{"pseudo-member-assign", "algorithm", "node.visited = true"},
+		{"json-schema", "schema", `{"type": "object", "required": ["name"],` + "\n" + ` "properties": {"name": {"type": "string"}}}`},
+		{"yaml-payload", "schema", "name: alice\nroles:\n  - admin"},
+		{"wire-header", "schema", "Content-Type: text/plain; charset=utf-8;"},
+		{"usage-text", "schema", "usage: yass [-C DIR] [--version] [SUBCOMMAND [ARGS...]]"},
+		{"backtick-mention", "schema", "the field is never `cfg := huma.DefaultConfig(name)`"},
+		{"url", "schema", "see https://example.com/api for the endpoint"},
+		{"constraint-source", "constraint", `cfg := huma.DefaultConfig("Service Name", version.Version)`},
+		{"procedure-source", "procedure", "if err != nil {"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			if got := designLint(t, c.typ, c.content); len(got) != 0 {
+				t.Fatalf("got %v, want no advisory", got)
+			}
+		})
+	}
+}
+
+func TestLintDesignTable(t *testing.T) {
+	for _, typ := range []string{"constraint", "algorithm", "procedure", "schema"} {
+		got := designLint(t, typ, "Flags per command.\n\n| Command | Flag |\n|---------|------|\n| serve   | `--listen` |")
+		if len(got) != 1 || got[0] != "yass.lint.design_table\t12" {
+			t.Fatalf("%s: got %v, want one design_table advisory at line 12", typ, got)
+		}
+	}
+	for _, c := range []string{
+		"a | b",
+		"usage: yass [--in | --out]\n--- separator ---",
+		"a|b\nplain prose",
+		"no pipe\n|---|---|",
+	} {
+		if got := designLint(t, "constraint", c); len(got) != 0 {
+			t.Fatalf("%q: got %v, want no advisory", c, got)
+		}
+	}
+}

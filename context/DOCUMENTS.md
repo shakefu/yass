@@ -122,7 +122,8 @@ This part covers the file, the project root, and the three document kinds: pream
   match, never the implementation. An `algorithm` is pseudocode, not source in a real
   language; a `schema` is the shape of data, not the steps that build it. Literal source
   is never a design: name the symbol in an obligation instead. A Markdown table is never
-  content: rows belong in a `catalog`.
+  content: rows belong in a `catalog`. `yass lint` reports both as
+  `yass.lint.design_code` and `yass.lint.design_table`.
 - **Catalogue form.** `catalog` content is a YAML mapping keyed by each record's
   identifier; each record is a mapping of scalar fields, and every record carries the
   same field names. A repeated identifier, a non-scalar field, or a differing field set
