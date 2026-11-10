@@ -29,7 +29,12 @@ RETURN:
   MUST: "yield a parse failure carrying the code yass.document.not_yaml, or yass.document.encoding when the bytes are not valid UTF-8 or begin with a BOM, and the 1-based line the parser stopped on"
 - MUST: record for each document its file path, its position within the file, its kind, and its name when it carries one
 - MUST: record for each spec document the slots it declares in authored order and, per slot, each obligation's normativity keyword, guard condition, prose, and references keyed by relation, in authored order
-- MUST: "record for each design document its `type` and its `content`"
+- MUST: "record for each design document its `type`, its `format`, and its `content`"
+- WHEN: "a design's `content` is a mapping, the shape a catalog takes"
+  MUST: record each of its entries as a record holding the identifier and the record's fields, in authored order
+- WHEN: a design's mapping content repeats an identifier
+  MUST: record every entry carrying it, so loading drops no authored record and validation names the repetition
+  SEE: 08-validate@Validate
 - MUST: "record for each preamble its `description`, its `version`, and its `related` list"
 - MUST: record each file's first line, so lint can check for the schema modeline
 - MUST: record the 1-based line each document and each obligation starts on, so a diagnostic can name a location

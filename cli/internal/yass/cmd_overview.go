@@ -26,7 +26,7 @@ read-only: it serves a spec set that already exists, and never writes one.`
 
 const overviewNotation = `A spec file is a YAML document stream. The first document is the preamble, carrying
 ` + "`description`" + ` and ` + "`version`" + `; every later one is a ` + "`spec:`" + ` holding obligations under five
-slots, or a ` + "`design:`" + ` holding normative freeform content under ` + "`type`" + ` and ` + "`content`" + `.
+slots, or a ` + "`design:`" + ` holding normative content under ` + "`type`" + ` and ` + "`content`" + `.
 
   slots        INPUT  RETURN  ERROR  SIDE-EFFECT  INVARIANT
   obligation   one of MUST / MUST-NOT / SHOULD / SHOULD-NOT / MAY with the prose, an

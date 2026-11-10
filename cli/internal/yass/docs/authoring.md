@@ -98,7 +98,7 @@ Note: the only comments yass emits are tooling-generated provenance comments
 should not become one.
 
 One fenced carve-out: a **design block** (a `design:` document — see *Design document*
-in `yass docs documents`) carries normative freeform content, but it is not a prose channel on
+in `yass docs documents`) carries normative content, but it is not a prose channel on
 specs. The prose is fenced inside a declared block with a name, a required `type`, and
 normative force through the reference graph (`USES`); it cannot leak into a `spec:`
 document, and an unreferenced design block is dead weight that lint flags — declared

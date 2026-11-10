@@ -87,6 +87,32 @@ SIDE-EFFECT:
 - MUST-NOT: prompt, page, or hand output to a pager
 INVARIANT:
 - USES: ExitPolicy
+- MUST: return exactly one status per invocation
+  USES: ExitPolicy
+- MUST-NOT: return a status the exit policy does not catalogue
+  USES: ExitPolicy
+- WHEN: more than one condition the exit policy catalogues applies to one invocation
+  MUST: return the applicable status with the highest number, so status 5 outranks 4, 4 outranks 3, 3 outranks 2, 2 outranks 1, and 1 outranks 0
+  USES: ExitPolicy
+- MUST-NOT: let the conditions of statuses 2, 3, and 4 overlap, since each names a distinct reason a request went unserved
+  USES: ExitPolicy
+- MUST: select status 4 only from a command that needs a project root in order to answer at all
+  USES: ExitPolicy
+- MUST-NOT: "select status 4 from `overview`, `docs`, or `update`, since `overview` reports a missing root as one fact of its block, `docs` serves a corpus the program carries, and `update` concerns the installed program itself"
+  USES: ExitPolicy
+- WHEN: an invocation returns status 1
+  MUST: carry the findings on standard output, because the program worked and the spec set has a problem
+  USES: ExitPolicy
+- WHEN: an invocation returns a status from 2 through 5
+  MUST: leave standard output empty, because the program did not get far enough to answer
+  USES: ExitPolicy
+- WHEN: a command ran and matched nothing
+  MUST: return status 0 rather than status 1, because an empty result is an answer and status 1 is reserved for a finding about the spec set
+  USES: ExitPolicy
+- MUST: intercept SIGPIPE, so a write to a closed standard output ends in the status the output policy selects rather than in a signal
+  USES: OutputPolicy
+- MUST-NOT: fix the process status of an external kill, since a signal this program does not intercept ends the process before any status the exit policy catalogues is selected
+  USES: ExitPolicy
 - USES: OutputPolicy
 - USES: RecordFormat
 - USES: DiagnosticFormat
@@ -103,43 +129,26 @@ INVARIANT:
   SEE: ../yass@Design
 ---
 design: ExitPolicy
-type: exit-code-policy
-content: |
-  0  ok           the command completed and reported no finding
-  1  findings     the command served its request and reported at least one finding about
-                  the spec set: a validation diagnostic, a lint advisory, or a file it
-                  could not parse
-  2  usage        the argument vector is malformed: unknown subcommand, unknown option,
-                  missing option value, missing or excess operand, an empty operand, or a
-                  target that fails the ref-target grammar or names an unrecognized slot
-  3  unresolved   the request is well formed but names something absent: a missing path,
-                  or a target that resolves to no document
-  4  no-root      no file named root.yass.yaml at or above the starting path
-  5  environment  a path could not be read, an output stream could not be written, or a
-                  guarantee this program relied on internally did not hold
-
-  Exactly one status is returned per invocation, and no other status is ever returned.
-  When more than one condition applies, the higher number wins: 5 > 4 > 3 > 2 > 1 > 0.
-
-  2, 3, and 4 divide cleanly. 2 means the request could not be understood. 3 means it was
-  understood and the thing is absent. 4 means there is no project to understand it against.
-
-  4 is selected only by a command that needs a project root in order to answer at all. A
-  command that answers without one never selects it: `overview` reports the absence of a
-  root as one fact of its block, `docs` serves a corpus the program carries, and `update`
-  concerns the installed program itself, so for none of them is a missing root a reason the
-  request went unserved.
-
-  A status of 1 means the program worked and the spec set has a problem, so standard output
-  carries the findings. A status of 2 through 5 means the program did not get far enough to
-  answer, so standard output is empty.
-
-  A command that ran and matched nothing exits 0, not 1: an empty result is an answer, and
-  1 is reserved for a finding about the spec set. This program intercepts SIGPIPE so that a
-  write to a closed standard output selects the ok status the output policy names rather
-  than ending the process with a signal. The table states every status this program
-  selects. It does not fix the process status of an external kill: a signal this program
-  does not intercept ends the process before any status here is selected.
+type: catalog
+content:
+  0:
+    label: ok
+    meaning: the command completed and reported no finding
+  1:
+    label: findings
+    meaning: "the command served its request and reported at least one finding about the spec set: a validation diagnostic, a lint advisory, or a file it could not parse"
+  2:
+    label: usage
+    meaning: "the request could not be understood, because the argument vector is malformed: an unknown subcommand, an unknown option, a missing option value, a missing or excess operand, an empty operand, or a target that fails the ref-target grammar or names an unrecognized slot"
+  3:
+    label: unresolved
+    meaning: "the request was understood and the thing it names is absent: a missing path, or a target that resolves to no document"
+  4:
+    label: no-root
+    meaning: there is no project to understand the request against, because no file named root.yass.yaml is at or above the starting path
+  5:
+    label: environment
+    meaning: a path could not be read, an output stream could not be written, or a guarantee this program relied on internally did not hold
 ---
 design: OutputPolicy
 type: constraint
@@ -162,7 +171,8 @@ content: |
     status without attempting further output.
 ---
 design: RecordFormat
-type: line-grammar
+type: schema
+format: line-grammar
 content: |
   Record output is line-oriented so a consumer splits it, never needing a regex or a parser.
   It is the output form of every command except three. `query` emits a YAML stream; `docs`
@@ -242,7 +252,8 @@ content: |
   CONFORMS, USES, SEE.
 ---
 design: DiagnosticFormat
-type: line-grammar
+type: schema
+format: line-grammar
 content: |
   A diagnostic is the record form shared by `yass validate` and `yass lint`. It carries five
   fields, in this order, under the same segmentation rules every other record obeys.

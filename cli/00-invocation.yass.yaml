@@ -79,7 +79,8 @@ INVARIANT:
   SEE: root@RecordFormat
 ---
 design: Synopsis
-type: usage-text
+type: schema
+format: usage-text
 content: |
   usage: yass [-C DIR] [--version] [--help] [SUBCOMMAND [ARGS...]]
 

@@ -50,9 +50,11 @@ RETURN:
 - WHEN: a file uses a YAML anchor, an alias, or an explicit tag
   MUST: emit code yass.document.yaml_feature
   CONFORMS: ../yass@Document
-- WHEN: a mapping in a file carries the same key more than once, including a repeated normativity keyword or a repeated relation key on one obligation
-  MUST: emit code yass.document.duplicate_key
+- WHEN: a mapping in a file carries the same key more than once, including a repeated normativity keyword, a repeated relation key on one obligation, and a repeated catalog identifier
+  MUST: emit code yass.document.duplicate_key at the line of each repetition
   CONFORMS: ../yass@Document
+- MUST: name the repeated key in the message of a yass.document.duplicate_key diagnostic, since its location addresses nothing finer than the document that holds the mapping
+  SEE: ../yass@Design
 - WHEN: "a document after the first carries neither a `spec` key nor a `design` key"
   MUST: emit code yass.document.unknown_kind
   CONFORMS: ../yass@Document
@@ -107,10 +109,31 @@ RETURN:
 - WHEN: "a design omits `type` or `content`"
   MUST: emit code yass.design.incomplete
   CONFORMS: ../yass@Design
-- WHEN: "a design's `type` or `content` value is not a string"
+- WHEN: "a design's `type` or `format` value is not a string, or its `content` value is not a string while its `type` is anything other than `catalog`"
   MUST: emit code yass.design.value_type
   CONFORMS: ../yass@Design
-- WHEN: "a design carries a key other than `design`, `type`, and `content`, which includes any slot key"
+- WHEN: "a design's `type` value is a string outside `constraint`, `algorithm`, `procedure`, `schema`, and `catalog`"
+  MUST: emit code yass.design.type_unknown, whatever the content holds
+  CONFORMS: ../yass@Design
+- WHEN: "a design whose `type` is `schema` omits `format` or sets it to the empty string"
+  MUST: emit code yass.design.format_missing
+  CONFORMS: ../yass@Design
+- WHEN: "a design whose `type` is a string other than `schema` carries a `format` key"
+  MUST: emit code yass.design.format_unexpected
+  CONFORMS: ../yass@Design
+- WHEN: "a design whose `type` is `catalog` has a `content` value that is not a non-empty mapping"
+  MUST: emit code yass.design.catalog_shape
+  CONFORMS: ../yass@Design
+- WHEN: "an identifier of a `catalog` design's content is not a scalar, a record is not a mapping, or a field name of a record is not a scalar"
+  MUST: emit code yass.design.catalog_shape at the line of each such identifier, record, or field name
+  CONFORMS: ../yass@Design
+- WHEN: "a field value of a record of a `catalog` design is not a scalar"
+  MUST: emit code yass.design.catalog_value at the line of that value
+  CONFORMS: ../yass@Design
+- WHEN: "a record of a `catalog` design carries a set of field names that differs from the set the design's first mapping record carries"
+  MUST: emit code yass.design.catalog_fields at the line of that record's identifier
+  CONFORMS: ../yass@Design
+- WHEN: "a design carries a key other than `design`, `type`, `format`, and `content`, which includes any slot key"
   MUST: emit code yass.design.unknown_key
   CONFORMS: ../yass@Design
 - WHEN: "a spec document carries a key that is neither `spec` nor one of INPUT, RETURN, ERROR, SIDE-EFFECT, and INVARIANT"

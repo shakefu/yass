@@ -116,8 +116,8 @@ Fixed-meaning keywords are written **UPPERCASE**; content-bearing field keys are
   `RETURN`, `ERROR`, `SIDE-EFFECT`, `INVARIANT`), normativity (`MUST`, `MAY`, …), the
   guard `WHEN`, and the relations (`CONFORMS`, `USES`, `SEE`). Also the slot portion of a
   ref target (the part after `::`).
-- **lowercase** (labels for values): `spec`, `design`, `type`, `content`, `description`,
-  `version`, `related`.
+- **lowercase** (labels for values): `spec`, `design`, `type`, `format`, `content`,
+  `description`, `version`, `related`.
 - In **prose**, write a keyword UPPERCASE when you mean the keyword itself (e.g. "the
   `RETURN` slot"), so it cannot be confused with the ordinary word.
 

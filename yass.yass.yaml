@@ -118,23 +118,69 @@ INPUT:
 - MUST: "be a YAML mapping with a `design` key naming the design block"
 - MUST: follow the same name grammar and keyword restrictions as a Spec name
   SEE: Spec
-- MUST: "carry a `type` key stating a brief freeform interpretation hint"
-- MUST: "carry a `content` key whose value is a string holding the freeform body, written as a literal block scalar by convention"
+- MUST: "carry a `type` key whose value is one of `constraint`, `algorithm`, `procedure`, `schema`, or `catalog`"
+- MUST: "carry a `content` key holding the body the type admits"
+- WHEN: "the type is `constraint`"
+  MUST: "hold in `content` a string stating prose limits on the solution, such as a stack, a library, a platform, or a version floor"
+- WHEN: "the type is `algorithm`"
+  MUST: "hold in `content` a string stating, as pseudocode, a computation the implementer still writes"
+- WHEN: "the type is `algorithm`"
+  MUST-NOT: hold source code in a real programming language
+- WHEN: "the type is `procedure`"
+  MUST: "hold in `content` a string stating ordered steps that span specs"
+- WHEN: "the type is `schema`"
+  MUST: "hold in `content` a string stating the exact external shape of data, such as field names, a JSON Schema, an example payload, or a wire format"
+- WHEN: "the type is `schema`"
+  MUST: "carry a `format` key whose value is a non-empty string naming the notation of its content, such as `json-schema`, `yaml`, or `text`"
+- WHEN: "the type is `schema`"
+  MUST-NOT: hold the steps of an implementation, since a schema states the shape of data and not how it is produced
+- WHEN: "the type is `catalog`"
+  MUST: "hold in `content` a non-empty YAML mapping from each record's identifier to that record, so a catalogue states a set of uniform records"
+- WHEN: "the type is `catalog`"
+  MUST: write each identifier as a scalar
+- WHEN: "the type is `catalog`"
+  MUST: write each record as a YAML mapping from a scalar field name to a scalar field value
+- WHEN: "the type is `catalog`"
+  MUST: give every record the same set of field names
+- WHEN: "the type is `catalog`"
+  MUST: hold in each field only a fact of the implementation the catalogue binds
 - MUST-NOT: carry any Slot key
   SEE: Slot
 RETURN:
-- MUST: denote a named, typed body of normative freeform content
+- MUST: denote a named, typed body of normative content
 - MUST: be followed by any implementation bound to it through a USES reference
   SEE: Reference
+- WHEN: "the type is `catalog`"
+  MUST: be the only statement of each fact it records, so an obligation that binds it names an identifier and states no field value in any wording
+  SEE: Obligation
 ERROR:
 - MUST: be rejected when it has no design name
 - MUST: "be rejected when it omits `type` or `content`"
-- MUST: "be rejected when its `type` or `content` value is not a string"
-- MUST: "be rejected when it carries a key other than `design`, `type`, or `content`"
+- MUST: "be rejected when its `type` or `format` value is not a string"
+- MUST: "be rejected when its `type` value is a string outside `constraint`, `algorithm`, `procedure`, `schema`, and `catalog`, including a former type name such as `table`, `code`, `ordered-steps`, `stack`, or `pseudocode`"
+- WHEN: "the type is not `catalog`"
+  MUST: "be rejected when its `content` value is not a string"
+- WHEN: "the type is `schema`"
+  MUST: "be rejected when it omits `format` or gives it an empty string"
+- WHEN: "the type is not `schema`"
+  MUST: "be rejected when it carries a `format` key"
+- WHEN: "the type is `catalog`"
+  MUST: "be rejected when its `content` value is not a non-empty mapping"
+- WHEN: "the type is `catalog`"
+  MUST: be rejected when an identifier is not a scalar or a record is not a mapping
+- WHEN: "the type is `catalog`"
+  MUST: be rejected when a field name is not a scalar
+- WHEN: "the type is `catalog`"
+  MUST: be rejected when a field value is not a scalar
+- WHEN: "the type is `catalog`"
+  MUST: be rejected when a record's set of field names differs from the first record's
+- WHEN: "the type is `catalog`"
+  MUST: be rejected when two records carry the same identifier, as a duplicate key of the content mapping
+  SEE: Document
+- MUST: "be rejected when it carries a key other than `design`, `type`, `format`, or `content`"
 - MUST: be rejected when its name equals the name of another Design or Spec in the same file
 INVARIANT:
 - MUST-NOT: share its name with another Design or a Spec in the same file
-- MUST-NOT: have its `type` value validated against a closed set by tooling
 - MUST-NOT: have References recognized inside its content
   SEE: Reference
 ---

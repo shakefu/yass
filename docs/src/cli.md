@@ -136,8 +136,10 @@ yass find --slot RETURN 'hello'
 
 `find [--slot SLOT] PATTERN` performs a case-insensitive **literal substring**
 search, not a regex, glob, or word-boundary search. It searches obligation prose,
-`WHEN` guards, and individual lines of design content. It does not search names,
-preamble descriptions, or reference targets.
+`WHEN` guards, individual lines of design content, and the identifiers and field
+values of catalogue records. It does not search names, catalogue field names,
+preamble descriptions, or reference targets. A matching catalogue record is written
+whole on one line as `IDENTIFIER: {FIELD: VALUE, ...}`.
 
 Records contain `REF`, `WHAT`, and `TEXT`. `WHAT` is the normativity keyword,
 `WHEN`, or `content`; a matching field appears once with its full text. The REF

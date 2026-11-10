@@ -12,7 +12,7 @@ import (
 var preambleKeys = []string{"description", "version", "related"}
 
 // designKeys is the closed set of keys a design may carry.
-var designKeys = []string{"design", "type", "content"}
+var designKeys = []string{"design", "type", "format", "content"}
 
 // cmdValidate checks addressed files against every construct of the yass
 // language definition and emits one coded diagnostic per rule violation. It is
@@ -158,7 +158,7 @@ func (a *App) checkDocumentShape(d *Doc) []Diag {
 				k := n.Content[i]
 				if seen[k.Value] {
 					out = append(out, diag("yass.document.duplicate_key", loc, k.Line,
-						"mapping carries a duplicate key"))
+						"mapping carries duplicate key "+k.Value))
 				}
 				seen[k.Value] = true
 			}
@@ -416,13 +416,30 @@ func checkDesign(d *Doc) []Diag {
 				"design name matches a reserved keyword"))
 		}
 	}
-	typeNode, contentNode := d.value("type"), d.value("content")
+	typeNode, contentNode, formatNode := d.value("type"), d.value("content"), d.value("format")
 	if typeNode == nil || contentNode == nil {
 		out = append(out, diag("yass.design.incomplete", loc, d.Line, "design omits type or content"))
 	}
-	if (typeNode != nil && !d.HasType) || (contentNode != nil && !d.HasContent) {
+	catalog := d.HasType && d.Type == "catalog"
+	if (typeNode != nil && !d.HasType) || (formatNode != nil && !d.HasFormat) ||
+		(contentNode != nil && !catalog && !d.HasContent) {
 		out = append(out, diag("yass.design.value_type", loc, d.Line,
-			"design type or content is not a string"))
+			"design type, format, or content is not a string"))
+	}
+	if d.HasType && !contains(DesignTypes, d.Type) {
+		out = append(out, diag("yass.design.type_unknown", loc, typeNode.Line,
+			"design type is not a recognized type"))
+	}
+	if d.HasType && d.Type == "schema" && (formatNode == nil || (d.HasFormat && d.Format == "")) {
+		out = append(out, diag("yass.design.format_missing", loc, d.Line,
+			"schema design omits format or gives it an empty value"))
+	}
+	if d.HasType && d.Type != "schema" && formatNode != nil {
+		out = append(out, diag("yass.design.format_unexpected", loc, formatNode.Line,
+			"format is carried by a design whose type is not schema"))
+	}
+	if catalog && contentNode != nil {
+		out = append(out, checkCatalog(d, loc, contentNode)...)
 	}
 	for _, e := range d.Entries {
 		if !contains(designKeys, e.Key) {
@@ -431,4 +448,61 @@ func checkDesign(d *Doc) []Diag {
 		}
 	}
 	return out
+}
+
+// checkCatalog checks a catalog design's content: a non-empty mapping from a
+// scalar identifier to a mapping of scalar fields, every record carrying the
+// first record's set of field names. A repeated identifier is a duplicate key,
+// which the document-wide duplicate-key check reports by name.
+func checkCatalog(d *Doc, loc string, c *yaml.Node) []Diag {
+	if c.Kind != yaml.MappingNode || len(c.Content) == 0 {
+		return []Diag{diag("yass.design.catalog_shape", loc, c.Line,
+			"catalog content is not a non-empty mapping")}
+	}
+	var out []Diag
+	var want map[string]bool
+	for _, r := range d.Catalog {
+		if r.Kn.Kind != yaml.ScalarNode {
+			out = append(out, diag("yass.design.catalog_shape", loc, r.Kn.Line,
+				"catalog identifier is not a scalar"))
+		}
+		if r.Vn.Kind != yaml.MappingNode {
+			out = append(out, diag("yass.design.catalog_shape", loc, r.Vn.Line,
+				"catalog record is not a mapping"))
+			continue
+		}
+		names := map[string]bool{}
+		for _, f := range r.Fields {
+			if f.Kn.Kind != yaml.ScalarNode {
+				out = append(out, diag("yass.design.catalog_shape", loc, f.Kn.Line,
+					"catalog field name is not a scalar"))
+			}
+			if f.Vn.Kind != yaml.ScalarNode {
+				out = append(out, diag("yass.design.catalog_value", loc, f.Vn.Line,
+					"catalog field value is not a scalar"))
+			}
+			names[f.Name] = true
+		}
+		if want == nil {
+			want = names
+			continue
+		}
+		if !sameSet(want, names) {
+			out = append(out, diag("yass.design.catalog_fields", loc, r.Kn.Line,
+				"catalog record's field names differ from the first record's"))
+		}
+	}
+	return out
+}
+
+func sameSet(a, b map[string]bool) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for k := range a {
+		if !b[k] {
+			return false
+		}
+	}
+	return true
 }

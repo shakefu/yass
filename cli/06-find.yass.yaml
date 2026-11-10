@@ -34,8 +34,13 @@ RETURN:
 - WHEN: PATTERN matches an obligation that is reference-only, so it carries neither prose nor a guard
   MUST: emit no record for it, because it holds no text to match
   SEE: ../yass@Obligation
-- WHEN: PATTERN matches a line of a design's content
+- WHEN: PATTERN matches a line of a design's string content
   MUST: "set REF to `path@Name`, WHAT to `content`, and TEXT to that whole line"
+- WHEN: PATTERN matches the identifier or a scalar field value of a record of a design's mapping content
+  MUST: "set REF to `path@Name`, WHAT to `content`, and TEXT to that record written on one line as `IDENTIFIER: {FIELD: VALUE, ...}`, its fields in authored order"
+- WHEN: PATTERN matches one record of a design's mapping content more than once
+  MUST: emit exactly one record for it, since the catalogue record is the unit of retrieval
+- MUST-NOT: match a field name of a design's mapping content, since a field name names a column of the catalogue rather than a fact of one record
 - WHEN: PATTERN matches both an obligation's guard and its prose
   MUST: emit one record for each, since each is a separately addressable field
 - WHEN: PATTERN matches one field more than once
@@ -45,7 +50,7 @@ RETURN:
 - MUST: emit a REF in the form the record format fixes, which the query subcommand accepts unchanged for a file under the project root
   USES: root@RecordFormat
   SEE: 04-query@Query
-- WHEN: no obligation and no design content line matches PATTERN
+- WHEN: no obligation, no design content line, and no catalogue record matches PATTERN
   MUST: write nothing at all and exit with the ok status, because an empty result is an answer and not a finding
   USES: root@Brevity
 - MUST: exit with the ok status when every file of the project file set parsed
