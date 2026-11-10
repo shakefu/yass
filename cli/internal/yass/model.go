@@ -132,11 +132,36 @@ type Doc struct {
 	// Design
 	Type       string
 	HasType    bool
-	Content    string
-	HasContent bool
+	Format     string
+	HasFormat  bool
+	Content    string // a string content, as authored
+	HasContent bool   // content is a string
+	Catalog    []*Record
+	IsCatalog  bool // content is a mapping, the shape a catalog takes
 
 	// Spec
 	Slots []*Slot
+}
+
+// DesignTypes is the closed set of design types, in the order the language
+// definition lists them.
+var DesignTypes = []string{"constraint", "algorithm", "procedure", "schema", "catalog"}
+
+// Record is one entry of a design's mapping content: a catalogue record keyed
+// by its identifier, in authored order. A repeated identifier yields a second
+// record rather than replacing the first, so nothing authored is dropped.
+type Record struct {
+	Key    string
+	Kn     *yaml.Node
+	Vn     *yaml.Node
+	Fields []Field // the record's fields in authored order, when it is a mapping
+}
+
+// Field is one field of a catalogue record.
+type Field struct {
+	Name string
+	Kn   *yaml.Node
+	Vn   *yaml.Node
 }
 
 // Entry is one key/value pair of a document's top-level mapping.

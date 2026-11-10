@@ -197,7 +197,12 @@ func buildDoc(f *File, index int, docNode, content *yaml.Node) *Doc {
 		d.RelatedNode = d.value("related")
 	case KindDesign:
 		d.Type, d.HasType = stringOf(d.value("type"))
+		d.Format, d.HasFormat = stringOf(d.value("format"))
 		d.Content, d.HasContent = stringOf(d.value("content"))
+		if c := d.value("content"); c != nil && c.Kind == yaml.MappingNode {
+			d.IsCatalog = true
+			d.Catalog = buildRecords(c)
+		}
 	case KindSpec:
 		for _, e := range d.Entries {
 			if !isSlotName(e.Key) {
@@ -213,6 +218,23 @@ func buildDoc(f *File, index int, docNode, content *yaml.Node) *Doc {
 		}
 	}
 	return d
+}
+
+// buildRecords reads a design's mapping content as catalogue records, keeping
+// every authored pair, including a repeated identifier, in authored order.
+func buildRecords(c *yaml.Node) []*Record {
+	var out []*Record
+	for i := 0; i+1 < len(c.Content); i += 2 {
+		kn, vn := c.Content[i], c.Content[i+1]
+		r := &Record{Key: kn.Value, Kn: kn, Vn: vn}
+		if vn.Kind == yaml.MappingNode {
+			for j := 0; j+1 < len(vn.Content); j += 2 {
+				r.Fields = append(r.Fields, Field{Name: vn.Content[j].Value, Kn: vn.Content[j], Vn: vn.Content[j+1]})
+			}
+		}
+		out = append(out, r)
+	}
+	return out
 }
 
 func buildObligation(s *Slot, index int, item *yaml.Node) *Obligation {

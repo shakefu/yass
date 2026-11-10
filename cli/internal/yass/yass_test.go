@@ -89,7 +89,7 @@ RETURN:
   MUST: give back a coat
 ---
 design: Note
-type: prose
+type: constraint
 content: |
   a note
 `)
@@ -359,7 +359,7 @@ func TestListExcludesNestedProject(t *testing.T) {
 		"a\tfile\t3\tthe alpha file",
 		"a@Alpha\tspec\tINPUT,RETURN\t-",
 		"a@Beta\tspec\tRETURN\t-",
-		"a@Note\tdesign\tprose\t-",
+		"a@Note\tdesign\tconstraint\t-",
 		"root\tfile\t2\tthe project",
 		"root@Proj\tspec\tINPUT,RETURN,INVARIANT\t-",
 		"root@Policy\tdesign\tconstraint\t-",
@@ -628,7 +628,7 @@ func TestListUnreadableLeavesStdoutEmpty(t *testing.T) {
 // a document too unnamed to be addressed gets neither a record nor a count.
 func TestListDetailCountsEmittedDocuments(t *testing.T) {
 	dir := t.TempDir()
-	write(t, dir, "root.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\nspec: Named\nINPUT:\n- MUST: x\n---\nspec:\nINPUT:\n- MUST: y\n---\ndesign: D\ntype: t\ncontent: |\n  c\n")
+	write(t, dir, "root.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\nspec: Named\nINPUT:\n- MUST: x\n---\nspec:\nINPUT:\n- MUST: y\n---\ndesign: D\ntype: constraint\ncontent: |\n  c\n")
 	got := run(dir, "list")
 	wantStatus(t, got, ExitOK)
 	ls := lines(got.stdout)
@@ -836,7 +836,7 @@ func TestRefsOutReportsParseFailure(t *testing.T) {
 
 func TestTargetResolutionErrors(t *testing.T) {
 	dir := project(t)
-	write(t, dir, "dupe.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\nspec: Twice\nINPUT:\n- MUST: x\n---\ndesign: Twice\ntype: t\ncontent: |\n  c\n")
+	write(t, dir, "dupe.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\nspec: Twice\nINPUT:\n- MUST: x\n---\ndesign: Twice\ntype: constraint\ncontent: |\n  c\n")
 	cases := []struct {
 		target string
 		code   string
@@ -1215,7 +1215,7 @@ RETURN:
 - MUST: deep
 ---
 design: D
-type: t
+type: constraint
 content: |
   d
 `)
@@ -1298,7 +1298,7 @@ func TestValidateCodes(t *testing.T) {
 		{"dupkey", modeline + "---\ndescription: d\nversion: v1\n---\nspec: A\nINPUT:\n- MUST: x\n  MUST: y\n", "yass.document.duplicate_key"},
 		{"unknown-kind", modeline + "---\ndescription: d\nversion: v1\n---\nfoo: bar\n", "yass.document.unknown_kind"},
 		{"both-keys", modeline + "---\ndescription: d\nversion: v1\n---\nspec: A\ndesign: B\nINPUT:\n- MUST: x\n", "yass.document.both_keys"},
-		{"name-dup", modeline + "---\ndescription: d\nversion: v1\n---\nspec: A\nINPUT:\n- MUST: x\n---\ndesign: A\ntype: t\ncontent: |\n  c\n", "yass.document.name_duplicate"},
+		{"name-dup", modeline + "---\ndescription: d\nversion: v1\n---\nspec: A\nINPUT:\n- MUST: x\n---\ndesign: A\ntype: constraint\ncontent: |\n  c\n", "yass.document.name_duplicate"},
 		{"preamble-missing", modeline + "---\nspec: A\nINPUT:\n- MUST: x\n", "yass.preamble.missing"},
 		{"preamble-incomplete", modeline + "---\ndescription: d\n", "yass.preamble.incomplete"},
 		{"preamble-description-type", modeline + "---\ndescription: 7\nversion: v1\n", "yass.preamble.value_type"},
@@ -1309,13 +1309,29 @@ func TestValidateCodes(t *testing.T) {
 		{"spec-keyword", modeline + "---\ndescription: d\nversion: v1\n---\nspec: input\nINPUT:\n- MUST: x\n", "yass.spec.name_keyword"},
 		{"spec-keyword-guard", modeline + "---\ndescription: d\nversion: v1\n---\nspec: when\nINPUT:\n- MUST: x\n", "yass.spec.name_keyword"},
 		{"spec-keyword-relation", modeline + "---\ndescription: d\nversion: v1\n---\nspec: Conforms\nINPUT:\n- MUST: x\n", "yass.spec.name_keyword"},
-		{"design-incomplete", modeline + "---\ndescription: d\nversion: v1\n---\ndesign: D\ntype: t\n", "yass.design.incomplete"},
+		{"design-incomplete", modeline + "---\ndescription: d\nversion: v1\n---\ndesign: D\ntype: constraint\n", "yass.design.incomplete"},
 		{"design-value-type", modeline + "---\ndescription: d\nversion: v1\n---\ndesign: D\ntype: 7\ncontent: |\n  c\n", "yass.design.value_type"},
-		{"design-unknown-key", modeline + "---\ndescription: d\nversion: v1\n---\ndesign: D\ntype: t\ncontent: |\n  c\nINPUT:\n- MUST: x\n", "yass.design.unknown_key"},
-		{"design-keyword", modeline + "---\ndescription: d\nversion: v1\n---\ndesign: MAY\ntype: t\ncontent: |\n  c\n", "yass.design.name_keyword"},
-		{"design-keyword-relation", modeline + "---\ndescription: d\nversion: v1\n---\ndesign: see\ntype: t\ncontent: |\n  c\n", "yass.design.name_keyword"},
-		{"design-unnamed", modeline + "---\ndescription: d\nversion: v1\n---\ndesign:\ntype: t\ncontent: |\n  c\n", "yass.design.unnamed"},
-		{"design-grammar", modeline + "---\ndescription: d\nversion: v1\n---\ndesign: .D\ntype: t\ncontent: |\n  c\n", "yass.design.name_grammar"},
+		{"design-unknown-key", modeline + "---\ndescription: d\nversion: v1\n---\ndesign: D\ntype: constraint\ncontent: |\n  c\nINPUT:\n- MUST: x\n", "yass.design.unknown_key"},
+		{"design-keyword", modeline + "---\ndescription: d\nversion: v1\n---\ndesign: MAY\ntype: constraint\ncontent: |\n  c\n", "yass.design.name_keyword"},
+		{"design-keyword-relation", modeline + "---\ndescription: d\nversion: v1\n---\ndesign: see\ntype: constraint\ncontent: |\n  c\n", "yass.design.name_keyword"},
+		{"design-unnamed", modeline + "---\ndescription: d\nversion: v1\n---\ndesign:\ntype: constraint\ncontent: |\n  c\n", "yass.design.unnamed"},
+		{"design-grammar", modeline + "---\ndescription: d\nversion: v1\n---\ndesign: .D\ntype: constraint\ncontent: |\n  c\n", "yass.design.name_grammar"},
+		{"design-type-unknown", modeline + "---\ndescription: d\nversion: v1\n---\ndesign: D\ntype: table\ncontent: |\n  c\n", "yass.design.type_unknown"},
+		{"design-type-code", modeline + "---\ndescription: d\nversion: v1\n---\ndesign: D\ntype: code\ncontent: |\n  c\n", "yass.design.type_unknown"},
+		{"design-type-ordered-steps", modeline + "---\ndescription: d\nversion: v1\n---\ndesign: D\ntype: ordered-steps\ncontent: |\n  c\n", "yass.design.type_unknown"},
+		{"design-format-missing", modeline + "---\ndescription: d\nversion: v1\n---\ndesign: D\ntype: schema\ncontent: |\n  c\n", "yass.design.format_missing"},
+		{"design-format-empty", modeline + "---\ndescription: d\nversion: v1\n---\ndesign: D\ntype: schema\nformat: \"\"\ncontent: |\n  c\n", "yass.design.format_missing"},
+		{"design-format-type", modeline + "---\ndescription: d\nversion: v1\n---\ndesign: D\ntype: schema\nformat: 7\ncontent: |\n  c\n", "yass.design.value_type"},
+		{"design-format-unexpected", modeline + "---\ndescription: d\nversion: v1\n---\ndesign: D\ntype: constraint\nformat: text\ncontent: |\n  c\n", "yass.design.format_unexpected"},
+		{"design-content-mapping", modeline + "---\ndescription: d\nversion: v1\n---\ndesign: D\ntype: constraint\ncontent:\n  a: {f: 1}\n", "yass.design.value_type"},
+		{"catalog-string", modeline + "---\ndescription: d\nversion: v1\n---\ndesign: D\ntype: catalog\ncontent: |\n  c\n", "yass.design.catalog_shape"},
+		{"catalog-empty", modeline + "---\ndescription: d\nversion: v1\n---\ndesign: D\ntype: catalog\ncontent: {}\n", "yass.design.catalog_shape"},
+		{"catalog-record-scalar", modeline + "---\ndescription: d\nversion: v1\n---\ndesign: D\ntype: catalog\ncontent:\n  a: one\n", "yass.design.catalog_shape"},
+		{"catalog-key-sequence", modeline + "---\ndescription: d\nversion: v1\n---\ndesign: D\ntype: catalog\ncontent:\n  ? [a, b]\n  : {f: 1}\n", "yass.design.catalog_shape"},
+		{"catalog-value", modeline + "---\ndescription: d\nversion: v1\n---\ndesign: D\ntype: catalog\ncontent:\n  a: {f: [1, 2]}\n", "yass.design.catalog_value"},
+		{"catalog-fields", modeline + "---\ndescription: d\nversion: v1\n---\ndesign: D\ntype: catalog\ncontent:\n  a: {f: 1, g: 2}\n  b: {f: 1, h: 2}\n", "yass.design.catalog_fields"},
+		{"catalog-fields-missing", modeline + "---\ndescription: d\nversion: v1\n---\ndesign: D\ntype: catalog\ncontent:\n  a: {f: 1, g: 2}\n  b: {f: 1}\n", "yass.design.catalog_fields"},
+		{"catalog-duplicate", modeline + "---\ndescription: d\nversion: v1\n---\ndesign: D\ntype: catalog\ncontent:\n  a: {f: 1}\n  a: {f: 2}\n", "yass.document.duplicate_key"},
 		{"encoding-utf8", modeline + "---\ndescription: \xff\xfe\nversion: v1\n", "yass.document.encoding"},
 		{"slot-unknown", modeline + "---\ndescription: d\nversion: v1\n---\nspec: A\nOUTPUT:\n- MUST: x\n", "yass.slot.unknown"},
 		{"slot-not-a-list", modeline + "---\ndescription: d\nversion: v1\n---\nspec: A\nINPUT: nope\n", "yass.slot.not_a_list"},
@@ -2369,5 +2385,123 @@ func TestProcessClosedStdoutPipeExitsZero(t *testing.T) {
 	}
 	if code != 0 {
 		t.Fatalf("closed stdout pipe exited %d, want 0", code)
+	}
+}
+
+// --- design types -----------------------------------------------------------
+
+// catalogProject adds a schema design and a catalog design, each bound by USES,
+// to the fixture project.
+func catalogProject(t *testing.T) string {
+	t.Helper()
+	dir := project(t)
+	write(t, dir, "c.yass.yaml", modeline+`---
+description: designs of every shape
+version: v1
+---
+spec: C
+INPUT:
+- MUST: report each code the catalogue lists
+  USES: Codes
+- MUST: write the wire shape
+  USES: Wire
+---
+design: Wire
+type: schema
+format: json-schema
+content: |
+  {"type": "object"}
+---
+design: Codes
+type: catalog
+content:
+  yass.io.missing: {severity: error, exit: 3, meaning: the named file does not exist}
+  "odd: key": {severity: warn, exit: 1, meaning: a key that must be quoted}
+  0: {severity: error, exit: 0, meaning: a numeric identifier}
+`)
+	return dir
+}
+
+func TestValidateAcceptsEveryDesignType(t *testing.T) {
+	dir := catalogProject(t)
+	for _, typ := range []string{"constraint", "algorithm", "procedure"} {
+		write(t, dir, "t.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\ndesign: D\ntype: "+typ+"\ncontent: |\n  c\n")
+		if codes := validateCodes(t, dir, "t.yass.yaml"); len(codes) != 0 {
+			t.Fatalf("%s: codes = %v, want none", typ, codes)
+		}
+	}
+	if codes := validateCodes(t, dir, "c.yass.yaml"); len(codes) != 0 {
+		t.Fatalf("schema and catalog: codes = %v, want none", codes)
+	}
+}
+
+// A repeated catalogue identifier is reported by name, never dropped.
+func TestValidateNamesADuplicateCatalogKey(t *testing.T) {
+	dir := project(t)
+	write(t, dir, "d.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\ndesign: D\ntype: catalog\ncontent:\n  yass.io.missing: {f: 1}\n  yass.io.missing: {f: 2}\n")
+	got := run(dir, "validate", "d.yass.yaml")
+	want := "error\tyass.document.duplicate_key\td@D\t10\tmapping carries duplicate key yass.io.missing\n"
+	if got.stdout != want {
+		t.Fatalf("stdout = %q, want %q", got.stdout, want)
+	}
+	q := run(dir, "query", "d@D")
+	wantStatus(t, q, ExitOK)
+	if strings.Count(q.stdout, "yass.io.missing:") != 2 {
+		t.Fatalf("query dropped a repeated record:\n%s", q.stdout)
+	}
+}
+
+func TestQueryEmitsACatalogAsAuthored(t *testing.T) {
+	dir := catalogProject(t)
+	got := run(dir, "query", "c@Codes")
+	wantStatus(t, got, ExitOK)
+	want := `---
+design: Codes
+type: catalog
+content:
+  yass.io.missing:
+    severity: error
+    exit: 3
+    meaning: the named file does not exist
+  "odd: key":
+    severity: warn
+    exit: 1
+    meaning: a key that must be quoted
+  0:
+    severity: error
+    exit: 0
+    meaning: a numeric identifier
+`
+	if got.stdout != want {
+		t.Fatalf("got:\n%s\nwant:\n%s", got.stdout, want)
+	}
+	var back map[string]any
+	if err := yaml.Unmarshal([]byte(got.stdout), &back); err != nil {
+		t.Fatalf("emitted catalog does not read back: %v", err)
+	}
+	w := run(dir, "query", "c@Wire")
+	if !strings.Contains(w.stdout, "type: schema\nformat: json-schema\n") {
+		t.Fatalf("schema format not emitted:\n%s", w.stdout)
+	}
+}
+
+// find searches a catalogue's identifiers and field values, never its field
+// names, and answers with the whole record on one line.
+func TestFindSearchesCatalogRecords(t *testing.T) {
+	dir := catalogProject(t)
+	got := run(dir, "find", "does not exist")
+	wantStatus(t, got, ExitOK)
+	want := "c@Codes\tcontent\tyass.io.missing: {severity: error, exit: 3, meaning: the named file does not exist}\n"
+	if got.stdout != want {
+		t.Fatalf("stdout = %q, want %q", got.stdout, want)
+	}
+	if got := run(dir, "find", "io.miss"); got.stdout != want {
+		t.Fatalf("identifier search: stdout = %q", got.stdout)
+	}
+	if got := run(dir, "find", "severity"); got.stdout != "" {
+		t.Fatalf("field names are not searched: %q", got.stdout)
+	}
+	if got := run(dir, "find", "error"); strings.Count(got.stdout, "c@Codes") != 2 {
+		t.Fatalf("one record per matching record: %q", got.stdout)
 	}
 }

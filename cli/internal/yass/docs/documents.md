@@ -94,7 +94,7 @@ This part covers the file, the project root, and the three document kinds: pream
   ```yaml
   ---
   design: StartupSequence
-  type: ordered-steps
+  type: procedure
   content: |
     1. Warm the cache
     2. Connect the database
@@ -104,20 +104,47 @@ This part covers the file, the project root, and the three document kinds: pream
 - Names share the **file-wide uniqueness namespace** with spec names (same name
   grammar), so a ref target stays unambiguous — a bare name or `path@Name` resolves to
   exactly one document, spec or design.
-- `type` — **required**; a brief freeform interpretation hint, one or two words
-  (`pseudocode`, `ordered-steps`, `constraint`, `stack`, …), **opaque to tooling**.
-  Deliberately not a closed set: tooling never branches on the value, so there is no
-  out-of-set case to pin.
-- `content` — **required**; a string holding the freeform body, written as a literal
-  block scalar (`|`) by convention — the rule fixes the value's type, not its scalar
-  style, since a YAML parser cannot distinguish styles after loading. The body is
-  **opaque**: no refs are recognized inside it.
+- `type` — **required**; exactly one of five values. Any other value, including a
+  former name (`table`, `code`, `ordered-steps`, `stack`, `pseudocode`), is a
+  validation error.
+  - `constraint` — prose limits on the solution: stack, library, platform, version floor.
+  - `algorithm` — pseudocode for a computation the implementer still writes.
+  - `procedure` — ordered steps that span specs and have no owning symbol.
+  - `schema` — the exact external shape of data: field names, a JSON Schema, an example
+    payload, a wire format. Requires a `format` key naming the notation (`json-schema`,
+    `yaml`, `text`, …); no other type carries `format`.
+  - `catalog` — a set of uniform records: exit codes, diagnostics, log events, flags,
+    an ownership matrix.
+- `content` — **required**. For every type but `catalog` it is a string, written as a
+  literal block scalar (`|`) by convention. The body is **opaque**: no refs are
+  recognized inside it.
+- **Data shape, not implementation.** A design states what an implementation must
+  match, never the implementation. An `algorithm` is pseudocode, not source in a real
+  language; a `schema` is the shape of data, not the steps that build it. Literal source
+  is never a design: name the symbol in an obligation instead. A Markdown table is never
+  content: rows belong in a `catalog`.
+- **Catalogue form.** `catalog` content is a YAML mapping keyed by each record's
+  identifier; each record is a mapping of scalar fields, and every record carries the
+  same field names. A repeated identifier, a non-scalar field, or a differing field set
+  is a validation error. A field holds a fact of the implementation alone:
+
+  ```yaml
+  ---
+  design: Diagnostics
+  type: catalog
+  content:
+    yass.io.missing: {severity: error, owner: load, exit: 3, meaning: the named file does not exist}
+    yass.cli.usage:  {severity: error, owner: cli,  exit: 2, meaning: the invocation was malformed}
+  ```
+
+- **A catalogued fact lives only in its catalogue.** An obligation names the identifier
+  and binds the catalogue with `USES` — "MUST report each code the catalogue assigns to
+  owner `load`, at the severity and exit status the catalogue gives". It states no field
+  value in any wording: not a number, not a status label, not a behaviour such as "fail
+  as when the invocation is malformed". A restated value is a second source that drifts.
 - **Normative force:** an implementation bound to a design block via reference MUST
   follow it. The block is not commentary; it binds through the reference graph (the
   `USES` relation — see `yass docs references`).
-- The home for normative content that is not an obligation on observable behavior:
-  algorithms / pseudocode, technology or stack constraints from outside forces, and
-  multi-spec lifecycle procedures that have no owning symbol.
 - An **unreferenced design block is dead weight** — declared normative content nothing
   binds to — and is flagged by lint.
 

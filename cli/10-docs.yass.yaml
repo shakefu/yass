@@ -61,6 +61,33 @@ SIDE-EFFECT:
 INVARIANT:
 - MUST: carry exactly the documents named authoritative for the yass language or for writing specs in it, so the corpus stays a language corpus and does not grow into a general file store
   USES: Corpus
+- MUST-NOT: carry a project's own spec file as a corpus document, since `query`, `list`, `find`, and `refs` serve those from the tree
+  USES: Corpus
+- MUST: carry each corpus document as a copy of its source file, taken from the checkout and embedded when the program is built
+  USES: Corpus
+- MUST: fail a test of this program when a carried copy has drifted from the source it was taken from
+  USES: Corpus
+- MUST-NOT: "carry a document under an embedded name ending in `.yass.yaml`, since every file with that suffix under a project root is collected as a document of that project"
+- MUST: order the documents of each reading path so a task reads the path whole, every document in order
+  USES: ReadingPaths
+- MUST: keep each corpus document to one cohesive topic that no other corpus document restates, so a reading path read in order covers its task once
+  USES: ReadingPaths
+- MUST: open each markdown corpus document with a line naming its reading path and its place in that path
+  USES: ReadingPaths
+- WHEN: a markdown corpus document is followed by another document on its reading path
+  MUST: close it with a line naming that next document
+  USES: ReadingPaths
+- WHEN: a markdown corpus document ends its reading path
+  MUST: close it with a line saying the path ends
+  USES: ReadingPaths
+- MUST-NOT: require the opening or closing path line of the language definition, since it is a spec file whose length line stands in for them
+  SEE: Docs::RETURN
+- MUST: "set each docs record's `WHEN` field to the task that earns the cost of reading that document, so a reader spends its context on a corpus document only when its own task matches"
+  USES: Corpus
+- MUST: route an agent implementing code against an existing spec set to one corpus document, since `overview` summarizes the notation it reads and the spec files hold the behaviour it produces
+  USES: ReadingPaths
+- MUST-NOT: write a corpus document from `overview`, since a corpus document costs hundreds of lines of a reader's context and is served on demand for that reason
+  SEE: 11-overview@Overview
 - MUST: serve text identical to the source document the corpus was built from, after the length line where one is written, so a reader of the served copy and a reader of the checkout read the same words
 - MUST: compute the length line's count from the carried text each time the document is served, so the count cannot drift from the text
 - SHOULD: carry each document within 200 lines, dividing a long topic into cohesive documents a reading path orders, so the length line is the exception
@@ -70,48 +97,21 @@ INVARIANT:
 - MUST-NOT: resolve, validate, lint, summarize, or otherwise interpret a document it serves, since this command is a courier and the language it carries is not its subject
 ---
 design: Corpus
-type: table
-content: |
-  The documents this program carries, in index order. Each is copied verbatim from the
-  checkout by `script/sync-docs` and embedded when the program is built; a test fails when
-  an embedded copy has drifted from the source it was taken from.
-
-  The corpus is exactly the set of files that are authoritative for the yass language and
-  for writing specs in it, and nothing else. A project's own spec files are never corpus
-  documents — they are served by `query`, `list`, `find`, and `refs`, which read the tree.
-
-    NAME           SOURCE                    WHEN TO READ
-    brainstorming  context/BRAINSTORMING.md  eliciting a spec set with a user: elicit path, then the write path
-    authoring      context/AUTHORING.md      writing or changing a spec: write path 1 of 5
-    documents      context/DOCUMENTS.md      writing or changing a spec: write path 2 of 5
-    obligations    context/OBLIGATIONS.md    writing or changing a spec: write path 3 of 5
-    references     context/REFERENCES.md     writing or changing a spec: write path 4 of 5
-    coverage       context/COVERAGE.md       writing or changing a spec: write path 5 of 5
-    implementing   context/IMPLEMENTING.md   implementing code and tests against an approved spec set: implement path
-    language       yass.yass.yaml            changing the yass language itself, then the write path
-
-  The reading paths. A task that needs the corpus reads a path whole, every document in
-  order, because each document is one cohesive topic and none restates another:
-
-    elicit path    brainstorming, then the write path
-    write path     authoring, documents, obligations, references, coverage
-    language       language, then the write path
-    implement      implementing
-
-  A path is front and center twice: the orientation block names every path, and each
-  markdown document opens with a line naming its path and its place in it and closes with a
-  line naming the next document, or, at a path's end, a line saying the path ends. The language definition is a spec file and carries neither
-  line, so it is the one document longer than the line budget, and its length line stands
-  in for them.
-
-  An embedded name never ends in `.yass.yaml`. Every file with that suffix under a project
-  root is collected as part of that project, so a copy carrying it would be indexed,
-  validated, and linted as though it were a document of this program's own spec set.
-
-  WHEN TO READ is a field of the index, and it is load-bearing rather than decorative. An
-  agent implementing code against a spec set that already exists reads one corpus document,
-  on turning obligations into code and tests: the notation it must read is summarized by
-  `overview`, and the behaviour it must produce is in the spec files themselves. A corpus document costs hundreds of lines of a
-  reader's context, so the index states the task that earns the cost, and a reader spends
-  it only when its own task matches. That is the whole reason the corpus is served on
-  demand rather than written by `overview`.
+type: catalog
+content:
+  brainstorming: {source: context/BRAINSTORMING.md, when: "eliciting a spec set with a user: elicit path, then the write path"}
+  authoring: {source: context/AUTHORING.md, when: "writing or changing a spec: write path 1 of 5"}
+  documents: {source: context/DOCUMENTS.md, when: "writing or changing a spec: write path 2 of 5"}
+  obligations: {source: context/OBLIGATIONS.md, when: "writing or changing a spec: write path 3 of 5"}
+  references: {source: context/REFERENCES.md, when: "writing or changing a spec: write path 4 of 5"}
+  coverage: {source: context/COVERAGE.md, when: "writing or changing a spec: write path 5 of 5"}
+  implementing: {source: context/IMPLEMENTING.md, when: "implementing code and tests against an approved spec set: implement path"}
+  language: {source: yass.yass.yaml, when: "changing the yass language itself, then the write path"}
+---
+design: ReadingPaths
+type: catalog
+content:
+  elicit: {documents: "brainstorming, then the write path"}
+  write: {documents: "authoring, documents, obligations, references, coverage"}
+  language: {documents: "language, then the write path"}
+  implement: {documents: implementing}

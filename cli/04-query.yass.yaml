@@ -37,7 +37,9 @@ RETURN:
 - WHEN: a TARGET addresses a spec and names no slot
   MUST: "emit one document carrying the `spec` key and every slot that spec declares, in authored order"
 - WHEN: a TARGET addresses a design
-  MUST: "emit that design document with its `design`, `type`, and `content` unchanged"
+  MUST: "emit that design document with its `design`, `type`, `format`, and `content` unchanged"
+- WHEN: a TARGET addresses a design whose content is a mapping
+  MUST: emit every identifier and every field of that content in authored order, a repeated identifier included
 - WHEN: a TARGET names a whole file that holds spec and design documents
   MUST: emit the preamble alone, because a file target asks what the file is, and a document target asks what a document obliges
 - MUST: preserve the authored order of slots within a document and of obligations within a slot, inserting and appending without reordering them

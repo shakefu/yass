@@ -48,8 +48,31 @@
       "additionalProperties": false,
       "properties": {
         "design": { "type": "string", "pattern": "^[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*$" },
-        "type": { "type": "string" },
-        "content": { "type": "string" }
+        "type": { "enum": ["constraint", "algorithm", "procedure", "schema", "catalog"] },
+        "format": { "type": "string", "minLength": 1 },
+        "content": {}
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "schema" } } },
+          "then": { "required": ["format"] },
+          "else": { "not": { "required": ["format"] } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "catalog" } } },
+          "then": { "properties": { "content": { "$ref": "#/$defs/catalog" } } },
+          "else": { "properties": { "content": { "type": "string" } } }
+        }
+      ]
+    },
+
+    "catalog": {
+      "title": "Catalog content (records keyed by identifier; every record carries the same field names, which validation checks)",
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": { "type": ["string", "number", "integer", "boolean", "null"] }
       }
     },
 

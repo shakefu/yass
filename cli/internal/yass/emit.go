@@ -276,7 +276,7 @@ func emitNode(out *[]string, indent, key string, n *yaml.Node, seen map[*yaml.No
 	case yaml.MappingNode:
 		*out = append(*out, indent+key+":")
 		for i := 0; i+1 < len(n.Content); i += 2 {
-			if err := emitNode(out, indent+"  ", n.Content[i].Value, n.Content[i+1], seen); err != nil {
+			if err := emitNode(out, indent+"  ", mappingKey(n.Content[i]), n.Content[i+1], seen); err != nil {
 				return err
 			}
 		}
@@ -284,6 +284,16 @@ func emitNode(out *[]string, indent, key string, n *yaml.Node, seen map[*yaml.No
 		*out = append(*out, indent+key+":")
 	}
 	return nil
+}
+
+// mappingKey spells a nested mapping key so it reads back as the key it was:
+// a non-string scalar such as a catalogue's numeric identifier stays plain, and
+// a string that would not read back plain is double-quoted.
+func mappingKey(k *yaml.Node) string {
+	if k.Kind != yaml.ScalarNode || k.Tag != "!!str" || plainSafe(k.Value) {
+		return k.Value
+	}
+	return quoteDouble(k.Value)
 }
 
 func emitSeqItem(out *[]string, indent string, n *yaml.Node, seen map[*yaml.Node]bool) error {
@@ -310,7 +320,7 @@ func emitSeqItem(out *[]string, indent string, n *yaml.Node, seen map[*yaml.Node
 		first := true
 		for i := 0; i+1 < len(n.Content); i += 2 {
 			var sub []string
-			if err := emitNode(&sub, indent+"  ", n.Content[i].Value, n.Content[i+1], seen); err != nil {
+			if err := emitNode(&sub, indent+"  ", mappingKey(n.Content[i]), n.Content[i+1], seen); err != nil {
 				return err
 			}
 			for j, l := range sub {

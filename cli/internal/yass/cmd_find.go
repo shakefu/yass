@@ -1,6 +1,10 @@
 package yass
 
-import "strings"
+import (
+	"strings"
+
+	"gopkg.in/yaml.v3"
+)
 
 // findRow is one emitted find record: REF, WHAT, TEXT.
 type findRow struct{ ref, what, text string }
@@ -46,6 +50,14 @@ func (a *App) cmdFind() (int, error) {
 			}
 			if d.Kind == KindDesign {
 				// A design declares no slot, so --slot never restricts it.
+				if d.IsCatalog {
+					for _, r := range d.Catalog {
+						if recordMatches(r, pattern) {
+							rows = append(rows, findRow{d.Target(), "content", recordText(r)})
+						}
+					}
+					continue
+				}
 				if !d.HasContent {
 					continue
 				}
@@ -105,4 +117,36 @@ func matchObligation(s *Slot, o *Obligation, pattern string) []findRow {
 		}
 	}
 	return out
+}
+
+// recordMatches reports whether PATTERN occurs in a catalogue record's
+// identifier or in one of its scalar field values. A field name is a column of
+// the catalogue rather than a fact of the record, so it is not searched.
+func recordMatches(r *Record, pattern string) bool {
+	if foldContains(r.Key, pattern) {
+		return true
+	}
+	if r.Vn.Kind == yaml.ScalarNode {
+		return foldContains(r.Vn.Value, pattern)
+	}
+	for _, f := range r.Fields {
+		if f.Vn.Kind == yaml.ScalarNode && foldContains(f.Vn.Value, pattern) {
+			return true
+		}
+	}
+	return false
+}
+
+// recordText renders a catalogue record as one line in the keyed flow form a
+// catalogue is authored in: `KEY: {FIELD: VALUE, ...}`, fields in authored
+// order and values as authored.
+func recordText(r *Record) string {
+	if r.Vn.Kind != yaml.MappingNode {
+		return r.Key + ": " + r.Vn.Value
+	}
+	parts := make([]string, 0, len(r.Fields))
+	for _, f := range r.Fields {
+		parts = append(parts, f.Name+": "+f.Vn.Value)
+	}
+	return r.Key + ": {" + strings.Join(parts, ", ") + "}"
 }

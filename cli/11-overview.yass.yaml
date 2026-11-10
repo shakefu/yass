@@ -50,13 +50,14 @@ INVARIANT:
   SEE: 10-docs@Corpus
 - MUST-NOT: restate the option table, the operand grammar, or the exit-code table, since the synopsis owns them and one concern has one home
 - MUST: name every reading path the corpus declares, in the order the corpus declares the documents of each
-  SEE: 10-docs@Corpus
+  SEE: 10-docs@ReadingPaths
 - MUST: fit within 200 lines however long the project's description, so a reader that truncates its read sees the whole block
   USES: root@Brevity
   SEE: 00-invocation@Synopsis
 ---
 design: OrientationBlock
-type: output-template
+type: schema
+format: output-template
 content: |
   Seven sections, written in this order, separated by exactly one empty line, with no
   empty line before the first section and none after the last. Section 2 is computed for
@@ -99,7 +100,7 @@ content: |
 
     A spec file is a YAML document stream. The first document is the preamble, carrying
     `description` and `version`; every later one is a `spec:` holding obligations under five
-    slots, or a `design:` holding normative freeform content under `type` and `content`.
+    slots, or a `design:` holding normative content under `type` and `content`.
 
       slots        INPUT  RETURN  ERROR  SIDE-EFFECT  INVARIANT
       obligation   one of MUST / MUST-NOT / SHOULD / SHOULD-NOT / MAY with the prose, an
