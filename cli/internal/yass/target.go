@@ -109,7 +109,7 @@ func filePathFor(root, base, token string) string {
 func (a *App) ResolveTarget(raw string) (*Bound, error) {
 	t, ok := parseTarget(raw, true)
 	if !ok {
-		return nil, fail(ExitUsage, "yass.ref.syntax", raw, 0, "reference target is malformed")
+		return nil, fail(ExitUsage, "yass.args.target_syntax", raw, 0, "reference target is malformed")
 	}
 	if t.HasSlot && !isSlotName(t.Slot) {
 		return nil, fail(ExitUsage, "yass.ref.slot_unknown", raw, 0, "slot token is not a recognized slot")
