@@ -37,8 +37,10 @@ ERROR:
 - WHEN: the project's root file carries no preamble description
   MUST: write the project section with no description line, and report no diagnostic
 - WHEN: a directory on the ascent, or a spec file of the project, cannot be read
-  MUST: report code yass.io.unreadable naming the path, write no block, and exit with the environment status
-- MUST: report code yass.internal and exit with the environment status for any failure not matched by a guarded obligation in this slot
+  MUST: report code yass.io.unreadable naming the path and write no block
+- MUST: report code yass.internal for any failure not matched by a guarded obligation in this slot
+- MUST: exit with the status the request-failure catalogue gives each code this spec reports to end a request
+  USES: root@RequestFailures
 SIDE-EFFECT:
 - MUST: write every diagnostic in this slot to standard error, since the block is the only thing this command puts on standard output
   USES: root@OutputPolicy

@@ -13,7 +13,7 @@ INPUT:
   CONFORMS: 02-load@TargetResolution::RETURN
 - MUST: rely on the existence, uniqueness, kind, and slot-declaration guarantees target resolution establishes, and re-check none of them
 - WHEN: a guarantee target resolution established does not hold
-  MUST: report code yass.internal and exit with the environment status
+  MUST: report code yass.internal
 - MUST: take the project file set and the loaded model of every file in it, to find incoming edges
   CONFORMS: 01-locate@FileSet::RETURN
 - WHEN: "neither `--in` nor `--out` is given"
@@ -25,7 +25,7 @@ INPUT:
 - WHEN: "both `--in` and `--out` are given"
   MUST: emit both, exactly as though neither had been given
 - WHEN: TARGET names a whole file rather than a document
-  MUST: report code yass.args.missing_operand and exit with the usage status, because an edge belongs to a document and a file is not one
+  MUST: report code yass.args.missing_operand, because an edge belongs to a document and a file is not one
 - WHEN: target resolution bound a file outside the project root, which a path token climbing with `../` may do
   MUST: read that file for the addressed document's outgoing edges, and search for incoming edges only within the project root
   SEE: 02-load@TargetResolution
@@ -66,8 +66,10 @@ ERROR:
   MUST: emit no edge for it and continue, because an unresolved reference is a validation finding rather than an edge
   SEE: 08-validate@Validate
 - WHEN: a file under the project root cannot be read at all
-  MUST: report code yass.io.unreadable naming it and exit with the environment status
-- MUST: report code yass.internal and exit with the environment status for any failure not matched by a guarded obligation in this slot
+  MUST: report code yass.io.unreadable naming it
+- MUST: report code yass.internal for any failure not matched by a guarded obligation in this slot
+- MUST: exit with the status the request-failure catalogue gives each code this spec reports to end a request
+  USES: root@RequestFailures
 SIDE-EFFECT:
 - MUST: write every diagnostic in this slot to standard error, since the records are the only thing this subcommand puts on standard output
   USES: root@OutputPolicy

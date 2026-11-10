@@ -13,7 +13,7 @@ INPUT:
   CONFORMS: 00-invocation@Invocation::RETURN
 - MUST: rely on the starting path being a plain argument invocation already parsed, and re-examine it for an option not at all
 - WHEN: the starting path is not a plain argument after all
-  MUST: report code yass.internal and exit with the environment status
+  MUST: report code yass.internal
 - MUST: "resolve the starting path to an absolute path, with symbolic links resolved and `.` and `..` removed, before ascending"
 - WHEN: the starting path names a directory
   MUST: begin the search at that directory
@@ -28,11 +28,13 @@ RETURN:
 - MUST: compute the project root exactly once per invocation, and hand the same value to every spec that needs it
 ERROR:
 - WHEN: "the ascent reaches the filesystem root without finding a file named `root.yass.yaml`"
-  MUST: report code yass.root.not_found naming the starting path and exit with the no-root status
+  MUST: report code yass.root.not_found naming the starting path
 - WHEN: the starting path does not exist
-  MUST: report code yass.io.missing naming it and exit with the unresolved status
+  MUST: report code yass.io.missing naming it
 - WHEN: a directory on the ascent cannot be read
-  MUST: report code yass.io.unreadable naming that directory and exit with the environment status
+  MUST: report code yass.io.unreadable naming that directory
+- MUST: exit with the status the request-failure catalogue gives each code this spec reports to end a request
+  USES: root@RequestFailures
 INVARIANT:
 - MUST: "compare the name `root.yass.yaml` byte-for-byte, so a differently cased name is not a project root"
 - MUST-NOT: "locate a project root by any signal other than that file name, such as a version-control directory, a package manifest, a build directory, or the deepest `.yass.yaml` ancestor"
@@ -48,7 +50,7 @@ INPUT:
   CONFORMS: RootDiscovery::RETURN
 - MUST: "rely on the project root existing and holding a `root.yass.yaml`, since discovery yields no directory without one, and re-check neither property"
 - WHEN: the project root does not exist or does not hold that file when traversal begins
-  MUST: report code yass.internal and exit with the environment status, rather than fall back to another directory
+  MUST: report code yass.internal rather than fall back to another directory
 RETURN:
 - MUST: "yield every regular file at or below the project root whose basename ends with the literal suffix `.yass.yaml`"
 - MUST: "require at least one character before the `.yass.yaml` suffix, so the bare basename `.yass.yaml` is not a member"
@@ -62,7 +64,9 @@ RETURN:
 - MUST-NOT: "exclude a file for any other reason, including a version-control ignore rule, a name beginning with `.`, or a directory that looks like build output"
 ERROR:
 - WHEN: a directory in the traversal cannot be read
-  MUST: report code yass.io.unreadable naming that directory and exit with the environment status
+  MUST: report code yass.io.unreadable naming that directory
+- MUST: exit with the status the request-failure catalogue gives each code this spec reports to end a request
+  USES: root@RequestFailures
 INVARIANT:
 - MUST: "compare the `.yass.yaml` suffix byte-for-byte and case-sensitively on every platform"
 - MUST-NOT: "match a file whose basename ends in `.yaml` without the `.yass` infix"

@@ -22,7 +22,7 @@ INPUT:
 - MUST-NOT: rely on any well-formedness guarantee of that model beyond the fact that a file parsed, and re-check no rule the language definition states as a rejection
   SEE: 08-validate@Validate
 - WHEN: the model records no entry for a file of the project file set
-  MUST: report code yass.internal and exit with the environment status
+  MUST: report code yass.internal
 - WHEN: no PATH is given
   MUST: report advisories for every file of the project file set
 - WHEN: a PATH is given
@@ -122,9 +122,9 @@ ERROR:
 - WHEN: at least one advisory was emitted
   MUST: exit with the findings status after writing all of them
 - WHEN: a PATH does not exist
-  MUST: report code yass.io.missing naming it and exit with the unresolved status
+  MUST: report code yass.io.missing naming it
 - WHEN: "a PATH exists but is neither a directory nor a regular file"
-  MUST: report code yass.io.not_a_spec_file naming it and exit with the usage status
+  MUST: report code yass.io.not_a_spec_file naming it
 - WHEN: "the project root's `root.yass.yaml` carries no spec, or more than one, so reachability has no single origin"
   MUST: report code yass.root.spec_count, emit every advisory that does not depend on reachability, and exit with the findings status
   CONFORMS: ../yass@Root::ERROR
@@ -132,8 +132,10 @@ ERROR:
   MUST: report code yass.spec.unnamed, emit every advisory that does not depend on reachability, and exit with the findings status
   CONFORMS: ../yass@Spec::ERROR
 - WHEN: a file of the project file set cannot be read at all
-  MUST: report code yass.io.unreadable naming it and exit with the environment status
-- MUST: report code yass.internal and exit with the environment status for any failure not matched by a guarded obligation in this slot
+  MUST: report code yass.io.unreadable naming it
+- MUST: report code yass.internal for any failure not matched by a guarded obligation in this slot
+- MUST: exit with the status the request-failure catalogue gives each code this spec reports to end a request
+  USES: root@RequestFailures
 SIDE-EFFECT:
 - MUST: write every advisory of the RETURN slot to standard output, because an advisory is this command's product
   USES: root@OutputPolicy

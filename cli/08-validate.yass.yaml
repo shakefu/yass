@@ -27,7 +27,7 @@ INPUT:
 - MUST-NOT: rely on any well-formedness guarantee of that model beyond the fact that the file parsed, because establishing well-formedness is exactly what this command does
   SEE: 02-load@Load::INVARIANT
 - WHEN: the model records no entry for an addressed file
-  MUST: report code yass.internal and exit with the environment status
+  MUST: report code yass.internal
 - MUST: check every addressed file before exiting, rather than stop at the first violation
 - MUST: resolve every reference of an addressed file against the whole project, reading a file outside the addressed set far enough to decide whether a target resolves
 - MUST-NOT: report a violation found in a file outside the addressed set, because it was not addressed
@@ -188,15 +188,17 @@ ERROR:
 - WHEN: at least one diagnostic was emitted
   MUST: exit with the findings status after writing all of them
 - WHEN: a PATH does not exist
-  MUST: report code yass.io.missing naming it and exit with the unresolved status
+  MUST: report code yass.io.missing naming it
 - WHEN: "a PATH exists but is neither a directory nor a regular file"
-  MUST: report code yass.io.not_a_spec_file naming it and exit with the usage status
+  MUST: report code yass.io.not_a_spec_file naming it
 - WHEN: an addressed file yielded a parse failure
   MUST: emit that failure's code as a diagnostic for the file, emit no further diagnostic for that file because its documents cannot be read, and continue with the next file
   SEE: 02-load@Load::RETURN
 - WHEN: an addressed file cannot be read at all
-  MUST: report code yass.io.unreadable naming it and exit with the environment status
-- MUST: report code yass.internal and exit with the environment status for any failure not matched by a guarded obligation in this slot
+  MUST: report code yass.io.unreadable naming it
+- MUST: report code yass.internal for any failure not matched by a guarded obligation in this slot
+- MUST: exit with the status the request-failure catalogue gives each code this spec reports to end a request
+  USES: root@RequestFailures
 SIDE-EFFECT:
 - MUST: write every diagnostic of the RETURN slot to standard output, because a diagnostic is this command's product
   USES: root@OutputPolicy

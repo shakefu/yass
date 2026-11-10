@@ -16,7 +16,7 @@ INPUT:
   CONFORMS: 02-load@Load::RETURN
 - MUST: rely on the model holding every obligation's prose and every design's content byte-for-byte as authored, and re-read no file to confirm it
 - WHEN: the model records no entry for a file of the project file set
-  MUST: report code yass.internal and exit with the environment status
+  MUST: report code yass.internal
 - MUST: treat PATTERN as a literal substring, compared case-insensitively under simple Unicode case folding
 - WHEN: "`--slot SLOT` is given"
   MUST: restrict obligation matches to obligations declared in that slot
@@ -56,16 +56,18 @@ RETURN:
 - MUST: exit with the ok status when every file of the project file set parsed
 ERROR:
 - WHEN: PATTERN is the empty string
-  MUST: report code yass.args.empty and exit with the usage status
+  MUST: report code yass.args.empty
 - WHEN: "the `--slot` value is outside INPUT, RETURN, ERROR, SIDE-EFFECT, and INVARIANT"
-  MUST: report code yass.ref.slot_unknown naming the value and exit with the usage status
+  MUST: report code yass.ref.slot_unknown naming the value
   SEE: ../yass@Slot
 - WHEN: a file of the project file set yielded a parse failure
   MUST: report that failure's code naming the file and its line, emit the matches of every file that did parse, and exit with the findings status
   SEE: 02-load@Load::RETURN
 - WHEN: a file of the project file set cannot be read at all
-  MUST: report code yass.io.unreadable naming it and exit with the environment status
-- MUST: report code yass.internal and exit with the environment status for any failure not matched by a guarded obligation in this slot
+  MUST: report code yass.io.unreadable naming it
+- MUST: report code yass.internal for any failure not matched by a guarded obligation in this slot
+- MUST: exit with the status the request-failure catalogue gives each code this spec reports to end a request
+  USES: root@RequestFailures
 SIDE-EFFECT:
 - MUST: write every diagnostic in this slot to standard error, since the records are the only thing this subcommand puts on standard output
   USES: root@OutputPolicy

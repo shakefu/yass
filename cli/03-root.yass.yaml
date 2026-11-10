@@ -16,7 +16,7 @@ INPUT:
   CONFORMS: 01-locate@RootDiscovery::RETURN
 - MUST: rely on discovery having established that the yielded directory exists and holds a `root.yass.yaml`, and re-check neither
 - WHEN: the yielded directory does not exist or does not hold that file
-  MUST: report code yass.internal and exit with the environment status
+  MUST: report code yass.internal
 - MUST-NOT: load any file, since the answer is a directory path and no document is read
   SEE: 02-load@Load
 RETURN:
@@ -27,13 +27,15 @@ RETURN:
 - MUST: exit with the ok status once that record is written
 ERROR:
 - WHEN: PATH does not exist
-  MUST: report code yass.io.missing naming PATH and exit with the unresolved status
+  MUST: report code yass.io.missing naming PATH
 - WHEN: no file named `root.yass.yaml` is at or above PATH
-  MUST: report code yass.root.not_found naming PATH, write no record, and exit with the no-root status
+  MUST: report code yass.root.not_found naming PATH and write no record
   SEE: 01-locate@RootDiscovery::ERROR
 - WHEN: a directory on the ascent cannot be read
-  MUST: report code yass.io.unreadable naming that directory and exit with the environment status
-- MUST: report code yass.internal and exit with the environment status for any failure not matched by a guarded obligation in this slot
+  MUST: report code yass.io.unreadable naming that directory
+- MUST: report code yass.internal for any failure not matched by a guarded obligation in this slot
+- MUST: exit with the status the request-failure catalogue gives each code this spec reports to end a request
+  USES: root@RequestFailures
 SIDE-EFFECT:
 - MUST: write every diagnostic in this slot to standard error, since the root record is the only thing this command puts on standard output
   USES: root@OutputPolicy
