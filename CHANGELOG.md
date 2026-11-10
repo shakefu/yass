@@ -2,6 +2,13 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.11.0 - 2026-11-10
+#### Features
+- (**cli**) lint source code and Markdown tables in design content - (7fe4bf7) - Jacob Alheid
+- <span style="background-color: #d73a49; color: white; padding: 2px 6px; border-radius: 3px; font-weight: bold; font-size: 0.85em;">BREAKING</span>close the design type set and add catalog and schema designs - (335b081) - Jacob Alheid
+
+- - -
+
 ## v0.10.1 - 2026-11-10
 #### Bug Fixes
 - <span style="background-color: #d73a49; color: white; padding: 2px 6px; border-radius: 3px; font-weight: bold; font-size: 0.85em;">BREAKING</span>(**cli**) report a malformed command-line target as yass.args.target_syntax - (4d20ae4) - Jacob Alheid
