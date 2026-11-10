@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.10.1 - 2026-11-10
+#### Bug Fixes
+- <span style="background-color: #d73a49; color: white; padding: 2px 6px; border-radius: 3px; font-weight: bold; font-size: 0.85em;">BREAKING</span>(**cli**) report a malformed command-line target as yass.args.target_syntax - (4d20ae4) - Jacob Alheid
+
+- - -
+
 ## v0.10.0 - 2026-11-07
 #### Features
 - (**docs**) carry an implementing document and lead with an implement path - (47bc624) - Jacob Alheid
