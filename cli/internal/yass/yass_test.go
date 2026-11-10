@@ -2606,3 +2606,195 @@ func TestLintDesignTable(t *testing.T) {
 		}
 	}
 }
+
+// --- restatement lint ---------------------------------------------------------
+
+// restateCatalogs is the fixture vocabulary and code catalogue of the
+// restatement lint, after the catalogue experiments of issue #120: an
+// ExitStatus catalogue keyed by status, and a Diagnostics catalogue whose exit
+// field takes its values from ExitStatus.
+const restateCatalogs = `---
+design: ExitStatus
+type: catalog
+content:
+  0: {label: ok, behaviour: the command completed and reported nothing}
+  1: {label: findings, behaviour: the command reported at least one finding}
+  2: {label: usage, behaviour: the invocation was malformed}
+  3: {label: absent, behaviour: the request names something that does not exist}
+  4: {label: conflict, behaviour: two sources the command reads disagree}
+  5: {label: environment, behaviour: the system refused an operation the command needed}
+---
+design: Diagnostics
+type: catalog
+content:
+  yass.io.file_unreadable: {severity: error, owner: resolve, exit: 5}
+  yass.ref.target_ambiguous: {severity: error, owner: resolve, exit: 4}
+  yass.foo.operand_malformed: {severity: error, owner: foo, exit: 2}
+  yass.foo.target_absent: {severity: error, owner: foo, exit: 3}
+  yass.diff.pair_none: {severity: warning, owner: diff, exit: 1}
+`
+
+// restateLint lints one obligation, written as a YAML sequence item of the root
+// spec's INPUT slot, beside the fixture catalogues, and returns each
+// restatement advisory as "CODE: MESSAGE".
+func restateLint(t *testing.T, obligation string) []string {
+	t.Helper()
+	dir := t.TempDir()
+	write(t, dir, "root.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\nspec: R\nINPUT:\n"+obligation+
+		"\n- USES: ExitStatus\n- USES: Diagnostics\n"+restateCatalogs)
+	got := run(dir, "lint")
+	var out []string
+	for _, l := range lines(got.stdout) {
+		if f := strings.Split(l, "\t"); len(f) == 5 && strings.HasPrefix(f[1], "yass.lint.restated_") {
+			if f[3] != "8" {
+				t.Fatalf("advisory at line %s, want 8: %s", f[3], l)
+			}
+			out = append(out, f[1]+": "+f[4])
+		}
+	}
+	return out
+}
+
+func TestLintRestatedFact(t *testing.T) {
+	for _, c := range []struct{ name, obligation, want string }{
+		// The round 4 plants: a conflicting status by number and by label.
+		{"number-conflict", "- MUST: report yass.io.file_unreadable and exit with status 3",
+			"yass.lint.restated_fact: obligation states 3 for field exit of yass.io.file_unreadable, which catalog Diagnostics records as 5"},
+		{"label-conflict", "- MUST: report yass.ref.target_ambiguous and exit with the absent status",
+			"yass.lint.restated_fact: obligation states absent for field exit of yass.ref.target_ambiguous, which catalog Diagnostics records as 4"},
+		// The round 3 plant: a behaviour borrowed from another case.
+		{"comparison", "- MUST: report yass.io.file_unreadable and fail as when the file does not exist",
+			"yass.lint.restated_fact: obligation borrows another case's outcome for yass.io.file_unreadable, which catalog Diagnostics records"},
+		// Restatements authors wrote: each agrees with the catalogue.
+		{"label-agrees", "- MUST: report yass.foo.operand_malformed and exit with the usage status",
+			"yass.lint.restated_fact: obligation restates field exit of yass.foo.operand_malformed, which catalog Diagnostics records"},
+		{"number-and-severity", "- MUST: report yass.foo.target_absent at severity error and exit with status 3",
+			"yass.lint.restated_fact: obligation restates field severity of yass.foo.target_absent, which catalog Diagnostics records"},
+		{"behaviour", "- MUST: reject the invocation as malformed and report yass.foo.operand_malformed",
+			"yass.lint.restated_fact: obligation restates field exit of yass.foo.operand_malformed, which catalog Diagnostics records"},
+		{"behaviour-in-guard", "- WHEN: the invocation is malformed\n  MUST: report yass.foo.operand_malformed",
+			"yass.lint.restated_fact: obligation restates field exit of yass.foo.operand_malformed, which catalog Diagnostics records"},
+		{"quoted-identifier", "- MUST: \"report `yass.diff.pair_none` and exit with the findings status\"",
+			"yass.lint.restated_fact: obligation restates field exit of yass.diff.pair_none, which catalog Diagnostics records"},
+		// Two identifiers, each with its own value: neither value conflicts.
+		{"two-identifiers", "- MUST: report yass.foo.operand_malformed with status 2 and yass.foo.target_absent with status 3",
+			"yass.lint.restated_fact: obligation restates field exit of yass.foo.operand_malformed, which catalog Diagnostics records"},
+		// A content word in another inflection: names and named meet.
+		{"inflected-content-word", "- MUST: report yass.foo.target_absent when something the request named does not exist",
+			"yass.lint.restated_fact: obligation restates field exit of yass.foo.target_absent, which catalog Diagnostics records"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			got := restateLint(t, c.obligation)
+			if len(got) != 1 || got[0] != c.want {
+				t.Fatalf("got %q, want [%q]", got, c.want)
+			}
+		})
+	}
+}
+
+func TestLintRestatedValue(t *testing.T) {
+	for _, c := range []struct{ name, obligation, want string }{
+		{"behaviour", "- WHEN: OPERAND is malformed\n  MUST: reject the invocation as malformed",
+			"yass.lint.restated_value: obligation states the invocation was malformed, a value of field exit in catalog Diagnostics, without naming an identifier"},
+		{"label", "- MUST: reject a malformed operand with the usage status",
+			"yass.lint.restated_value: obligation states usage, a value of field exit in catalog Diagnostics, without naming an identifier"},
+		{"number", "- WHEN: OPERAND names nothing\n  MUST: exit with status 3",
+			"yass.lint.restated_value: obligation states 3, a value of field exit in catalog Diagnostics, without naming an identifier"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			got := restateLint(t, c.obligation)
+			if len(got) != 1 || got[0] != c.want {
+				t.Fatalf("got %q, want [%q]", got, c.want)
+			}
+		})
+	}
+}
+
+// An obligation that names the code and binds the catalogue states no value,
+// and neither does a value written as an ordinary word.
+func TestLintRestatementQuiet(t *testing.T) {
+	for _, c := range []struct{ name, obligation string }{
+		{"binding", "- MUST: report each code the Diagnostics catalogue assigns to owner `foo`, at the severity and exit status it gives\n  USES: Diagnostics"},
+		{"code-and-condition", "- WHEN: OPERAND is malformed\n  MUST: report yass.foo.operand_malformed"},
+		{"condition-near-behaviour", "- WHEN: OPERAND names something that does not exist\n  MUST: report yass.foo.target_absent"},
+		{"code-named-in-a-word", "- MUST: forward the yass.diff.pair_none findings of load unchanged"},
+		{"code-quantity", "- MUST: report yass.io.file_unreadable naming the 1-based line and the 3 files read"},
+		{"value-no-record-holds", "- MUST: exit with the ok status once the line is written"},
+		{"value-as-a-word", "- MUST: be usable with no environment variable"},
+		{"number-as-a-quantity", "- MUST: accept 2 operands"},
+		{"bound-to-vocabulary", "- MUST-NOT: select status 4 from foo, since foo reads one source\n  USES: ExitStatus"},
+		// Each identifier is one word of the context window: usage stands six
+		// words from exit.
+		{"window-counts-identifiers", "- MUST: exit after yass.io.file_unreadable yass.foo.target_absent and yass.diff.pair_none usage"},
+		{"digit-key-names-nothing", "- WHEN: a run returns status 1\n  MUST: print the findings status line\n  USES: ExitStatus"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			if got := restateLint(t, c.obligation); len(got) != 0 {
+				t.Fatalf("got %q, want no advisory", got)
+			}
+		})
+	}
+}
+
+// A field whose values are keys of no other catalogue is matched only as its
+// own values, and a value-only obligation is never reported for it.
+func TestLintRestatementFreeField(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "root.yass.yaml", modeline+`---
+description: d
+version: v1
+---
+spec: R
+INPUT:
+- MUST: log the event at level warn
+- MUST: log app.start at level warn
+- MUST: log app.stop when the level is warn
+- USES: Events
+---
+design: Events
+type: catalog
+content:
+  app.start: {level: info}
+  app.stop: {level: warn}
+`)
+	got := run(dir, "lint")
+	var out []string
+	for _, l := range lines(got.stdout) {
+		if f := strings.Split(l, "\t"); len(f) == 5 && strings.HasPrefix(f[1], "yass.lint.restated_") {
+			out = append(out, f[1]+"\t"+f[3]+"\t"+f[4])
+		}
+	}
+	want := []string{
+		"yass.lint.restated_fact\t9\tobligation states warn for field level of app.start, which catalog Events records as info",
+		"yass.lint.restated_fact\t10\tobligation restates field level of app.stop, which catalog Events records",
+	}
+	if strings.Join(out, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("got\n%s\nwant\n%s", strings.Join(out, "\n"), strings.Join(want, "\n"))
+	}
+}
+
+// A wording matched as written and one matched by its content words are
+// distinct even when their words coincide.
+func TestRestateWordingSame(t *testing.T) {
+	if (wording{phrase: "file path"}).same(wording{content: []string{"file", "path"}}) {
+		t.Fatal("phrase and content wordings compared equal")
+	}
+	if !(wording{phrase: "usage"}).same(wording{phrase: "usage"}) {
+		t.Fatal("equal phrase wordings compared unequal")
+	}
+}
+
+// A value stated for an identifier whose record lacks the field is no
+// conflict with a recorded value.
+func TestRestatedFactMissingField(t *testing.T) {
+	c := &catalogue{doc: &Doc{Name: "C"}, keys: []string{"yass.a.one", "yass.a.two"},
+		recs: map[string]map[string]string{"yass.a.one": {"exit": "usage"}, "yass.a.two": {}}}
+	c.fields = []*fieldDomain{{name: "exit"}}
+	c.fields[0].build(c, []*catalogue{c})
+	if got := restatedFact("report yass.a.two and exit usage", []*catalogue{c}); got != "" {
+		t.Fatalf("got %q, want no advisory", got)
+	}
+	if got := restatedFact("report yass.a.one and exit usage", []*catalogue{c}); got == "" {
+		t.Fatal("want an advisory for the record that holds the field")
+	}
+}

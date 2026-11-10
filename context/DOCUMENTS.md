@@ -143,6 +143,10 @@ This part covers the file, the project root, and the three document kinds: pream
   owner `load`, at the severity and exit status the catalogue gives". It states no field
   value in any wording: not a number, not a status label, not a behaviour such as "fail
   as when the invocation is malformed". A restated value is a second source that drifts.
+  `yass lint` reports an identifier named with a value as `yass.lint.restated_fact`,
+  agreeing or not, and, experimentally, a catalogued value stated with no identifier as
+  `yass.lint.restated_value`. A field whose values are the keys of another catalogue
+  (`exit: 2`, keyed into an exit-status catalogue) is worded by that record's fields too.
 - **Normative force:** an implementation bound to a design block via reference MUST
   follow it. The block is not commentary; it binds through the reference graph (the
   `USES` relation — see `yass docs references`).

@@ -45,6 +45,7 @@ func (a *App) cmdLint() (int, error) {
 	}
 
 	usedDesigns := map[*Doc]bool{}
+	obligationUses := map[*Obligation][]*Doc{}
 	edges := map[*Doc][]*Doc{}
 	for _, f := range files {
 		if !f.Parsed {
@@ -69,6 +70,7 @@ func (a *App) cmdLint() (int, error) {
 						}
 						if r.Relation == "USES" && rr.Doc.Kind == KindDesign {
 							usedDesigns[rr.Doc] = true
+							obligationUses[o] = append(obligationUses[o], rr.Doc)
 						}
 						// CONFORMS, USES, and SEE weigh the same as edges.
 						edges[d] = append(edges[d], rr.Doc)
@@ -98,6 +100,8 @@ func (a *App) cmdLint() (int, error) {
 		}
 	}
 
+	cats := catalogues(files)
+
 	var advisories []Diag
 	warn := func(code, loc string, line int, msg string) {
 		advisories = append(advisories, Diag{Severity: "warn", Code: code, Location: loc, Line: line, Message: msg})
@@ -119,6 +123,7 @@ func (a *App) cmdLint() (int, error) {
 		}
 		advisories = append(advisories, proseAdvisories(f)...)
 		advisories = append(advisories, designAdvisories(f)...)
+		advisories = append(advisories, restateAdvisories(f, cats, obligationUses)...)
 		for _, d := range f.Docs {
 			if !d.Addressable() {
 				continue
