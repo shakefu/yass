@@ -118,6 +118,7 @@ func (a *App) cmdLint() (int, error) {
 			warn("yass.lint.modeline", f.Ref, 1, "first line is not the schema modeline")
 		}
 		advisories = append(advisories, proseAdvisories(f)...)
+		advisories = append(advisories, designAdvisories(f)...)
 		for _, d := range f.Docs {
 			if !d.Addressable() {
 				continue
