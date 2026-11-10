@@ -147,17 +147,17 @@ func shapeProblem(o *Obligation, slot, prose, guard string) string {
 	switch {
 	case utf8.RuneCountInString(o.Prose) > ShapeLength:
 		return "obligation prose runs " + strconv.Itoa(utf8.RuneCountInString(o.Prose)) +
-			" characters; state one requirement per obligation and move the mechanism to a design"
+			" characters"
 	case shapeCode.MatchString(both):
-		return "code written into prose; name the symbol and move the mechanism to a design"
+		return "code written into prose"
 	case shapeProcedure.MatchString(both):
-		return "procedure written into prose; state one requirement per obligation and move the steps to a design"
+		return "procedure written into prose"
 	case shapeClauses.MatchString(shapeAbbrev.ReplaceAllString(both, "")):
-		return "several clauses in one obligation; split each requirement into its own obligation"
+		return "several clauses in one obligation"
 	case shapeAside.MatchString(both):
-		return "rationale aside in prose; state the requirement alone"
+		return "rationale aside in prose"
 	case slot != "ERROR" && shapeErrorMap.MatchString(prose):
-		return "error mapping outside ERROR; state each failure as an ERROR obligation"
+		return "error mapping outside ERROR"
 	}
 	return ""
 }
