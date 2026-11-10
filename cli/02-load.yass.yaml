@@ -14,7 +14,7 @@ INPUT:
   CONFORMS: 01-locate@FileSet::RETURN
 - MUST: rely on every path in that set naming an existing regular file, since the file set yields no other, and re-check that property only for a path a command took from the command line instead
 - WHEN: a path taken from the project file set does not exist when parsing reaches it
-  MUST: report code yass.internal and exit with the environment status
+  MUST: report code yass.internal
 - MUST: read each file's bytes and decode them as UTF-8
 - MUST: parse each file as a YAML 1.2 stream under the core schema
 - MUST: "treat `yes`, `no`, `on`, and `off` as plain strings rather than booleans"
@@ -44,7 +44,9 @@ RETURN:
   SEE: 08-validate@Validate
 ERROR:
 - WHEN: a file cannot be opened or read
-  MUST: report code yass.io.unreadable naming the path and exit with the environment status
+  MUST: report code yass.io.unreadable naming the path
+- MUST: exit with the status the request-failure catalogue gives each code this spec reports to end a request
+  USES: root@RequestFailures
 INVARIANT:
 - MUST: be the only place this program reads a spec file, so no command reaches the filesystem for content of its own
 - MUST-NOT: exit for a file that parsed but violates a yass rule, since deciding well-formedness belongs to validation alone
@@ -64,7 +66,7 @@ INPUT:
   CONFORMS: Load::RETURN
 - MUST: rely on the model recording every document's path, name, kind, and declared slots, and re-read no file to confirm any of them
 - WHEN: the model records no entry for the file a target names
-  MUST: report code yass.internal and exit with the environment status
+  MUST: report code yass.internal
 - MUST: parse the target with the ref-target grammar the language defines
   CONFORMS: ../yass@RefTarget
 - MUST: "accept the form `path@Name::SLOT`, in which `path@` and `::SLOT` are each optional"
@@ -89,30 +91,31 @@ RETURN:
   USES: root@RecordFormat
 ERROR:
 - WHEN: the target does not match the ref-target grammar
-  MUST: report code yass.args.target_syntax naming the target and exit with the usage status
+  MUST: report code yass.args.target_syntax naming the target
 - WHEN: "the `::SLOT` token names a slot outside INPUT, RETURN, ERROR, SIDE-EFFECT, and INVARIANT"
-  MUST: report code yass.ref.slot_unknown naming the token and exit with the usage status
+  MUST: report code yass.ref.slot_unknown naming the token
   SEE: ../yass@Slot
 - WHEN: the file the path token names does not exist
-  MUST: report code yass.ref.unresolved naming the target and exit with the unresolved status
+  MUST: report code yass.ref.unresolved naming the target
 - WHEN: the file exists but yielded a parse failure, so it holds no addressable document
-  MUST: report that failure's code naming the file and its line, and exit with the unresolved status
+  MUST: report that failure's code naming the file and its line
   SEE: Load::RETURN
 - WHEN: the file holds no spec and no design with the given name
-  MUST: report code yass.ref.unresolved naming the target and exit with the unresolved status
+  MUST: report code yass.ref.unresolved naming the target
 - WHEN: two documents of the file carry the given name
-  MUST: report code yass.ref.unresolved naming the target and the file, and exit with the unresolved status, resolving to neither
+  MUST: report code yass.ref.unresolved naming the target and the file, resolving to neither
 - WHEN: a slot was given and the named document is a design
-  MUST: report code yass.ref.slot_on_design naming the target and exit with the unresolved status, because a design carries no slots
+  MUST: report code yass.ref.slot_on_design naming the target, because a design carries no slots
   CONFORMS: ../yass@Design
 - WHEN: a slot was given and the named spec does not declare it
-  MUST: report code yass.ref.slot_undeclared naming the target and exit with the unresolved status
-- MUST: report code yass.ref.unresolved naming the target and exit with the unresolved status for any target that fails to resolve for a reason not matched above, such as a path token that names a directory
+  MUST: report code yass.ref.slot_undeclared naming the target
+- MUST: report code yass.ref.unresolved naming the target for any target that fails to resolve for a reason not matched above, such as a path token that names a directory
+- MUST: exit with the status the request-failure catalogue gives each code this spec reports to end a request
+  USES: root@RequestFailures
 SIDE-EFFECT:
 - MUST: write every diagnostic in this slot to standard error, because a target that will not resolve is a failure to serve the request
   USES: root@OutputPolicy
 INVARIANT:
-- MUST: exit with the usage status for a target the grammar or the slot vocabulary rejects, and with the unresolved status for a well-formed target that addresses nothing
 - MUST-NOT: fall back to searching the project for a document whose name matches, so a target resolves by path or not at all
 - MUST-NOT: carry a resolution across invocations, so no cache can go stale against the file tree
   CONFORMS: ../yass@RefTarget::INVARIANT

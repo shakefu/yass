@@ -46,22 +46,24 @@ ERROR:
 - MUST-NOT: report a diagnostic for an argument vector that names no subcommand, since the default subcommand makes it well formed
   SEE: 11-overview@Overview
 - WHEN: the subcommand token is outside the recognized set
-  MUST: report code yass.args.unknown_subcommand, naming the token and the recognized subcommands, and exit with the usage status
+  MUST: report code yass.args.unknown_subcommand, naming the token and the recognized subcommands
 - WHEN: "an option is given before the subcommand token that is outside the global set, including a subcommand's own option such as `--raw`"
-  MUST: report code yass.args.unknown_option naming the option and exit with the usage status
+  MUST: report code yass.args.unknown_option naming the option
 - WHEN: an option is given after the subcommand token that the synopsis does not list for that subcommand
-  MUST: report code yass.args.unknown_option naming the option and exit with the usage status
+  MUST: report code yass.args.unknown_option naming the option
 - WHEN: an option requiring a value is the last argument, so it has no following value
-  MUST: report code yass.args.missing_value naming the option and exit with the usage status
+  MUST: report code yass.args.missing_value naming the option
 - WHEN: the subcommand receives fewer operands than the synopsis requires
-  MUST: report code yass.args.missing_operand naming the subcommand and exit with the usage status
+  MUST: report code yass.args.missing_operand naming the subcommand
 - WHEN: the subcommand receives more operands than the synopsis accepts
-  MUST: report code yass.args.extra_operand naming the first excess operand and exit with the usage status
+  MUST: report code yass.args.extra_operand naming the first excess operand
 - WHEN: an operand is the empty string
-  MUST: report code yass.args.empty and exit with the usage status
+  MUST: report code yass.args.empty
 - WHEN: a global option that takes a value is given more than once
   MUST: take the last occurrence and report nothing, because a later value overriding an earlier one is the ordinary shell idiom
-- MUST: report code yass.args.unknown_option and exit with the usage status for any argument that is neither a recognized option, an option value, the subcommand token, nor an operand the synopsis accepts
+- MUST: report code yass.args.unknown_option for any argument that is neither a recognized option, an option value, the subcommand token, nor an operand the synopsis accepts
+- MUST: exit with the status the request-failure catalogue gives each code this spec reports to end a request
+  USES: root@RequestFailures
 SIDE-EFFECT:
 - MUST: write every diagnostic in this slot to standard error, because a malformed argument vector is a failure to serve the request rather than the requested answer
   USES: root@OutputPolicy

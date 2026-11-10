@@ -28,7 +28,7 @@ INPUT:
 - MUST: rely on invocation having recognized the subcommand token and every global option, so dispatch always receives a member of the recognized set
 - MUST-NOT: re-examine the argument vector after invocation has parsed it
 - WHEN: the parsed invocation names a subcommand outside the recognized set
-  MUST: report code yass.internal and exit with the environment status, because invocation rejects such a token before dispatch
+  MUST: report code yass.internal, because invocation rejects such a token before dispatch
   SEE: 00-invocation@Invocation::ERROR
 - WHEN: "the subcommand is `overview`, whether it was named or defaulted to"
   MUST: dispatch to the command that orients a reader in this program and this project
@@ -70,11 +70,13 @@ RETURN:
 - MUST: be usable with no configuration file, no environment variable, and no per-repository setup
 ERROR:
 - WHEN: no project root governs the addressed path
-  MUST: report code yass.root.not_found and exit with the no-root status
+  MUST: report code yass.root.not_found
   SEE: 01-locate@RootDiscovery::ERROR
 - WHEN: an addressed path exists but cannot be read
-  MUST: report code yass.io.unreadable naming the path and exit with the environment status
-- MUST: report code yass.internal and exit with the environment status for any failure not matched by a guarded obligation of the dispatched command's own ERROR slot
+  MUST: report code yass.io.unreadable naming the path
+- MUST: report code yass.internal for any failure not matched by a guarded obligation of the dispatched command's own ERROR slot
+- MUST: exit with the status the request-failure catalogue gives each code this spec reports to end a request
+  USES: RequestFailures
 SIDE-EFFECT:
 - MUST-NOT: "create, modify, delete, or rename any file or directory, save that `update` replaces the program's own installed binary and nothing else"
   SEE: 12-update@Update::SIDE-EFFECT
@@ -91,6 +93,10 @@ INVARIANT:
   USES: ExitPolicy
 - MUST-NOT: return a status the exit policy does not catalogue
   USES: ExitPolicy
+- WHEN: validate or lint reports a code the request-failure catalogue records as a finding, so the code does not end the request
+  MUST: let that finding contribute the findings status alone, since the catalogue gives the status of a request the code ends
+  USES: RequestFailures
+  SEE: 08-validate@Validate
 - WHEN: more than one condition the exit policy catalogues applies to one invocation
   MUST: return the applicable status with the highest number, so status 5 outranks 4, 4 outranks 3, 3 outranks 2, 2 outranks 1, and 1 outranks 0
   USES: ExitPolicy
@@ -149,6 +155,37 @@ content:
   5:
     label: environment
     meaning: a path could not be read, an output stream could not be written, or a guarantee this program relied on internally did not hold
+---
+design: RequestFailures
+type: catalog
+content:
+  yass.args.empty:              {exit: 2}
+  yass.args.extra_operand:      {exit: 2}
+  yass.args.missing_operand:    {exit: 2}
+  yass.args.missing_value:      {exit: 2}
+  yass.args.target_syntax:      {exit: 2}
+  yass.args.unknown_option:     {exit: 2}
+  yass.args.unknown_subcommand: {exit: 2}
+  yass.docs.unknown:            {exit: 3}
+  yass.document.encoding:       {exit: 3}
+  yass.document.not_yaml:       {exit: 3}
+  yass.document.yaml_feature:   {exit: 3}
+  yass.internal:                {exit: 5}
+  yass.io.missing:              {exit: 3}
+  yass.io.not_a_spec_file:      {exit: 2}
+  yass.io.unreadable:           {exit: 5}
+  yass.ref.conforms_design:     {exit: 3}
+  yass.ref.slot_on_design:      {exit: 3}
+  yass.ref.slot_undeclared:     {exit: 3}
+  yass.ref.slot_unknown:        {exit: 2}
+  yass.ref.syntax:              {exit: 3}
+  yass.ref.unresolved:          {exit: 3}
+  yass.ref.uses_spec:           {exit: 3}
+  yass.root.not_found:          {exit: 4}
+  yass.update.checksum:         {exit: 5}
+  yass.update.denied:           {exit: 5}
+  yass.update.unreachable:      {exit: 5}
+  yass.update.unsupported:      {exit: 5}
 ---
 design: OutputPolicy
 type: constraint
