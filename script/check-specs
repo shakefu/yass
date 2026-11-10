@@ -48,6 +48,11 @@ lint_disposition() {
 	yass.lint.modeline) echo advise ;;
 	# The language permits an empty slot; it adds no obligation and misleads none.
 	yass.lint.slot_empty) echo advise ;;
+	# A catalogued fact stated again drifts, but the check starts advisory.
+	yass.lint.restated_fact) echo advise ;;
+	# Experimental: a value with no identifier is also how a status-policy
+	# obligation speaks, so its false hits are measured before it can fail.
+	yass.lint.restated_value) echo advise ;;
 	*) echo unknown ;;
 	esac
 }

@@ -186,8 +186,12 @@ existence, and relation/target kinds. It reports errors without repairing files.
 missing schema modelines, empty slots, specs without slots, open questions or
 placeholders left in a file (`TBD`, `TODO`, a `?` in obligation prose), and
 conditions, keywords, or references written into prose instead of keys, and source
-code in a `schema` or `algorithm` design or a Markdown table in any design. It builds the
-whole project graph even when paths restrict which files' advisories it reports.
+code in a `schema` or `algorithm` design or a Markdown table in any design, and an
+obligation that restates a fact a `catalog` design records: an identifier named with
+one of its field values, by number, label, or behaviour phrase (`restated_fact`), or,
+as an experimental check, such a value stated with no identifier (`restated_value`).
+It builds the whole project graph even when paths restrict which files' advisories it
+reports.
 Lint does not run validation first; it remains usable during authoring.
 
 Both commands are silent and exit `0` when clean. Findings go to standard output

@@ -5,7 +5,8 @@ description: >
   spec set as a whole — a design nothing binds, a document no reference chain reaches, a
   missing schema modeline, an empty slot, a spec with no slot, an unresolved question left in
   a file, a keyword written into prose, an obligation holding more than one requirement, source code
-  or a Markdown table inside a design — each as one coded advisory.
+  or a Markdown table inside a design, an obligation stating a fact a catalog already records —
+  each as one coded advisory.
   It runs its own checks and never runs validation first, so a spec set that is being
   authored can still be linted; a file that would not parse is reported as an advisory of its
   own, because reachability computed over a partial graph can be wrong.
@@ -88,6 +89,25 @@ RETURN:
 - WHEN: "a line of a design's string content, or of a string field value of its catalogue records, holds a pipe and the next line is a Markdown table delimiter row of dashes divided by pipes"
   MUST: emit code yass.lint.design_table at the first of those lines, because a Markdown table is a second syntax no tool checks and its rows belong in a catalog
   SEE: ../yass@Design
+- MUST: take as a catalogue every design of the project file set whose type is catalog and whose content is a mapping, whatever PATH selects, skipping a record that is not a mapping, a repeated identifier after its first record, and a field value that is not a scalar
+  SEE: ../yass@Design
+- MUST: take each key of a catalogue as an identifier, except a key of digits alone, because prose writes a number as a quantity far more often than as the name of a record
+- MUST: "match an identifier case-sensitively as a whole token of an obligation's guard and prose with backticks removed, a token being bounded by any character other than a letter, a digit, or an underscore, save a dot, hyphen, slash, or `@` followed by one of those"
+- MUST: take as the values a field of a catalogue can take the values its records hold, together with every key of its vocabulary when the field is vocabulary-backed
+- MUST: treat a field of a catalogue as vocabulary-backed when every value its records hold is a key of exactly one other catalogue, called its vocabulary
+- MUST: take as the wordings of a field value the value itself and, for a vocabulary-backed field, every field value of the vocabulary record keyed by it
+- MUST: "treat a wording of one word as stated only where it stands, in any casing and with edge punctuation trimmed, within three whitespace-separated words of a context word: the field's name or, for a vocabulary-backed field, a word of the vocabulary's name split at case changes and punctuation"
+- MUST: treat a wording of several words as stated wherever it occurs in any casing as a whole phrase
+- MUST: "treat a vocabulary wording of at most eight words holding at least two content words, a content word having four or more letters and lying outside a fixed list of function words, as stated also wherever every one of its content words occurs"
+- MUST: "compare a context word or a content word by its stem, which drops one trailing inflection and a final `e` but keeps at least three letters, so `name`, `names`, `named`, and `naming` meet"
+- WHEN: "an obligation's guard or prose names an identifier and states, outside every identifier it names, a wording of a value that a field of the identifier's catalogue can take, or names an identifier whose catalogue has a vocabulary-backed field and holds `as when`, `as for`, `as if`, or `as though`"
+  MUST: emit code yass.lint.restated_fact at the line of that obligation, whether the stated value agrees with the record or not, because a fact stated outside its catalogue is a second source that drifts
+  SEE: ../yass@Design::RETURN
+- WHEN: an obligation's guard and prose name no identifier of a catalogue, the obligation carries no USES reference to that catalogue or to the vocabulary of the field, and they state a wording of a value that some record of that catalogue holds in a vocabulary-backed field
+  MUST: emit code yass.lint.restated_value at the line of that obligation, with a message naming the value, its field, and its catalogue, because the obligation states a fact of a record without saying which record
+  SEE: ../yass@Design::RETURN
+- MUST-NOT: emit yass.lint.restated_value for a value that no record holds, since such a value is an outcome that no catalogued identifier carries
+- MUST: "treat yass.lint.restated_value as experimental: its patterns may change between releases while its rate of false advisories is measured"
 - MUST: "treat as a backtick code span the text between a backtick and the next backtick on the same line, so a keyword or marker a spec mentions rather than uses is written inside one"
 - MUST: emit at most one advisory of a given code at a given line
 - MUST: "name, in an open-question, prose-keyword, or obligation-shape advisory, the slot holding its line, or else the document holding it, or else the file, a slot holding the lines from its key to the next slot or document"
@@ -123,7 +143,7 @@ INVARIANT:
 - MUST-NOT: emit an advisory that repeats a diagnostic validation emits, so the two commands partition the checks between them and a reader runs both without reading anything twice
   SEE: 08-validate@Validate
 - MUST-NOT: judge the wording, ordering, granularity, or completeness of an obligation, so no advisory depends on understanding prose
-- MUST: match fixed character patterns, and weigh nothing they match, in the open-question, prose-keyword, obligation-shape, design-code, and design-table advisories
+- MUST: match fixed character patterns, and weigh nothing they match, in the open-question, prose-keyword, obligation-shape, design-code, design-table, restated-fact, and restated-value advisories
 - MUST-NOT: judge whether a slot states a residual, since that is a property of what obligations say rather than of the graph
   SEE: ../yass@Slot.ERROR
 - MUST-NOT: cross a project root boundary when computing reachability, so a nested project's documents are reached from that project's own root spec
