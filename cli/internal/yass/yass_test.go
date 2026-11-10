@@ -842,11 +842,11 @@ func TestTargetResolutionErrors(t *testing.T) {
 		code   string
 		status int
 	}{
-		{"a@Alpha::bad", "yass.ref.syntax", ExitUsage},
+		{"a@Alpha::bad", "yass.args.target_syntax", ExitUsage},
 		{"a@Alpha::NOPE", "yass.ref.slot_unknown", ExitUsage},
-		{"a@Al pha", "yass.ref.syntax", ExitUsage},
-		{`a\b@Alpha`, "yass.ref.syntax", ExitUsage},
-		{"/a@Alpha", "yass.ref.syntax", ExitUsage},
+		{"a@Al pha", "yass.args.target_syntax", ExitUsage},
+		{`a\b@Alpha`, "yass.args.target_syntax", ExitUsage},
+		{"/a@Alpha", "yass.args.target_syntax", ExitUsage},
 		{"missing@Alpha", "yass.ref.unresolved", ExitUnresolved},
 		{"a@Nothing", "yass.ref.unresolved", ExitUnresolved},
 		{"a@Note::INPUT", "yass.ref.slot_on_design", ExitUnresolved},

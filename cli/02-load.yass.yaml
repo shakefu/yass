@@ -84,7 +84,7 @@ RETURN:
   USES: root@RecordFormat
 ERROR:
 - WHEN: the target does not match the ref-target grammar
-  MUST: report code yass.ref.syntax naming the target and exit with the usage status
+  MUST: report code yass.args.target_syntax naming the target and exit with the usage status
 - WHEN: "the `::SLOT` token names a slot outside INPUT, RETURN, ERROR, SIDE-EFFECT, and INVARIANT"
   MUST: report code yass.ref.slot_unknown naming the token and exit with the usage status
   SEE: ../yass@Slot
