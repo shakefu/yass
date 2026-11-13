@@ -116,15 +116,17 @@ func (a *App) cmdLint() (int, error) {
 		if !selected[f.Abs] {
 			continue
 		}
+		// The modeline check needs only the first line, so a file that failed
+		// to parse gets it too.
+		if f.FirstLine != Modeline {
+			warn("yass.lint.modeline", f.Ref, 1, "first line is not the schema modeline")
+		}
 		if !f.Parsed {
 			// A partial graph can yield a false reachability advisory, so the
 			// reader must know the graph was partial.
 			warn("yass.lint.unparsed", f.Ref, f.FailLine, "file yielded no documents")
 			advisories = append(advisories, proseAdvisories(f)...)
 			continue
-		}
-		if f.FirstLine != Modeline {
-			warn("yass.lint.modeline", f.Ref, 1, "first line is not the schema modeline")
 		}
 		advisories = append(advisories, proseAdvisories(f)...)
 		advisories = append(advisories, designAdvisories(f)...)
