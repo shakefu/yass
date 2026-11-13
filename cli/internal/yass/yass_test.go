@@ -2741,7 +2741,8 @@ func designLint(t *testing.T, typ, content string) []string {
 
 func TestLintDesignCode(t *testing.T) {
 	for _, c := range []struct{ name, typ, content string }{
-		{"go-qualified-call", "algorithm", `cfg := huma.DefaultConfig("Service Name", version.Version)`},
+		{"go-qualified-call", "algorithm", `srv := huma.NewServer(cfg, func() {`},
+		{"go-qualified-literal", "algorithm", `srv := huma.Server{URL: "http://localhost:8080"}`},
 		{"go-map-literal", "schema", `cfg.Formats = map[string]huma.Format{"json": huma.DefaultJSONFormat}`},
 		{"go-slice-literal", "schema", `cfg.Servers = []*huma.Server{{URL: "http://localhost:8080"}}`},
 		{"go-func", "algorithm", "func Resolve(t Target) (*Doc, error) {"},
