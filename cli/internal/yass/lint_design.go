@@ -20,7 +20,7 @@ var (
 		// A function definition: Go, Python, JavaScript, Rust.
 		regexp.MustCompile(`^\s*func\s+(\([^)]*\)\s*)?\w+\s*\(`),
 		regexp.MustCompile(`^\s*(async\s+)?def\s+\w+\s*\(.*\)\s*(->\s*[^:]+)?:\s*$`),
-		regexp.MustCompile(`^\s*(export\s+)?(async\s+)?function\s*\w*\s*\(.*\)\s*\{`),
+		regexp.MustCompile(`^\s*(export\s+)?(async\s+)?function\b\s*\w*\s*\(.*\)\s*\{`),
 		regexp.MustCompile(`^\s*(pub\s+)?fn\s+\w+\s*[<(]`),
 		// A statement terminated by a semicolon: an assignment or a call.
 		regexp.MustCompile(`^\s*[A-Za-z_][\w.\[\]*]*\s*(=|:=|\+=|-=)\s*[^=\s].*;\s*$`),
