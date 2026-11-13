@@ -174,9 +174,17 @@ type Entry struct {
 // Target renders `path@Name`, the ref target that addresses this document.
 func (d *Doc) Target() string { return d.File.Ref + "@" + d.Name }
 
-// Addressable reports whether the document can be named by a ref target.
+// Addressable reports whether the document can be named by a ref target. A
+// document claimed by neither classification rule is not.
 func (d *Doc) Addressable() bool {
-	return d.HasName && d.Name != "" && (d.Kind == KindSpec || d.Kind == KindDesign)
+	return d.HasName && d.Name != "" && (d.Kind == KindSpec || d.Kind == KindDesign) && !d.bothKeys()
+}
+
+// bothKeys reports whether a document after the first carries both a `spec`
+// and a `design` key, so neither classification rule may claim it: it is
+// neither a spec nor a design.
+func (d *Doc) bothKeys() bool {
+	return d.Index > 0 && d.hasKey("spec") && d.hasKey("design")
 }
 
 // Slot is one declared slot of a spec document.
@@ -231,11 +239,12 @@ type Ref struct {
 // Slot returns the slot the reference sits in.
 func (r *Ref) Slot() *Slot { return r.Obl.Slot }
 
-// specDocs returns the file's spec documents.
+// specDocs returns the file's spec documents, leaving out a document that
+// carries both keys, which neither classification rule claims.
 func (f *File) specDocs() []*Doc {
 	var out []*Doc
 	for _, d := range f.Docs {
-		if d.Kind == KindSpec {
+		if d.Kind == KindSpec && !d.bothKeys() {
 			out = append(out, d)
 		}
 	}

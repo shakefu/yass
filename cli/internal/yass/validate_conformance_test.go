@@ -72,3 +72,33 @@ func TestValidateUnreadableReferencedFile(t *testing.T) {
 		t.Fatalf("stdout = %q, stderr = %q, want only yass.io.unreadable naming u.yass.yaml", got.stdout, got.stderr)
 	}
 }
+
+// A document carrying both keys is claimed by neither classification: it is
+// not counted as the root's spec, and a reference to its name does not
+// resolve.
+func TestValidateBothKeysDocumentIsNeitherSpecNorDesign(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "root.yass.yaml", conformanceRoot+"---\nspec: B\ndesign: B\n")
+	got := run(dir, "validate")
+	wantStatus(t, got, ExitFindings)
+	codes := map[string]bool{}
+	for _, f := range fieldsOf(got.stdout) {
+		codes[f[1]] = true
+	}
+	if !codes["yass.document.both_keys"] || codes["yass.root.spec_count"] {
+		t.Fatalf("codes = %v, want both_keys without root.spec_count\n%s", codes, got.stdout)
+	}
+
+	dir = t.TempDir()
+	write(t, dir, "root.yass.yaml", conformanceRoot+"  USES: b@B\n- MUST: y\n  CONFORMS: b@B\n")
+	write(t, dir, "b.yass.yaml", modeline+"---\ndescription: b\nversion: v1\n---\nspec: B\ndesign: B\n")
+	got = run(dir, "validate", "root.yass.yaml")
+	wantStatus(t, got, ExitFindings)
+	var refCodes []string
+	for _, f := range fieldsOf(got.stdout) {
+		refCodes = append(refCodes, f[1])
+	}
+	if strings.Join(refCodes, ",") != "yass.ref.unresolved,yass.ref.unresolved" {
+		t.Fatalf("codes = %v, want two yass.ref.unresolved\n%s", refCodes, got.stdout)
+	}
+}
