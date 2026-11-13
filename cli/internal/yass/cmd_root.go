@@ -22,6 +22,6 @@ func (a *App) cmdRoot() (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	a.out.line(record(root))
+	a.out.line(a.record(rootFields, root))
 	return ExitOK, nil
 }

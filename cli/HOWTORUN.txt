@@ -31,19 +31,28 @@ Run
   yass [-C DIR] [--version] [--help] [SUBCOMMAND [ARGS...]]
 
     overview                       orient a reader in this program and this project
-    root [PATH]                    report the project root governing PATH
+    root [--format FORMAT] [PATH]  report the project root governing PATH
     query [--raw] TARGET...        emit each addressed document, references resolved
-    list [--filter GLOB] [PATH...] index the documents of a tree
-    find [--slot SLOT] PATTERN     search obligation prose and design content
-    refs [--in] [--out] TARGET     report the reference edges of one document
-    validate [PATH...]             check files against the yass language definition
-    lint [PATH...]                 report graph hygiene of the project
+    list [--filter GLOB] [--format FORMAT] [PATH...]
+                                   index the documents of a tree
+    find [--slot SLOT] [--format FORMAT] PATTERN
+                                   search obligation prose and design content
+    refs [--in] [--out] [--format FORMAT] TARGET
+                                   report the reference edges of one document
+    validate [--format FORMAT] [PATH...]
+                                   check files against the yass language definition
+    lint [--format FORMAT] [PATH...]
+                                   report graph hygiene of the project
     docs [NAME]                    index the carried documents, or write one
-    update                         replace this binary with the newest release
+    update [--format FORMAT]       replace this binary with the newest release
 
   Global options are written before the subcommand token; a subcommand's own
   options are written after it. A TARGET is `path@Name::SLOT`, in which `path@`
   and `::SLOT` are each optional.
+
+  `--format json` makes a record-writing subcommand write each record as one
+  compact JSON object per line instead of TAB-separated text; `--format text`
+  is the default. Standard error stays text.
 
   An invocation naming no subcommand runs `overview`, which writes the block a
   reader needs on first contact: what this program is, what project the starting
@@ -71,8 +80,11 @@ Examples, run from this directory
   ./yass find 'byte-identical'
   ./yass find --slot ERROR 'exit with the usage status'
   ./yass refs 01-locate@FileSet
+  ./yass list --format json
+  ./yass find --format=json 'byte-identical'
   ./yass validate
   ./yass lint
+  ./yass lint --format json
   ./yass docs
   ./yass docs authoring
 

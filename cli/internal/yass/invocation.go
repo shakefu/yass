@@ -1,6 +1,7 @@
 package yass
 
 import (
+	"strconv"
 	"strings"
 	"unicode/utf8"
 )
@@ -29,6 +30,7 @@ type Invocation struct {
 	HasSlot bool
 	In      bool
 	Out     bool
+	Format  string // "text" or "json"; "" means text
 
 	Help    bool
 	Version bool
@@ -41,16 +43,24 @@ type optionSpec struct {
 
 var subcommandOptions = map[string]map[string]optionSpec{
 	"overview": {},
-	"root":     {},
+	"root":     {"--format": {takesValue: true}},
 	"query":    {"--raw": {}},
-	"list":     {"--filter": {takesValue: true}},
-	"find":     {"--slot": {takesValue: true}},
-	"refs":     {"--in": {}, "--out": {}},
-	"validate": {},
-	"lint":     {},
+	"list":     {"--filter": {takesValue: true}, "--format": {takesValue: true}},
+	"find":     {"--slot": {takesValue: true}, "--format": {takesValue: true}},
+	"refs":     {"--in": {}, "--out": {}, "--format": {takesValue: true}},
+	"validate": {"--format": {takesValue: true}},
+	"lint":     {"--format": {takesValue: true}},
 	"docs":     {},
-	"update":   {},
+	"update":   {"--format": {takesValue: true}},
 }
+
+// Formats is the set of record formats --format accepts.
+var Formats = []string{FormatText, FormatJSON}
+
+const (
+	FormatText = "text"
+	FormatJSON = "json"
+)
 
 // operandRange fixes how many operands each subcommand requires and accepts;
 // a max of -1 means unbounded.
@@ -197,6 +207,9 @@ func parseSubcommandArgs(inv *Invocation, args []string) error {
 				} else if hasValue {
 					return unknownOption(name)
 				}
+				if name == "--format" && !contains(Formats, value) {
+					return fail(ExitUsage, "yass.args.unknown_format", "", 0, "unknown format "+strconv.Quote(value))
+				}
 				applyOption(inv, name, value)
 				continue
 			}
@@ -219,6 +232,8 @@ func applyOption(inv *Invocation, name, value string) {
 		inv.In = true
 	case "--out":
 		inv.Out = true
+	case "--format":
+		inv.Format = value
 	}
 }
 

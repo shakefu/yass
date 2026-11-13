@@ -10,15 +10,20 @@ import (
 const synopsis = `usage: yass [-C DIR] [--version] [--help] [SUBCOMMAND [ARGS...]]
 
   overview                       orient a reader in this program and this project
-  root [PATH]                    report the project root governing PATH
+  root [--format FORMAT] [PATH]  report the project root governing PATH
   query [--raw] TARGET...        emit each addressed document, references resolved
-  list [--filter GLOB] [PATH...] index the documents of a tree
-  find [--slot SLOT] PATTERN     search obligation prose and design content
-  refs [--in] [--out] TARGET     report the reference edges of one document
-  validate [PATH...]             check files against the yass language definition
-  lint [PATH...]                 report graph hygiene of the project
+  list [--filter GLOB] [--format FORMAT] [PATH...]
+                                 index the documents of a tree
+  find [--slot SLOT] [--format FORMAT] PATTERN
+                                 search obligation prose and design content
+  refs [--in] [--out] [--format FORMAT] TARGET
+                                 report the reference edges of one document
+  validate [--format FORMAT] [PATH...]
+                                 check files against the yass language definition
+  lint [--format FORMAT] [PATH...]
+                                 report graph hygiene of the project
   docs [NAME]                    index the carried documents, or write one
-  update                         replace this binary with the newest release
+  update [--format FORMAT]       replace this binary with the newest release
 
   -C DIR                         start path resolution and root discovery at DIR
   --version, -V                  write the version and exit
@@ -30,6 +35,7 @@ const synopsis = `usage: yass [-C DIR] [--version] [--help] [SUBCOMMAND [ARGS...
   --slot SLOT                    restrict matches to obligations of that slot
   --in                           report incoming edges only
   --out                          report outgoing edges only
+  --format FORMAT                write records as text (default) or json
 
   0 ok   1 findings   2 usage   3 unresolved   4 no-root   5 environment
 

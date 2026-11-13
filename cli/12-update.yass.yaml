@@ -10,7 +10,8 @@ version: v1
 ---
 spec: Update
 INPUT:
-- MUST: "be invoked as `yass update`, taking no option and no operand"
+- MUST: "be invoked as `yass update [--format FORMAT]`, taking no operand"
+  SEE: root@YassCli::RETURN
 - MUST: "take the version this program was built as for the installed version, the same value `--version` reports"
   SEE: 00-invocation@Invocation::RETURN
 - MUST: take the file the running program was executed from, with symbolic links resolved, as the installed binary

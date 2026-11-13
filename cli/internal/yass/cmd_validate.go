@@ -37,7 +37,7 @@ func (a *App) cmdValidate() (int, error) {
 
 	sortDiags(diags)
 	for _, d := range diags {
-		a.out.line(d.Record())
+		a.out.line(a.diag(d))
 	}
 	if len(diags) > 0 {
 		return ExitFindings, nil

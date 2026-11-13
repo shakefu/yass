@@ -141,7 +141,8 @@ For an installer-managed or manually placed binary:
 yass update
 ```
 
-This command takes no options or operands and works outside a Yass project. It
+This command takes no operands, only `--format FORMAT`, and works outside a Yass
+project. It
 resolves the newest stable release, verifies the matching archive's checksum,
 and replaces the running binary at its resolved path. It needs network access
 and permission to write the binary's directory. A failed update preserves the
@@ -156,7 +157,8 @@ updated	0.4.1	0.4.3
 The fields are action, installed version, and newest stable version. The action
 is `current` when already current, `updated` after replacement, or `homebrew`
 when an older Homebrew-managed binary is detected. For `homebrew`, run
-`brew update` and `brew upgrade yass`.
+`brew update` and `brew upgrade yass`. With `--format json` the record is one JSON
+object instead: `{"action":"updated","from":"0.4.1","to":"0.4.3"}`.
 
 `yass update` selects the newest stable release, even when you previously
 installed a pinned version. To keep or change a pin, rerun the installer with

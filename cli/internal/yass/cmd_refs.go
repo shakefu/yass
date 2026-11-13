@@ -71,7 +71,7 @@ func (a *App) cmdRefs() (int, error) {
 						}
 						continue
 					}
-					outgoing = append(outgoing, record("out", r.Relation, a.edgeTarget(rr)))
+					outgoing = append(outgoing, a.record(refsFields, "out", r.Relation, a.edgeTarget(rr)))
 				}
 			}
 		}
@@ -95,7 +95,7 @@ func (a *App) cmdRefs() (int, error) {
 						if b.Slot != "" && rr.Slot != b.Slot {
 							continue
 						}
-						incoming = append(incoming, record("in", r.Relation, d.Target()))
+						incoming = append(incoming, a.record(refsFields, "in", r.Relation, d.Target()))
 					}
 				}
 			}

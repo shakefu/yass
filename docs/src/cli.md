@@ -79,7 +79,7 @@ yass list --filter '*@Greeting'
 yass list --filter '*@*Handler*' --filter '*@*Policy*'
 ```
 
-`list [--filter GLOB] [PATH...]` indexes the project, or the files and directories
+`list [--filter GLOB] [--format FORMAT] [PATH...]` indexes the project, or the files and directories
 you select. Each tab-separated record has `REF`, `KIND`, `DETAIL`, and
 `DESCRIPTION` fields. File detail is the number of documents; spec detail is its
 declared slots; design detail is its type. File descriptions are shortened to
@@ -134,7 +134,7 @@ yass find 'supplied name'
 yass find --slot RETURN 'hello'
 ```
 
-`find [--slot SLOT] PATTERN` performs a case-insensitive **literal substring**
+`find [--slot SLOT] [--format FORMAT] PATTERN` performs a case-insensitive **literal substring**
 search, not a regex, glob, or word-boundary search. It searches obligation prose,
 `WHEN` guards, individual lines of design content, and the identifiers and field
 values of catalogue records. It does not search names, catalogue field names,
@@ -156,7 +156,7 @@ yass refs --out root@Greeting
 yass refs --in root@Greeting::RETURN
 ```
 
-`refs [--in] [--out] TARGET` reports direct reference edges for one document or
+`refs [--in] [--out] [--format FORMAT] TARGET` reports direct reference edges for one document or
 slot. Without flags, or with both flags, it reports both directions. `--out`
 shows what the target references; `--in` shows what references it. Records contain
 `DIR`, `RELATION`, and the `REF` at the other end. Outgoing records precede
@@ -178,7 +178,7 @@ yass validate root.yass.yaml
 yass lint root.yass.yaml
 ```
 
-`validate [PATH...]` checks the addressed files against the language definition:
+`validate [--format FORMAT] [PATH...]` checks the addressed files against the language definition:
 YAML structure, preambles, names, slots, obligations, reference syntax, target
 existence, and relation/target kinds. It reports errors without repairing files.
 
@@ -248,6 +248,35 @@ Indexes and search results use tab-separated records, with whitespace collapsed
 inside fields and `-` for an absent field. Query output is YAML; named docs are
 plain text. Diagnostics have five fields: `SEVERITY`, `CODE`, `LOCATION`, `LINE`,
 and `MESSAGE`.
+
+### JSON records
+
+`root`, `list`, `find`, `refs`, `validate`, `lint`, and `update` accept
+`--format FORMAT` after the subcommand: `text` (the default, described above) or
+`json`. With `json`, each record becomes one compact JSON object on its own line
+(JSON Lines), in the same order, and an empty result still prints nothing:
+
+```sh
+yass list --format json
+yass find --format=json 'supplied name'
+```
+
+```text
+{"ref":"root","kind":"file","detail":"1","description":"A greeting function that returns a message for a supplied name."}
+{"ref":"root@Greeting","kind":"spec","detail":"INPUT,RETURN,SIDE-EFFECT","description":null}
+{"ref":"root@Greeting::RETURN","what":"MUST","text":"return Hello followed by one space, the supplied name, and an exclamation mark"}
+```
+
+A diagnostic from `validate` or `lint` has the keys `severity`, `code`,
+`location`, `line`, and `message`.
+
+Keys are the lowercase field names, in field order. Each value is the string the
+text form would print, except that an absent field (`-`) is `null` and a
+diagnostic's `line` is a number. `<`, `>`, `&`, and non-ASCII text are written as
+themselves. Errors on standard error stay in the text form, and exit statuses do
+not change. Any other format value is a usage error, `yass.args.unknown_format`.
+`overview`, `query`, and `docs` serve documents rather than records and do not
+accept `--format`.
 
 Requested answers go to standard output. Failures to serve a request go to
 standard error. Validation findings and lint advisories are their commands'

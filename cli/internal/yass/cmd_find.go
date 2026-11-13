@@ -85,7 +85,7 @@ func (a *App) cmdFind() (int, error) {
 	}
 
 	for _, r := range rows {
-		a.out.line(record(r.ref, r.what, r.text))
+		a.out.line(a.record(findFields, r.ref, r.what, r.text))
 	}
 	for _, d := range unparsed {
 		a.err.line(d.Record())

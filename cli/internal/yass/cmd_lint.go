@@ -157,7 +157,7 @@ func (a *App) cmdLint() (int, error) {
 
 	sortDiags(advisories)
 	for _, d := range advisories {
-		a.out.line(d.Record())
+		a.out.line(a.diag(d))
 	}
 
 	if len(advisories) > 0 {

@@ -24,6 +24,11 @@ INPUT:
 - MUST: "treat an argument beginning with `-`, before end-of-options and other than `--` itself, as an option"
 - MUST: "take the value of an option written `-C DIR` or `--slot SLOT` from the following argument, and the value of an option written `-C=DIR` or `--slot=SLOT` from the text after the first `=`"
 - MUST: treat every remaining argument as an operand of the subcommand, in argument order
+- WHEN: "`--format FORMAT` is given"
+  MUST: "take FORMAT as the record format the subcommand writes its standard output in, accepting exactly `text` and `json`"
+  SEE: root@YassCli::RETURN
+- WHEN: "`--format` is not given"
+  MUST: "take `text` as the record format, so an invocation without the option writes what it wrote before the option existed"
 - WHEN: "`-C DIR` is given"
   MUST: take DIR as the starting directory that path resolution and project-root discovery begin from
   SEE: 01-locate@RootDiscovery
@@ -51,6 +56,8 @@ ERROR:
   MUST: report code yass.args.unknown_option naming the option
 - WHEN: an option is given after the subcommand token that the synopsis does not list for that subcommand
   MUST: report code yass.args.unknown_option naming the option
+- WHEN: "the value of `--format` is neither `text` nor `json`"
+  MUST: report code yass.args.unknown_format naming the value
 - WHEN: an option requiring a value is the last argument, so it has no following value
   MUST: report code yass.args.missing_value naming the option
 - WHEN: the subcommand receives fewer operands than the synopsis requires
@@ -59,7 +66,7 @@ ERROR:
   MUST: report code yass.args.extra_operand naming the first excess operand
 - WHEN: an operand is the empty string
   MUST: report code yass.args.empty
-- WHEN: a global option that takes a value is given more than once
+- WHEN: an option that takes a value is given more than once
   MUST: take the last occurrence and report nothing, because a later value overriding an earlier one is the ordinary shell idiom
 - MUST: report code yass.args.unknown_option for any argument that is neither a recognized option, an option value, the subcommand token, nor an operand the synopsis accepts
 - MUST: exit with the status the request-failure catalogue gives each code this spec reports to end a request
@@ -78,7 +85,7 @@ INVARIANT:
 - MUST-NOT: accept a clustered short option, since every short option this program recognizes stands alone
 - MUST-NOT: read an environment variable, a dotfile, or a configuration directory to supply an option value
 - MUST-NOT: reorder operands, so a subcommand sees them exactly as given
-- MUST-NOT: emit a machine-readable rendering of any output, since each command's output format is the only encoding of its answer in v1
+- MUST-NOT: "accept `--format` for `overview`, `query`, or `docs`, since each of them answers with a document rather than with records"
   SEE: root@RecordFormat
 ---
 design: Synopsis
@@ -88,15 +95,20 @@ content: |
   usage: yass [-C DIR] [--version] [--help] [SUBCOMMAND [ARGS...]]
 
     overview                       orient a reader in this program and this project
-    root [PATH]                    report the project root governing PATH
+    root [--format FORMAT] [PATH]  report the project root governing PATH
     query [--raw] TARGET...        emit each addressed document, references resolved
-    list [--filter GLOB] [PATH...] index the documents of a tree
-    find [--slot SLOT] PATTERN     search obligation prose and design content
-    refs [--in] [--out] TARGET     report the reference edges of one document
-    validate [PATH...]             check files against the yass language definition
-    lint [PATH...]                 report graph hygiene of the project
+    list [--filter GLOB] [--format FORMAT] [PATH...]
+                                   index the documents of a tree
+    find [--slot SLOT] [--format FORMAT] PATTERN
+                                   search obligation prose and design content
+    refs [--in] [--out] [--format FORMAT] TARGET
+                                   report the reference edges of one document
+    validate [--format FORMAT] [PATH...]
+                                   check files against the yass language definition
+    lint [--format FORMAT] [PATH...]
+                                   report graph hygiene of the project
     docs [NAME]                    index the carried documents, or write one
-    update                         replace this binary with the newest release
+    update [--format FORMAT]       replace this binary with the newest release
 
     -C DIR                         start path resolution and root discovery at DIR
     --version, -V                  write the version and exit
@@ -108,6 +120,7 @@ content: |
     --slot SLOT                    restrict matches to obligations of that slot
     --in                           report incoming edges only
     --out                          report outgoing edges only
+    --format FORMAT                write records as text (default) or json
 
     0 ok   1 findings   2 usage   3 unresolved   4 no-root   5 environment
 
