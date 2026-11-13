@@ -74,6 +74,32 @@ func TestLintConformanceClauseAfterCodeSpan(t *testing.T) {
 	}
 }
 
+// C21: a non-ASCII character that is not a letter or digit bounds a token.
+func TestLintConformanceTokenBoundedByEmDash(t *testing.T) {
+	recs := lintRecords(t, map[string]string{"root.yass.yaml": modeline + `spec: Root
+RETURN:
+- MUST: exit Foo—with status usage
+  USES: Codes
+- MUST: exit Fooé with status usage
+  USES: Codes
+- MUST: exit Foo with status usage
+  USES: Codes
+---
+design: Codes
+type: catalog
+content:
+  Foo:
+    status: ok
+  Bar:
+    status: usage
+`})
+	got := withCode(recs, "yass.lint.restated_fact")
+	want := []string{"root@Root::RETURN\t4", "root@Root::RETURN\t8"}
+	if strings.Join(got, ",") != strings.Join(want, ",") {
+		t.Fatalf("restated_fact = %v, want %v", got, want)
+	}
+}
+
 // C25: a nameless spec's USES reference binds its design.
 func TestLintConformanceNamelessSpecUsesDesign(t *testing.T) {
 	recs := lintRecords(t, map[string]string{
