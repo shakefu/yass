@@ -45,7 +45,7 @@ SIDE-EFFECT:
 - MUST: write every diagnostic in this slot to standard error, since the block is the only thing this command puts on standard output
   USES: root@OutputPolicy
 INVARIANT:
-- MUST-NOT: select the no-root status, since the block answers without a project and an answered request leaves standard output non-empty
+- MUST-NOT: select the no-root status, since the block answers without a project
   USES: root@ExitPolicy
 - MUST-NOT: select the findings status, since a finding about a spec set is the answer of validate and of lint and never of this command
 - MUST: hold the notation summary to exactly what a reader needs in order to read a spec file, leaving what an author needs in order to write one to the corpus

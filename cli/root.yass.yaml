@@ -91,10 +91,12 @@ INVARIANT:
 - USES: ExitPolicy
 - MUST: return exactly one status per invocation
   USES: ExitPolicy
+- MUST-NOT: write to standard output anything but the answer to the request
+  USES: OutputPolicy
 - MUST-NOT: return a status the exit policy does not catalogue
   USES: ExitPolicy
-- WHEN: validate or lint reports a code the request-failure catalogue records as a finding, so the code does not end the request
-  MUST: let that finding contribute the findings status alone, since the catalogue gives the status of a request the code ends
+- WHEN: validate or lint reports a catalogued code as a diagnostic and continues with the next file
+  MUST: let that diagnostic contribute the findings status alone, since the catalogue gives the status only of a request a code ends
   USES: RequestFailures
   SEE: 08-validate@Validate
 - WHEN: more than one condition the exit policy catalogues applies to one invocation
@@ -104,7 +106,11 @@ INVARIANT:
   USES: ExitPolicy
 - MUST: select status 4 only from a command that needs a project root in order to answer at all
   USES: ExitPolicy
-- MUST-NOT: "select status 4 from `overview`, `docs`, or `update`, since `overview` reports a missing root as one fact of its block, `docs` serves a corpus the program carries, and `update` concerns the installed program itself"
+- MUST-NOT: "select status 4 from `overview`, since it reports a missing root as one fact of its block"
+  USES: ExitPolicy
+- MUST-NOT: "select status 4 from `docs`, since it serves a corpus the program carries"
+  USES: ExitPolicy
+- MUST-NOT: "select status 4 from `update`, since it concerns the installed program itself"
   USES: ExitPolicy
 - WHEN: an invocation returns status 1
   MUST: carry the findings on standard output, because the program worked and the spec set has a problem
@@ -190,8 +196,8 @@ content:
 design: OutputPolicy
 type: constraint
 content: |
-  - Standard output carries what was asked for. Validation diagnostics and lint advisories
-    go there: they are the result of the request, not a side channel.
+  - Standard output carries what was asked for, and nothing else. Validation diagnostics
+    and lint advisories go there: they are the result of the request, not a side channel.
   - Standard error carries only a failure of the program to serve the request — a malformed
     argument vector, an unresolvable target, an unreadable path, an internal fault. One
     event is never written to both streams, and one record is never split across them.

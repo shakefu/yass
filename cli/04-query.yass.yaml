@@ -14,10 +14,10 @@ INPUT:
 - MUST: "be invoked as `yass query [--raw] TARGET [TARGET...]`"
 - MUST: take each TARGET as target resolution binds it
   CONFORMS: 02-load@TargetResolution::RETURN
-- MUST: rely on the existence, uniqueness, kind, and slot-declaration guarantees target resolution establishes, and re-check none of them
+- MUST: rely on the existence, uniqueness, kind, and slot-declaration guarantees target resolution establishes, and give none of them a diagnostic code of its own
 - WHEN: a guarantee target resolution established does not hold
-  MUST: report code yass.internal and emit no fragment
-- MUST: resolve every TARGET before emitting anything, so a failure on any one leaves standard output empty
+  MUST: report code yass.internal and emit no fragment for any TARGET, since a broken guarantee is a fault of this program rather than of the request
+- MUST: resolve every TARGET, and every reference the addressed documents carry, before emitting any fragment
 - MUST: emit one fragment per TARGET, in the order the TARGETs were given
 - WHEN: TARGET names a whole file
   MUST: emit that file's preamble as the fragment, which is how a file's description is read
@@ -26,11 +26,12 @@ INPUT:
   MUST: "emit that slot alone, under the addressed document's `spec` key, so the fragment still states what was queried"
 - WHEN: "`--raw` is given"
   MUST: emit each addressed document exactly as its source file states it, resolving no reference, inlining nothing, and inserting no comment
-- WHEN: "`--raw` is given and a reference the addressed document carries does not resolve"
-  MUST: emit the fragment anyway, since raw emission reads no reference and so cannot fail on one
+- WHEN: "`--raw` is given and a reference the addressed document carries is not well formed, does not resolve, or does not match its target's kind"
+  MUST: emit the fragment anyway, since raw emission reads no reference
 RETURN:
-- MUST: "emit one YAML document stream, each fragment opened by a `---` line, so the whole output parses as one stream"
+- MUST: "open each fragment with a `---` line"
   CONFORMS: ../yass@Document
+- MUST: emit output that a YAML parser reads as one document stream
 - WHEN: "`--raw` is not given"
   MUST: apply reference resolution to every spec document it emits
   SEE: Resolution
@@ -43,7 +44,8 @@ RETURN:
 - WHEN: a TARGET names a whole file that holds spec and design documents
   MUST: emit the preamble alone, because a file target asks what the file is, and a document target asks what a document obliges
 - MUST: preserve the authored order of slots within a document and of obligations within a slot, inserting and appending without reordering them
-- MUST: "quote an emitted prose value that holds a colon followed by a space, so the fragment parses back as YAML"
+- MUST: write every emitted scalar so that a YAML parser reads it back as the identical string
+- MUST: "quote an emitted prose value that holds a colon followed by a space, or a space followed by `#`"
   SEE: ../yass@Obligation
 - MUST: "let the emitted `spec` or `design` key be the sole identification of what was queried"
 - MUST: exit with the ok status once every fragment is written
@@ -52,24 +54,24 @@ RETURN:
 - MUST-NOT: "emit a host `file:` header or any other line naming the source file, because the filesystem is the source of that truth and a second name can contradict it"
 ERROR:
 - WHEN: a TARGET does not resolve
-  MUST: emit the diagnostic target resolution emits, emit no fragment for any TARGET, and exit with the status target resolution selects
+  MUST: emit the diagnostic target resolution emits and emit no fragment for any TARGET
   SEE: 02-load@TargetResolution::ERROR
 - WHEN: "`--raw` is not given and a reference carried by an addressed document does not resolve"
-  MUST: report code yass.ref.unresolved naming the carrying document and the target, and emit no fragment
+  MUST: report code yass.ref.unresolved naming the carrying document and the target, and emit no fragment for any TARGET
   SEE: Resolution::ERROR
 - WHEN: "`--raw` is not given and a relation does not match its target's kind"
-  MUST: report the code resolution selects and emit no fragment
+  MUST: report the code resolution selects and emit no fragment for any TARGET
   SEE: Resolution::ERROR
 - WHEN: an emitted value's alias graph is cyclic, so the addressed document parsed but has no finite rendering
-  MUST: report code yass.document.yaml_feature naming the target and emit no fragment
-- MUST: report code yass.internal and emit no fragment for any failure not matched by a guarded obligation in this slot
+  MUST: report code yass.document.yaml_feature naming the target and emit no fragment for any TARGET
+- MUST: report code yass.internal and emit no fragment for any TARGET for any failure not matched by a guarded obligation in this slot
 - MUST: exit with the status the request-failure catalogue gives each code this spec reports to end a request
   USES: root@RequestFailures
 SIDE-EFFECT:
 - MUST: write every diagnostic in this slot to standard error, since a fragment is the only thing this subcommand puts on standard output
   USES: root@OutputPolicy
 INVARIANT:
-- MUST: "offer `--raw` as the escape hatch that always serves a document whose file parsed, so a broken reference elsewhere never blocks retrieval"
+- MUST: "offer `--raw` as the escape hatch that serves a document whatever the references it carries, so a broken reference elsewhere never blocks retrieval"
 - MUST-NOT: reword, reflow, truncate, summarize, renumber, or reformat an obligation
 - MUST-NOT: emit the same document twice for one TARGET
 - MUST-NOT: emit a summary, a count of obligations, or any note about what was inlined beyond the provenance comments resolution writes

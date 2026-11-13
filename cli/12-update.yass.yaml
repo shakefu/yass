@@ -43,7 +43,8 @@ ERROR:
 SIDE-EFFECT:
 - MUST: "connect only to the release host, and only to resolve the newest release and fetch its archive and `checksums.txt`"
   USES: ReleaseLayout
-- MUST: write only the installed binary and a temporary file beside it that the replacement is staged through, so the swap is a rename rather than a partial write
+- MUST: write only the installed binary and a temporary file beside it that the replacement is staged through
+- MUST: replace the installed binary by renaming the staged file over it, so no reader sees a partly written binary
 - WHEN: the host platform is windows
   MUST: "move the installed binary aside to `<binary>.old` before the swap, restore it if the swap fails, and remove it afterward only on a best-effort basis, since a running windows binary cannot be renamed over and may hold the moved file open"
 - MUST: leave the installed binary as it was whenever any step fails, so a failed update preserves the working installation

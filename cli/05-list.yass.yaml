@@ -49,7 +49,7 @@ RETURN:
 - WHEN: "KIND is `design`"
   MUST: "set DETAIL to that design's `type` value"
   SEE: ../yass@Design
-- MUST: "give the file record's DETAIL a count the filter does not reduce, because DETAIL is a property of the file and the filter gates record emission only"
+- MUST: "give the file record's DETAIL a count the filter does not reduce, because DETAIL is a property of the file"
 - WHEN: "KIND is `file`"
   MUST: set DESCRIPTION to the file's preamble description, whitespace-collapsed, trimmed, and truncated to at most 100 Unicode scalar values
   SEE: ../yass@Preamble
@@ -87,7 +87,7 @@ SIDE-EFFECT:
 - MUST: write every diagnostic in this slot to standard error, since the records are the only thing this subcommand puts on standard output
   USES: root@OutputPolicy
 INVARIANT:
-- MUST-NOT: name which rule a file violates, since naming a violation belongs to validation and this command reports only that a file yielded no documents
+- MUST-NOT: name which rule a file violates, since naming a violation belongs to validation
   SEE: 08-validate@Validate
 - MUST-NOT: emit a record for a preamble as though it were a document, because a preamble has no name and the file's own record carries its description
   SEE: ../yass@Preamble
