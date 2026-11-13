@@ -50,6 +50,9 @@ type App struct {
 	Loader   *Loader
 	out      *stream
 	err      *stream
+	// dirNames caches each directory's entry names for the ref spelling
+	// check, keyed by directory; a nil set marks one that cannot be listed.
+	dirNames map[string]map[string]bool
 }
 
 // Main runs one invocation and returns the single exit status it selects.

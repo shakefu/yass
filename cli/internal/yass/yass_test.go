@@ -946,6 +946,35 @@ func TestRootFileNameIsCaseSensitive(t *testing.T) {
 	}
 }
 
+// The spelling check compares each path token component with the directory's
+// entry names byte-for-byte, so it refuses a differently cased spelling on any
+// filesystem, case-sensitive or not, and accepts every exact one.
+func TestSpelledExactly(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "a.yass.yaml", "")
+	write(t, dir, "sub/b.yass.yaml", "")
+	sub := filepath.Join(dir, "sub")
+	a := &App{Root: dir}
+	cases := []struct {
+		base, token string
+		want        bool
+	}{
+		{dir, "A", false},
+		{dir, "SUB/b", false},
+		{dir, "sub/B", false},
+		{sub, "../A", false},
+		{dir, "a", true},
+		{dir, "sub/b", true},
+		{dir, "./a", true},
+		{sub, "../a", true},
+	}
+	for _, c := range cases {
+		if got := a.spelledExactly(c.base, c.token); got != c.want {
+			t.Errorf("spelledExactly(%s, %q) = %v, want %v", relTo(dir, c.base), c.token, got, c.want)
+		}
+	}
+}
+
 // The suffix is appended to the path token exactly as written: `.` and `..`
 // segments stay part of the name looked up, so a token spelling a directory
 // names no file rather than resolving to the neighbour a cleaned path would

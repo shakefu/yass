@@ -344,21 +344,19 @@ func (a *App) checkRef(s *Slot, r *Ref) []Diag {
 	}
 
 	carrier := s.Doc.File
-	abs := carrier.Abs
-	if t.HasPath {
-		abs = filePathFor(a.Root, filepath.Dir(carrier.Abs), t.Path)
-	}
 	target := carrier
-	if abs != carrier.Abs {
-		st, err := statRefFile(a.Root, filepath.Dir(carrier.Abs), t.Path)
-		if err != nil || !st.Mode().IsRegular() {
-			return append(out, diag("yass.ref.unresolved", loc, r.Line, "reference target does not resolve"))
+	if t.HasPath {
+		abs, st, err := a.statRef(filepath.Dir(carrier.Abs), t.Path)
+		if abs != carrier.Abs {
+			if err != nil || !st.Mode().IsRegular() {
+				return append(out, diag("yass.ref.unresolved", loc, r.Line, "reference target does not resolve"))
+			}
+			loaded, lerr := a.Loader.Load(abs)
+			if lerr != nil || !loaded.Parsed {
+				return append(out, diag("yass.ref.unresolved", loc, r.Line, "reference target does not resolve"))
+			}
+			target = loaded
 		}
-		loaded, lerr := a.Loader.Load(abs)
-		if lerr != nil || !loaded.Parsed {
-			return append(out, diag("yass.ref.unresolved", loc, r.Line, "reference target does not resolve"))
-		}
-		target = loaded
 	}
 	if !target.Parsed {
 		return append(out, diag("yass.ref.unresolved", loc, r.Line, "reference target does not resolve"))

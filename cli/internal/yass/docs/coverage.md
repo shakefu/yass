@@ -56,20 +56,20 @@ checks are the discipline those rules generalize.
    guessing. State the intended outcome as an obligation, or declare it out of
    scope — do not leave it to emerge.
 
-4. **Failures** (`ERROR`). Name each foreseeable failure as a guarded
-   obligation carrying its observable outcome (a specific error code, message,
-   or exit status); a reader must not have to deduce a domain rule from
-   "everything else." Then check whether any failures remain uncovered. If they
-   do, state the residual policy in a guard-less obligation: in `ERROR`, an
-   obligation with no `WHEN` is the policy for any failure no guarded obligation
-   matched (the reading is fixed by the `Slot.ERROR` spec of the language
-   definition, `yass docs language`). If the guarded cases are instead
-   exhaustive (every input rejected by a named guard or accepted as
-   well-formed), state that exhaustiveness in the spec's `INVARIANT` and omit
-   the residual from `ERROR`. A residual over an empty remainder is dead and can never fire,
-   asserting one alongside an exhaustive partition is a contradiction, and a
-   guard-less `ERROR` obligation is itself read as the residual so
-   exhaustiveness cannot live there.
+4. **Failures** (`ERROR`). Name each foreseeable failure as a guarded obligation
+   carrying its observable outcome (a specific error code, message, or exit
+   status); a reader must not have to deduce a domain rule from "everything
+   else." Then check whether any failures remain uncovered. If they do, state
+   the residual policy in a guard-less obligation: in `ERROR`, an obligation
+   with no `WHEN` is the policy for any failure no guarded obligation matched
+   (the reading is fixed by the `Slot.ERROR` spec of the language definition,
+   `yass docs language`). If the guarded cases are instead exhaustive (every
+   input rejected by a named guard or accepted as well-formed), state that
+   exhaustiveness in the spec's `INVARIANT` and omit the residual from `ERROR`.
+   A residual over an empty remainder is dead and can never fire, asserting one
+   alongside an exhaustive partition is a contradiction, and a guard-less
+   `ERROR` obligation is itself read as the residual so exhaustiveness cannot
+   live there.
 
    Reachability is judged within the component's declared input contract,
    not the composed program. A guarded failure another component prevents
