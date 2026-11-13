@@ -32,22 +32,24 @@ INPUT:
 RETURN:
 - MUST: emit one diagnostic per advisory
   USES: root@DiagnosticFormat
-- MUST: "set the SEVERITY of every diagnostic it emits to `warn`"
+- MUST: "set the SEVERITY of every advisory to `warn`"
+- MUST: "set the SEVERITY of every diagnostic it reports other than an advisory to `error`"
 - WHEN: a design is the target of no USES reference anywhere in the project file set
-  MUST: emit code yass.lint.design_unreferenced, because a design nothing binds is declared normative content with no force
+  MUST: emit code yass.lint.design_unreferenced naming the design at the line it starts on, because a design nothing binds is declared normative content with no force
   SEE: ../yass@Design
 - WHEN: a spec or design under the project root is reached by no chain of CONFORMS, USES, and SEE edges beginning at the root file's spec
-  MUST: emit code yass.lint.unreachable
+  MUST: emit code yass.lint.unreachable naming the document at the line it starts on
   CONFORMS: ../yass@Root::INVARIANT
 - MUST: count a reference edge toward reachability regardless of its relation, so CONFORMS, USES, and SEE weigh the same
   CONFORMS: ../yass@Root::INVARIANT
 - MUST-NOT: emit yass.lint.unreachable for the root file's own spec, since it is the origin of the chain rather than a member of it
+- MUST-NOT: emit a graph advisory, or an advisory about an obligation or about design content, for a spec or design whose name is missing or empty, since no ref target can locate it
 - WHEN: "a file's first line is not the schema modeline `# yaml-language-server: $schema=https://shakefu.github.io/yass/v1.schema.json`"
-  MUST: emit code yass.lint.modeline, since an editor then validates the file against no schema
+  MUST: emit code yass.lint.modeline naming the file at line 1, since an editor then validates the file against no schema
 - WHEN: a spec declares a slot whose obligation list is empty
-  MUST: emit code yass.lint.slot_empty naming the spec and the slot
+  MUST: emit code yass.lint.slot_empty naming the spec and the slot at the line of the slot's key
 - WHEN: a spec declares no slot at all
-  MUST: emit code yass.lint.spec_empty, because it states no obligation and can bind nothing
+  MUST: emit code yass.lint.spec_empty naming the spec at the line it starts on, because it states no obligation and can bind nothing
   SEE: ../yass@Spec
 - WHEN: "a line of a selected file holds, outside a backtick code span, `TBD`, `TODO`, `FIXME`, or `XXX` as a whole word in capitals, the phrase `open question` in any casing, or the characters `??`, whatever that line holds: a key, a value, or a comment"
   MUST: emit code yass.lint.open_question at that line, because a spec is a contract and its implementer builds an undecided point as a guess
@@ -75,7 +77,7 @@ RETURN:
   SEE: ../yass@Design
 - WHEN: "the prose of an obligation's normativity keyword or of its guard holds outside a backtick code span a semicolon followed by a space, or a period or exclamation mark that ends no abbreviation, followed by spaces and a capital letter"
   MUST: emit code yass.lint.obligation_shape at the line of that obligation, because each clause is a requirement of its own
-  SEE: ../yass@Obligation::RETURN
+  USES: SourcePatterns
 - WHEN: "the prose of an obligation's normativity keyword or of its guard holds outside a backtick code span an opening parenthesis followed by `so`, `because`, or `since` and a space, in any casing"
   MUST: emit code yass.lint.obligation_shape at the line of that obligation, because an aside carries a second claim the reader cannot check
 - WHEN: "the prose of an obligation outside an `ERROR` slot holds outside a backtick code span `map`, `maps`, or `mapping`, then one of `its`, `the`, `every`, `each`, `all`, `any`, or `other`, an optional word, and `error` or `errors`, in any casing"
@@ -83,7 +85,7 @@ RETURN:
   SEE: ../yass@Slot.ERROR
 - WHEN: "a line of the string content of a design whose `type` is `schema` or `algorithm` holds outside a backtick code span a function definition in Go, Python, JavaScript, or Rust, a statement ending in a semicolon that assigns or calls, a Go declaration assigned from a qualified call or a composite literal, a Go map, slice, or address-of composite literal, a control-flow keyword opening a brace block, a Go `err != nil` check, or an import or package clause"
   MUST: emit code yass.lint.design_code at that line, because source in a real language is an implementation the reader transcribes rather than a shape or a computation the implementer writes
-  SEE: ../yass@Design
+  USES: SourcePatterns
 - MUST-NOT: emit yass.lint.design_code for a bare assignment that ends in no semicolon, a `for each` loop, a guard closed by `then` or by a colon, or an unqualified or dotted call that ends no statement, since pseudocode in an algorithm writes each of those
   SEE: ../yass@Design
 - WHEN: "a line of a design's string content, or of a string field value of its catalogue records, holds a pipe and the next line is a Markdown table delimiter row of dashes divided by pipes"
@@ -96,10 +98,15 @@ RETURN:
 - MUST: take as the values a field of a catalogue can take the values its records hold, together with every key of its vocabulary when the field is vocabulary-backed
 - MUST: treat a field of a catalogue as vocabulary-backed when every value its records hold is a key of exactly one other catalogue, called its vocabulary
 - MUST: take as the wordings of a field value the value itself and, for a vocabulary-backed field, every field value of the vocabulary record keyed by it
-- MUST: "treat a wording of one word as stated only where it stands, in any casing and with edge punctuation trimmed, within three whitespace-separated words of a context word: the field's name or, for a vocabulary-backed field, a word of the vocabulary's name split at case changes and punctuation"
+- MUST: treat a wording of one word as stated only where it equals a whitespace-separated word of the obligation exactly, in any casing, with edge punctuation trimmed and without stemming, and a context word lies one to three words before or after it
+- MUST: take as context words the words of the field's name and, for a vocabulary-backed field, of the vocabulary's name, each name split at case changes and at every character other than a letter or a digit
+- MUST: count a nearby word as a context word when one of its runs of letters and digits has the stem of a context word
+  USES: Stem
 - MUST: treat a wording of several words as stated wherever it occurs in any casing as a whole phrase
-- MUST: "treat a vocabulary wording of at most eight words holding at least two content words, a content word having four or more letters and lying outside a fixed list of function words, as stated also wherever every one of its content words occurs"
-- MUST: "compare a context word or a content word by its stem, which drops one trailing inflection and a final `e` but keeps at least three letters, so `name`, `names`, `named`, and `naming` meet"
+- MUST: treat a vocabulary wording of at most eight runs of letters and digits holding at least two content words as stated also wherever every one of its content words occurs
+  USES: FunctionWords
+- MUST: compare a context word or a content word by its stem
+  USES: Stem
 - WHEN: "an obligation's guard or prose names an identifier and states, outside every identifier it names, a wording of a value that a field of the identifier's catalogue can take, or names an identifier whose catalogue has a vocabulary-backed field and holds `as when`, `as for`, `as if`, or `as though`"
   MUST: emit code yass.lint.restated_fact at the line of that obligation, whether the stated value agrees with the record or not, because a fact stated outside its catalogue is a second source that drifts
   SEE: ../yass@Design::RETURN
@@ -110,6 +117,10 @@ RETURN:
 - MUST: "treat yass.lint.restated_value as experimental: its patterns may change between releases while its rate of false advisories is measured"
 - MUST: "treat as a backtick code span the text between a backtick and the next backtick on the same line, so a keyword or marker a spec mentions rather than uses is written inside one"
 - MUST: emit at most one advisory of a given code at a given line
+- WHEN: one obligation meets more than one condition of yass.lint.prose_keyword
+  MUST: "give its one yass.lint.prose_keyword advisory the message of the first condition that holds, in this order: a condition written into prose, a keyword, a reference"
+- WHEN: one obligation meets more than one condition of yass.lint.obligation_shape
+  MUST: "give its one yass.lint.obligation_shape advisory the message of the first condition that holds, in this order: excess length, code, a procedure, several clauses, a rationale aside, an error mapping"
 - MUST: take a slot to hold the lines from its own key up to the next slot key or the next document
 - WHEN: an open-question, prose-keyword, or obligation-shape advisory falls on a line a slot holds
   MUST: name that slot as the advisory's location
@@ -118,13 +129,13 @@ RETURN:
 - WHEN: an open-question, prose-keyword, or obligation-shape advisory falls on a line no document holds
   MUST: name the file as the advisory's location
 - WHEN: "the project root's `root.yass.yaml` carries no spec, or more than one"
-  MUST: emit code yass.lint.no_origin naming the root file, emit every advisory that does not depend on reachability, and emit no yass.lint.unreachable, because reachability has no single origin
+  MUST: emit code yass.lint.no_origin naming the root file with no line, emit every advisory that does not depend on reachability, and emit no yass.lint.unreachable, because reachability has no single origin
   CONFORMS: ../yass@Root::ERROR
 - WHEN: "the project root's `root.yass.yaml` carries one spec whose `spec` key has no string name"
-  MUST: emit code yass.lint.no_origin at that spec's line, emit every advisory that does not depend on reachability, and emit no yass.lint.unreachable, because reachability has no origin a reference could address
+  MUST: emit code yass.lint.no_origin naming the root file at that spec's line, emit every advisory that does not depend on reachability, and emit no yass.lint.unreachable, because reachability has no origin a reference could address
   CONFORMS: ../yass@Spec::ERROR
 - WHEN: a file of the project file set yielded a parse failure
-  MUST: emit code yass.lint.unparsed naming that file, and emit every other advisory anyway, because a partial graph can yield a false reachability advisory and the reader must know the graph was partial
+  MUST: emit code yass.lint.unparsed naming that file at the line its parse failure carries, and emit every other advisory anyway, because a partial graph can yield a false reachability advisory and the reader must know the graph was partial
   SEE: 02-load@Load::RETURN
 - MUST: order advisories by byte-wise ascending project-root-relative file path, then by ascending line, then by code in byte order
 - WHEN: no advisory is produced for any selected file
@@ -158,3 +169,55 @@ INVARIANT:
   SEE: ../yass@Root
 - MUST-NOT: emit an advisory under a code no obligation of this project defines
   USES: root@DiagnosticFormat
+---
+design: FunctionWords
+type: constraint
+content: |
+  A content word is a run of the characters a to z and 0 to 9, taken from text after it is
+  lower-cased, that is not digits alone, holds four or more characters, and is none of these
+  function words:
+
+    about, also, been, does, each, from, have, into, only, other, some, than, that, their,
+    then, there, this, what, when, which, with, were
+---
+design: Stem
+type: algorithm
+content: |
+  stem(word):
+    for each suffix in "ing", "es", "ed", "s", in that order
+      if word ends with suffix and at least 3 characters remain without it then
+        remove suffix from the end of word
+        stop trying suffixes
+    if word ends with "e" and at least 3 characters remain without it then
+      remove the final "e"
+    return word
+---
+design: SourcePatterns
+type: constraint
+content: |
+  Function definitions, each at the start of a line after optional indentation:
+
+  - Go: the word `func`, an optional receiver in parentheses, a name, and an opening
+    parenthesis.
+  - Python: the word `def`, optionally preceded by `async`, a name, a parenthesized
+    parameter list, an optional `->` return annotation, and a colon that ends the line.
+  - JavaScript: the word `function`, optionally preceded by `export`, `async`, or both in
+    that order, an optional name, a parenthesized parameter list, and an opening brace.
+  - Rust: the word `fn`, optionally preceded by `pub`, a name, and an opening angle bracket
+    or parenthesis.
+
+  Control flow: a line that begins, after optional indentation and an optional closing brace,
+  with `if`, `else if`, `for`, `while`, or `switch` as a whole word and ends with an opening
+  brace, or a line that begins with a closing brace, the word `else`, and an opening brace.
+
+  Import and package clauses, each at the start of a line after optional indentation:
+
+  - `import` followed by an opening parenthesis, a double quote, or a dotted name and a
+    semicolon.
+  - `from`, a dotted name, `import`, and a name.
+  - `#include` followed by an opening angle bracket or a double quote.
+  - `package` and a dotted name that end the line, with an optional semicolon.
+  - `use`, names joined by `::`, and a semicolon.
+
+  Abbreviations whose closing period ends no sentence, matched case-sensitively at the start
+  of a word: `e.g.`, `i.e.`, `etc.`, `vs.`, and `cf.`.
