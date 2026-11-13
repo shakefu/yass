@@ -25,15 +25,17 @@ func (a *App) cmdValidate() (int, error) {
 	}
 
 	var diags []Diag
+	var loaded []*File
 	for _, abs := range files {
 		f, lerr := a.Loader.Load(abs)
 		if lerr != nil {
 			return 0, lerr
 		}
+		loaded = append(loaded, f)
 		diags = append(diags, a.checkFile(f)...)
 	}
 
-	sortDiags(diags)
+	sortDiags(diags, loaded)
 	for _, d := range diags {
 		a.out.line(a.diag(d))
 	}
@@ -43,11 +45,25 @@ func (a *App) cmdValidate() (int, error) {
 	return ExitOK, nil
 }
 
-// sortDiags orders by byte-wise ascending location path, then ascending line,
-// then code in byte order.
-func sortDiags(diags []Diag) {
+// sortDiags orders by byte-wise ascending project-root-relative file path,
+// then ascending line, then code in byte order. A location's path token is the
+// file's ref, which drops the suffix, so each is mapped back to its file's
+// path before comparing: "a-b.yass.yaml" sorts before "a.yass.yaml" although
+// "a" sorts before "a-b". A ref naming none of files gets the suffix appended.
+func sortDiags(diags []Diag, files []*File) {
+	rel := make(map[string]string, len(files))
+	for _, f := range files {
+		rel[f.Ref] = f.Rel
+	}
+	path := func(loc string) string {
+		ref := locationPath(loc)
+		if p, ok := rel[ref]; ok {
+			return p
+		}
+		return ref + SpecSuffix
+	}
 	sort.SliceStable(diags, func(i, j int) bool {
-		pi, pj := locationPath(diags[i].Location), locationPath(diags[j].Location)
+		pi, pj := path(diags[i].Location), path(diags[j].Location)
 		if pi != pj {
 			return pi < pj
 		}
