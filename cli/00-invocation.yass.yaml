@@ -66,6 +66,8 @@ ERROR:
   MUST: report code yass.args.extra_operand naming the first excess operand
 - WHEN: an operand is the empty string
   MUST: report code yass.args.empty
+- WHEN: "the value of the last `-C` given is the empty string"
+  MUST: report code yass.args.empty rather than take the process working directory as the starting directory
 - WHEN: an option that takes a value is given more than once
   MUST: take the last occurrence and report nothing, because a later value overriding an earlier one is the ordinary shell idiom
 - MUST: report code yass.args.unknown_option for any argument that is neither a recognized option, an option value, the subcommand token, nor an operand the synopsis accepts
