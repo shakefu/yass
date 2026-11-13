@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"unicode"
 )
 
 const (
@@ -187,12 +188,14 @@ func plural(n int, noun string) string {
 // wrapDescription collapses the root preamble description to one line under the
 // field rules, truncates it, and breaks it at spaces onto lines that fit the
 // block width, indenting each line to the label column so the text aligns under
-// itself. A description that is empty after collapsing contributes no line.
+// itself. A description that is empty after collapsing contributes no line; the
+// emptiness test runs before field, whose "-" spelling of an absent field would
+// otherwise hide a description that is literally "-".
 func wrapDescription(desc string) []string {
-	collapsed := field(desc)
-	if collapsed == "-" {
+	if strings.TrimFunc(desc, unicode.IsSpace) == "" {
 		return nil
 	}
+	collapsed := field(desc)
 	text := truncateScalars(collapsed, overviewDescriptionLimit)
 	pad := strings.Repeat(" ", overviewLabel)
 	limit := overviewWidth - overviewLabel

@@ -141,3 +141,28 @@ func TestUnprintableCharactersAreEscaped(t *testing.T) {
 		{"MUST": "a\ufeffb"},
 	})
 }
+
+// A root description that is the string "-" is a value, not an absent field:
+// overview writes it under the project line. A whitespace-only description
+// still contributes no line.
+func TestOverviewWritesDashDescription(t *testing.T) {
+	pad := strings.Repeat(" ", overviewLabel)
+	for _, tc := range []struct{ desc, want string }{
+		{`"-"`, "\n" + pad + "-\nholds"},
+		{`"  "`, "\nholds"},
+	} {
+		dir := t.TempDir()
+		write(t, dir, "root.yass.yaml", modeline+"---\ndescription: "+tc.desc+"\nversion: v1\n---\nspec: A\nRETURN:\n- MUST: x\n")
+		got := run(dir, "overview")
+		wantStatus(t, got, ExitOK)
+		project := strings.Index(got.stdout, "\nproject ")
+		if project < 0 {
+			t.Fatalf("no project line:\n%s", got.stdout)
+		}
+		rest := got.stdout[project+1:]
+		rest = rest[strings.Index(rest, "\n"):]
+		if !strings.HasPrefix(rest, tc.want) {
+			t.Fatalf("description %s: after the project line got %q, want prefix %q", tc.desc, rest, tc.want)
+		}
+	}
+}
