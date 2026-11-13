@@ -3,10 +3,11 @@
 description: >
   The graph-hygiene subcommand. `yass lint` reports what is well formed but wrong about a
   spec set as a whole — a design nothing binds, a document no reference chain reaches, a
-  missing schema modeline, a root file that supplies reachability no single named origin, an empty slot, a spec with no slot, an unresolved question left in
-  a file, a keyword written into prose, an obligation holding more than one requirement, source code
-  or a Markdown table inside a design, an obligation stating a fact a catalog already records —
-  each as one coded advisory.
+  missing schema modeline, a root file that supplies no single named origin for
+  reachability, an empty slot, a spec with no slot, an unresolved question left in a file, a
+  keyword written into prose, an obligation holding more than one requirement, source code
+  or a Markdown table inside a design, an obligation stating a fact a catalog already
+  records — each as one coded advisory.
   It runs its own checks and never runs validation first, so a spec set that is being
   authored can still be linted; a file that would not parse is reported as an advisory of its
   own, because reachability computed over a partial graph can be wrong.
@@ -77,7 +78,8 @@ RETURN:
   SEE: ../yass@Design
 - WHEN: "the prose of an obligation's normativity keyword or of its guard holds outside a backtick code span a semicolon followed by a space, or a period or exclamation mark that ends no abbreviation, followed by spaces and a capital letter"
   MUST: emit code yass.lint.obligation_shape at the line of that obligation, because each clause is a requirement of its own
-  USES: SourcePatterns
+  USES: Abbreviations
+  SEE: ../yass@Obligation::RETURN
 - WHEN: "the prose of an obligation's normativity keyword or of its guard holds outside a backtick code span an opening parenthesis followed by `so`, `because`, or `since` and a space, in any casing"
   MUST: emit code yass.lint.obligation_shape at the line of that obligation, because an aside carries a second claim the reader cannot check
 - WHEN: "the prose of an obligation outside an `ERROR` slot holds outside a backtick code span `map`, `maps`, or `mapping`, then one of `its`, `the`, `every`, `each`, `all`, `any`, or `other`, an optional word, and `error` or `errors`, in any casing"
@@ -86,6 +88,7 @@ RETURN:
 - WHEN: "a line of the string content of a design whose `type` is `schema` or `algorithm` holds outside a backtick code span a function definition in Go, Python, JavaScript, or Rust, a statement ending in a semicolon that assigns or calls, a Go declaration assigned from a qualified call or a composite literal, a Go map, slice, or address-of composite literal, a control-flow keyword opening a brace block, a Go `err != nil` check, or an import or package clause"
   MUST: emit code yass.lint.design_code at that line, because source in a real language is an implementation the reader transcribes rather than a shape or a computation the implementer writes
   USES: SourcePatterns
+  SEE: ../yass@Design
 - MUST-NOT: emit yass.lint.design_code for a bare assignment that ends in no semicolon, a `for each` loop, a guard closed by `then` or by a colon, or an unqualified or dotted call that ends no statement, since pseudocode in an algorithm writes each of those
   SEE: ../yass@Design
 - WHEN: "a line of a design's string content, or of a string field value of its catalogue records, holds a pipe and the next line is a Markdown table delimiter row of dashes divided by pipes"
@@ -128,17 +131,17 @@ RETURN:
   MUST: name that document as the advisory's location
 - WHEN: an open-question, prose-keyword, or obligation-shape advisory falls on a line no document holds
   MUST: name the file as the advisory's location
-- WHEN: "the project root's `root.yass.yaml` carries no spec, or more than one"
+- WHEN: "the project root's `root.yass.yaml` yields a parse failure, carries no spec, or carries more than one"
   MUST: emit code yass.lint.no_origin naming the root file with no line, emit every advisory that does not depend on reachability, and emit no yass.lint.unreachable, because reachability has no single origin
   CONFORMS: ../yass@Root::ERROR
-- WHEN: "the project root's `root.yass.yaml` carries one spec whose `spec` key has no string name"
+- WHEN: "the project root's `root.yass.yaml` carries one spec whose name is missing, empty, or not a string"
   MUST: emit code yass.lint.no_origin naming the root file at that spec's line, emit every advisory that does not depend on reachability, and emit no yass.lint.unreachable, because reachability has no origin a reference could address
   CONFORMS: ../yass@Spec::ERROR
 - WHEN: a file of the project file set yielded a parse failure
   MUST: emit code yass.lint.unparsed naming that file at the line its parse failure carries, and emit every other advisory anyway, because a partial graph can yield a false reachability advisory and the reader must know the graph was partial
   SEE: 02-load@Load::RETURN
 - MUST: order advisories by byte-wise ascending project-root-relative file path, then by ascending line, then by code in byte order
-- WHEN: no advisory is produced for any selected file
+- WHEN: no advisory is produced and no failure is reported
   MUST: write nothing at all and exit with the ok status
   USES: root@Brevity
 ERROR:
@@ -195,16 +198,44 @@ content: |
 design: SourcePatterns
 type: constraint
 content: |
+  A line holds source code when it matches any of the patterns below. Whitespace means one
+  or more spaces or tabs, optional whitespace means none or more, and a name is a letter,
+  a digit, or an underscore repeated one or more times.
+
   Function definitions, each at the start of a line after optional indentation:
 
-  - Go: the word `func`, an optional receiver in parentheses, a name, and an opening
-    parenthesis.
+  - Go: the word `func`, whitespace, an optional receiver in parentheses, a name, optional
+    whitespace, and an opening parenthesis.
   - Python: the word `def`, optionally preceded by `async`, a name, a parenthesized
     parameter list, an optional `->` return annotation, and a colon that ends the line.
   - JavaScript: the word `function`, optionally preceded by `export`, `async`, or both in
     that order, an optional name, a parenthesized parameter list, and an opening brace.
-  - Rust: the word `fn`, optionally preceded by `pub`, a name, and an opening angle bracket
-    or parenthesis.
+  - Rust: the word `fn`, optionally preceded by `pub`, a name, optional whitespace, and an
+    opening angle bracket or parenthesis.
+
+  Statements ending in a semicolon, each at the start of a line after optional indentation,
+  with the semicolon last on the line apart from trailing whitespace:
+
+  - An assignment: a target that begins with a letter or an underscore and goes on in
+    letters, digits, underscores, dots, square brackets, or asterisks, then optional
+    whitespace, one of `=`, `:=`, `+=`, or `-=`, optional whitespace, a character that is
+    neither `=` nor whitespace, and any text.
+  - A call: a run of name characters and dots beginning with a letter or an underscore, an
+    opening parenthesis right after it, any text, and a closing parenthesis.
+
+  Go shapes, anywhere in a line:
+
+  - A declaration: a name character, `:=` with optional whitespace on either side, an
+    optional `&`, a name beginning with a letter or an underscore, a dot, and more names
+    joined by dots, followed at once by an opening parenthesis or an opening brace.
+  - A map literal: `map[` at the start of a word, a key type of name characters, dots, or asterisks, `]`, a value
+    type of name characters, dots, asterisks, or square brackets, and an opening brace.
+  - A slice literal: `[]`, an optional asterisk, a type name of name characters and dots
+    beginning with a letter or an underscore, and an opening brace.
+  - An address-of literal: `&`, a type name of name characters and dots beginning with a
+    letter or an underscore, and an opening brace.
+  - An error check: the word `err`, optional whitespace, `!=`, optional whitespace, and the
+    word `nil`.
 
   Control flow: a line that begins, after optional indentation and an optional closing brace,
   with `if`, `else if`, `for`, `while`, or `switch` as a whole word and ends with an opening
@@ -217,7 +248,10 @@ content: |
   - `from`, a dotted name, `import`, and a name.
   - `#include` followed by an opening angle bracket or a double quote.
   - `package` and a dotted name that end the line, with an optional semicolon.
-  - `use`, names joined by `::`, and a semicolon.
-
+  - `use`, whitespace, a run of name characters and colons, and a semicolon right after it.
+---
+design: Abbreviations
+type: constraint
+content: |
   Abbreviations whose closing period ends no sentence, matched case-sensitively at the start
   of a word: `e.g.`, `i.e.`, `etc.`, `vs.`, and `cf.`.

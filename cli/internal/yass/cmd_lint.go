@@ -168,8 +168,8 @@ func (a *App) cmdLint() (int, error) {
 
 // reachabilityOrigin returns the root file's spec, where every reachability
 // chain begins, or the advisory that says why the root file supplies no
-// single origin: it carries a wrong number of specs, or its one spec has no
-// name a reference could address.
+// single origin: it failed to parse, carries a wrong number of specs, or its
+// one spec has no name a reference could address.
 func (a *App) reachabilityOrigin(files []*File) (*Doc, *Diag) {
 	var specs []*Doc
 	if rootFile := a.findRootFile(files); rootFile != nil && rootFile.Parsed {
@@ -178,7 +178,7 @@ func (a *App) reachabilityOrigin(files []*File) (*Doc, *Diag) {
 	if len(specs) != 1 {
 		return nil, &Diag{
 			Severity: "warn", Code: "yass.lint.no_origin", Location: refOf(RootBasename),
-			Message: "root file carries no single named spec",
+			Message: "root file supplies no single named spec",
 		}
 	}
 	if !specs[0].Addressable() {

@@ -183,7 +183,8 @@ YAML structure, preambles, names, slots, obligations, reference syntax, target
 existence, and relation/target kinds. It reports errors without repairing files.
 
 `lint [PATH...]` checks project hygiene: unreachable documents, unbound designs,
-missing schema modelines, empty slots, specs without slots, open questions or
+missing schema modelines, a root file with no single named spec to start reachability
+from (`no_origin`), empty slots, specs without slots, open questions or
 placeholders left in a file (`TBD`, `TODO`, a `?` in obligation prose), and
 conditions, keywords, or references written into prose instead of keys, and source
 code in a `schema` or `algorithm` design or a Markdown table in any design, and an
