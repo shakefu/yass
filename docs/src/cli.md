@@ -97,8 +97,10 @@ file record. `*@Greeting` selects that document name across files, together with
 each matching document's parent file record.
 
 An empty selection prints nothing and succeeds. An unparseable file remains in
-the index with unavailable fields and causes status `1`; use `validate` to
-diagnose it.
+the index with `-` for DETAIL and DESCRIPTION and no document records. A file with
+no preamble keeps its document records and shows `-` for DESCRIPTION. Either one
+causes status `1`, but only when the filter keeps that file's record in the output.
+Use `validate` to diagnose it.
 
 ## Read: `query`
 
@@ -182,16 +184,20 @@ yass lint root.yass.yaml
 YAML structure, preambles, names, slots, obligations, reference syntax, target
 existence, and relation/target kinds. It reports errors without repairing files.
 
-`lint [PATH...]` checks project hygiene: unreachable documents, unbound designs,
-missing schema modelines, a root file with no single named spec to start reachability
-from (`no_origin`), empty slots, specs without slots, open questions or
-placeholders left in a file (`TBD`, `TODO`, a `?` in obligation prose), and
-conditions, keywords, or references written into prose instead of keys, and source
-code in a `schema` or `algorithm` design or a Markdown table in any design, and an
-obligation that restates a fact a `catalog` design records: an identifier named with
-one of its field values, by number, label, or behaviour phrase (`restated_fact`), or,
-as an experimental check, such a value stated with no identifier (`restated_value`).
-It builds the whole project graph even when paths restrict which files' advisories it
+`lint [--format FORMAT] [PATH...]` checks project hygiene: unreachable documents,
+unbound designs, missing schema modelines, a root file with no single named spec to
+start reachability from (`no_origin`), a file that does not parse (`unparsed`),
+empty slots, specs without slots, open questions or placeholders left in a file
+(`TBD`, `TODO`, `FIXME`, `XXX`, `open question`, `??`, or a `?` in obligation or
+guard prose or a preamble description), conditions, keywords, or references written
+into prose instead of keys, an obligation that is more than one requirement
+(`obligation_shape`: prose over 400 characters, code, a sequence of steps, several
+clauses, a rationale aside, or an error mapping outside `ERROR`), source code in a
+`schema` or `algorithm` design or a Markdown table in any design, and an obligation
+that restates a fact a `catalog` design records: an identifier named with one of its
+field values, by number, label, or behaviour phrase (`restated_fact`), or, as an
+experimental check, such a value stated with no identifier (`restated_value`). It
+builds the whole project graph even when paths restrict which files' advisories it
 reports.
 Lint does not run validation first; it remains usable during authoring.
 
@@ -271,12 +277,14 @@ A diagnostic from `validate` or `lint` has the keys `severity`, `code`,
 `location`, `line`, and `message`.
 
 Keys are the lowercase field names, in field order. Each value is the string the
-text form would print, except that an absent field (`-`) is `null` and a
-diagnostic's `line` is a number. `<`, `>`, `&`, and non-ASCII text are written as
-themselves. Errors on standard error stay in the text form, and exit statuses do
-not change. Any other format value is a usage error, `yass.args.unknown_format`.
-`overview`, `query`, and `docs` serve documents rather than records and do not
-accept `--format`.
+text form would print, with these exceptions. An absent or empty field, which
+the text form prints as `-`, is `null`; a field whose real value is `-` stays
+the string `"-"`. A diagnostic's `line` is an integer, or `null` when no line is
+known. Bytes that are not valid UTF-8 are written as U+FFFD. `<`, `>`, `&`, and
+non-ASCII text are written as themselves. Errors on standard error stay in the
+text form, and exit statuses do not change. Any other format value is a usage
+error, `yass.args.unknown_format`. `overview`, `query`, and `docs` serve
+documents rather than records and do not accept `--format`.
 
 Requested answers go to standard output. Failures to serve a request go to
 standard error. Validation findings and lint advisories are their commands'
@@ -287,7 +295,7 @@ requested answers, so they go to standard output.
 | `0` | Success, including empty search/edge results and clean checks |
 | `1` | Findings: validation errors, lint advisories, or partial results due to parse failures |
 | `2` | Usage error, such as an unknown option or malformed target |
-| `3` | Unresolved path, document, slot, reference, or docs name |
+| `3` | Unresolved path, document, slot, reference, or docs name; a target whose file does not parse; a reference whose relation does not fit its target's kind; or a malformed reference inside a served document |
 | `4` | No governing project root |
 | `5` | Environment failure, such as unreadable files or a failed update |
 

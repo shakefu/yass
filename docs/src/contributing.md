@@ -26,8 +26,9 @@ in `cli/` and a locally built binary; `cli/HOWTORUN.txt` explains the build.
 When documenting a behavior change, update its governing spec and implementation
 as part of that change rather than silently describing a new contract here.
 
-The language reference, authoring guidance, and brainstorming chapters are
-`{{#include}}` stubs. Edit their authoritative sources in `context/`, then run:
+The language reference, authoring guidance, brainstorming, and implementing
+chapters are `{{#include}}` stubs. Edit their authoritative sources in
+`context/`, then run:
 
 ```sh
 ./script/sync-docs

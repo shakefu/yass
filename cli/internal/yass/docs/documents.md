@@ -13,7 +13,9 @@ This part covers the file, the project root, and the three document kinds: pream
 - A yass file uses the **`.yass.yaml`** extension — with at least one character
   before it, so a file named exactly `.yass.yaml` is not a yass file — and is a
   **YAML multi-document stream** (`---`-separated).
-- Read as UTF-8.
+- Read as UTF-8 under the YAML 1.2 core schema, so `yes`, `no`, `on`, and `off` are
+  plain strings. Invalid UTF-8, a leading BOM, YAML anchors, aliases, or explicit tags,
+  and a duplicate key in any mapping are each a validation error.
 - SHOULD carry the schema modeline as its first line, so editors validate against the
   JSON Schema with no per-repo config:
   `# yaml-language-server: $schema=https://shakefu.github.io/yass/v1.schema.json`
@@ -26,7 +28,9 @@ This part covers the file, the project root, and the three document kinds: pream
 
 - A file named exactly **`root.yass.yaml`** is **required**, and its **presence defines
   the project root**: the project root is the directory that contains it. Every
-  root-relative ref path — a path token with no leading dot — resolves from there.
+  root-relative ref path — a path token that does not begin with `./` or `../`,
+  including one such as `.config/x` whose leading dot opens a hidden name — resolves
+  from there.
 - **A project root is not a repository root.** It is defined by the presence of the file
   and by nothing else: the anchor is deliberately decoupled from the repository, so
   nothing ties it to a VCS checkout, a package manifest, or a build directory. A project
@@ -61,7 +65,7 @@ This part covers the file, the project root, and the three document kinds: pream
   Making it mandatory simplifies parsing and validation.
 - Identified structurally by the **absence of a `spec:` or `design:` key**.
 - The file name is the identity of the whole unit; the preamble does **not** repeat it.
-- Keys:
+- Keys, a closed set (any other key is a validation error):
   - `description` — **required**; a string file-level summary (block scalar `>`
     allowed). Surfaced by tooling that summarizes files.
   - `version` — **required**; the yass language version the file targets. **Pinned at
@@ -83,13 +87,15 @@ This part covers the file, the project root, and the three document kinds: pream
   normativity keyword, `WHEN`, or a relation (`CONFORMS`, `USES`, `SEE`).
 - Names **MUST be unique within a file**, so refs resolve unambiguously.
 - Granularity: **one public symbol / endpoint → one spec.** Also the unit of retrieval.
-- The five slots are themselves defined in `yass.yass.yaml` as `Slot.INPUT`, `Slot.RETURN`,
-  `Slot.ERROR`, `Slot.SIDE-EFFECT`, and `Slot.INVARIANT`.
+- The five slots are themselves defined in the language definition (`yass docs
+  language`) as `Slot.INPUT`, `Slot.RETURN`, `Slot.ERROR`, `Slot.SIDE-EFFECT`, and
+  `Slot.INVARIANT`.
 
 ## Design document
 
-- A `design:` key naming the block, plus **required** `type` and `content` keys — and
-  **no slots**. A peer of `spec:` in the YAML stream:
+- A `design:` key naming the block, plus **required** `type` and `content` keys, a
+  `format` key when and only when `type` is `schema`, and no other key — **no slots**.
+  A peer of `spec:` in the YAML stream:
 
   ```yaml
   ---
@@ -101,9 +107,9 @@ This part covers the file, the project root, and the three document kinds: pream
     3. Mark the service live
   ```
 
-- Names share the **file-wide uniqueness namespace** with spec names (same name
-  grammar), so a ref target stays unambiguous — a bare name or `path@Name` resolves to
-  exactly one document, spec or design.
+- Names follow the spec name grammar and keyword ban, and share the **file-wide
+  uniqueness namespace** with spec names, so a ref target stays unambiguous — a bare
+  name or `path@Name` resolves to exactly one document, spec or design.
 - `type` — **required**; exactly one of five values. Any other value, including a
   former name (`table`, `code`, `ordered-steps`, `stack`, `pseudocode`), is a
   validation error.
@@ -124,10 +130,12 @@ This part covers the file, the project root, and the three document kinds: pream
   is never a design: name the symbol in an obligation instead. A Markdown table is never
   content: rows belong in a `catalog`. `yass lint` reports both as
   `yass.lint.design_code` and `yass.lint.design_table`.
-- **Catalogue form.** `catalog` content is a YAML mapping keyed by each record's
-  identifier; each record is a mapping of scalar fields, and every record carries the
-  same field names. A repeated identifier, a non-scalar field, or a differing field set
-  is a validation error. A field holds a fact of the implementation alone:
+- **Catalogue form.** `catalog` content is a non-empty YAML mapping keyed by each record's
+  scalar identifier; each record is a mapping of scalar field names to scalar values,
+  and every record carries the same field names. Empty content, a repeated or non-scalar
+  identifier, a record that is not a mapping, a non-scalar field name or value, or a
+  differing field set is a validation error. A field holds a fact of the implementation
+  alone:
 
   ```yaml
   ---

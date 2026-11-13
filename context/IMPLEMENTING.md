@@ -10,12 +10,14 @@ code to do and how a test shows the code does it.
 ## Read the set through the CLI
 
 - `yass` with no arguments orients you: the project, the notation, the commands.
-- `yass list` names every document. `yass query NAME` gives one spec as its implementer
-  holds it, and `yass query NAME::SLOT` gives one slot. Query the spec you are
-  implementing rather than reading its whole file. `yass list --filter GLOB` narrows the
-  index; GLOB matches the whole REF, so `*` crosses `@`. `--filter 'root*'` matches
+- `yass list` names every document. `yass query path@Name` (the REF `yass list` prints,
+  such as `root@Name`) gives one spec as its implementer holds it, and
+  `yass query path@Name::SLOT` gives one slot. A target with no `@` names a whole file.
+  Query the spec you are implementing rather than reading its whole file.
+  `yass list --filter GLOB` narrows the index; GLOB matches the whole REF, so `*`
+  crosses `@`. `--filter 'root*'` matches
   `root` and `root@Name`; `--filter root` matches only the file record.
-- `yass refs NAME` shows what a spec points at and what points at it: the specs your
+- `yass refs path@Name` shows what a spec points at and what points at it: the specs your
   code must agree with, and the specs whose code depends on yours.
 - Work from the queried fragments, never from memory of the conversation that produced
   the set. A gap you meet there is a spec defect; report it rather than fill it.

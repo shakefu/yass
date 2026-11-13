@@ -85,17 +85,18 @@ prose slot the language does not have.
 yass intentionally provides **no formal way to attach non-spec prose or commentary** to
 a spec. Authors get structured obligations only. Free text does appear in a few declared
 fields — the preamble `description`, the preamble `related` list of external resource
-locations, and a design block's `type` hint — but each is structural metadata, not a
-commentary channel.
+locations, and a schema design block's `format`, which names its notation — but each is
+structural metadata, not a commentary channel.
 
 Rationale: when a language allows free prose (as Allium does), the prose goes out of
 control — specs bloat with narrative that isn't behavior. Withholding a prose/comment
 channel forces authors (especially LLMs) to express intent as obligations, or not at
 all.
 
-Note: the only comments yass emits are tooling-generated provenance comments
-(`# CONFORMS: ...`) on resolved fragments. Those are not an author-facing channel, and
-should not become one.
+Note: the only comments yass emits are tooling-generated: provenance comments on
+resolved fragments (`# CONFORMS: ...` on an inlined obligation, `# USES: ...` on an
+appended design), and the length line `yass docs` writes before a document over 200
+lines. Those are not an author-facing channel, and should not become one.
 
 One fenced carve-out: a **design block** (a `design:` document — see *Design document*
 in `yass docs documents`) carries normative content, but it is not a prose channel on

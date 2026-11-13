@@ -51,14 +51,16 @@ requirements.
 Work in [project directory]. I confirmed this understanding:
 [confirmed purpose, users, observable success, scope, and constraints].
 
-Run yass and read yass docs brainstorming, guidance, and reference. Follow
+Run yass and read yass docs brainstorming, then the write path it lists
+(yass docs authoring, documents, obligations, references, coverage). Follow
 the brainstorming flow from this confirmed understanding. Check existing
 specs through the CLI before extending them. Resolve remaining decisions
 with me; do not invent missing requirements.
 
 Draft a spec set with a root that explains the project and follow the
-guidance's Granularity rules for code-file pairing and public-symbol coverage. Keep shared concerns
-in one home and bind nonbehavioral constraints through USES design blocks.
+authoring's Granularity rules for code-file pairing and public-symbol
+coverage. Keep shared concerns in one home and bind nonbehavioral
+constraints through USES design blocks.
 Apply Case coverage and the Implementer view rehearsal, following references
 that query does not inline. Run yass validate and yass lint and fix findings.
 Show every spec document for my review. Stop for approval of the complete
@@ -112,7 +114,7 @@ the authoring transcript as an extra source of behavior.
 Implement the approved spec set in [project directory], scoped to [scope].
 The set has been approved; this is the request to implement it.
 
-Start by running yass, then read yass docs implementing whole. Discover the
+Start by running yass, then read all of yass docs implementing. Discover the
 project with list, find, and refs, then read behavior through query. Follow whole-spec CONFORMS and SEE references
 and the USES constraints. Treat the set as the source of requirements, not
 earlier conversation or plausible defaults.
@@ -149,7 +151,7 @@ gap. Check incoming references for consumers affected by the change.
 
 If the approved contract already determines the fix, implement and test
 the correction under the repository instructions. If requirements change
-or are missing, read yass docs brainstorming and guidance and use the
+or are missing, read yass docs brainstorming and the write path it lists and use the
 feature authoring flow: present the understanding, draft after confirmation,
 check and review the set, and stop for spec approval and handoff. Do not
 silently rewrite the contract to match a bug or implement an unapproved
@@ -178,7 +180,8 @@ Adopt Yass for [bounded component] in [repository directory]. Its code and
 tests are [paths]. Preserve [compatibility expectations]. The scope is this
 component; do not claim to specify the rest of the repository.
 
-Run yass and read yass docs brainstorming, guidance, and reference. Treat
+Run yass and read yass docs brainstorming, then the write path it lists
+(yass docs authoring, documents, obligations, references, coverage). Treat
 this as a retrofit. Determine the appropriate project root and inspect
 existing specs through the CLI. Use code and tests to establish intent and
 edge behavior. Ask me only where the evidence is ambiguous, contradictory,
@@ -206,7 +209,7 @@ settle the accepted integer range, the exact failure outcome for invalid
 inputs, and any technology constraints that the request does not answer.
 
 After you confirm the understanding, the author drafts `root.yass.yaml`
-describing the library and referring to `format-label.yass.yaml@formatLabel`.
+describing the library and referring to `format-label@formatLabel`.
 That file describes the public function in its own spec. Its contract pins
 the exact strings, the zero case, invalid inputs, and absence of side effects.
 The author validates, lints, and rehearses both queried specs before presenting

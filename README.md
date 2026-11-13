@@ -122,7 +122,8 @@ opening a single file by hand.
 The documents that define the language and how to write specs in it are
 carried inside the binary and served by `yass docs`, so they travel with it
 wherever it is installed, and are read in paths: eliciting, writing or changing,
-and implementing a spec each have one, and `yass` lists them.
+and implementing a spec, and changing the language itself, each have one, and
+`yass` lists them.
 
 ## License
 
