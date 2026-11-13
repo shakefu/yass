@@ -137,3 +137,30 @@ func TestLoadListFilePathsDedupeAndRootRelative(t *testing.T) {
 	}
 	check("linked prefix and directory", run(dir, "list", "link/a.yass.yaml", "sub"))
 }
+
+// --- YAML 1.2 core schema ---------------------------------------------------
+
+// A plain scalar the core schema resolves to a string is a string, though
+// go-yaml would read it as a YAML 1.1 timestamp, binary, or underscored
+// number; core-schema ints, floats, bools, and nulls stay non-strings
+// (02-load@Load::INPUT).
+func TestLoadCoreSchemaPlainScalars(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "root.yass.yaml", confRoot)
+	strs := []string{"2001-12-14", "2001-12-14T10:00:00Z", "0b10", "1_000", "1:20", "<<", "0o9", "0xZ", "1e", "yes", "on"}
+	body := modeline + "---\ndescription: d\nversion: v1\n---\nspec: S\nINPUT:\n"
+	for _, v := range strs {
+		body += "- MUST: " + v + "\n"
+	}
+	write(t, dir, "a.yass.yaml", body)
+	got := run(dir, "validate", "a.yass.yaml")
+	wantStatus(t, got, ExitOK)
+
+	for _, v := range []string{"12", "-3", "0o17", "0x1F", "1.5", ".5", "1e3", "+.inf", ".NaN", "true", "FALSE", "null", "~"} {
+		write(t, dir, "b.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\nspec: S\nINPUT:\n- MUST: "+v+"\n")
+		got := run(dir, "validate", "b.yass.yaml")
+		if !strings.Contains(got.stdout, "yass.obligation.not_scalar") {
+			t.Errorf("%s must stay a non-string: status %d stdout %q", v, got.status, got.stdout)
+		}
+	}
+}

@@ -19,14 +19,14 @@ var bom = []byte{0xEF, 0xBB, 0xBF}
 // yamlErrLine pulls the 1-based line out of a go-yaml parse error.
 var yamlErrLine = regexp.MustCompile(`line (\d+):`)
 
-// norwayWords are the plain scalars that must stay strings rather than become
-// booleans.
-var norwayWords = map[string]bool{
-	"yes": true, "Yes": true, "YES": true,
-	"no": true, "No": true, "NO": true,
-	"on": true, "On": true, "ON": true,
-	"off": true, "Off": true, "OFF": true,
-}
+// The YAML 1.2 core schema's resolution of a plain scalar: null, bool, int, and
+// float by these patterns, and str for everything else.
+var (
+	coreNull  = regexp.MustCompile(`^(?:~|null|Null|NULL|)$`)
+	coreBool  = regexp.MustCompile(`^(?:true|True|TRUE|false|False|FALSE)$`)
+	coreInt   = regexp.MustCompile(`^(?:[-+]?[0-9]+|0o[0-7]+|0x[0-9a-fA-F]+)$`)
+	coreFloat = regexp.MustCompile(`^(?:[-+]?(?:\.[0-9]+|[0-9]+(?:\.[0-9]*)?)(?:[eE][-+]?[0-9]+)?|[-+]?\.(?:inf|Inf|INF)|\.(?:nan|NaN|NAN))$`)
+)
 
 // Loader reads each file at most once per invocation and hands back the model
 // every command reads. It is the only place this program reads a spec file.
@@ -114,7 +114,7 @@ func parseBytes(abs, rel string, data []byte) *File {
 			}
 		}
 		if content != nil {
-			retagNorway(content)
+			retagCore(content)
 		}
 		f.Docs = append(f.Docs, buildDoc(f, i, doc, content))
 	}
@@ -168,19 +168,37 @@ func errLine(err error) int {
 	return 0
 }
 
-// retagNorway keeps `yes`, `no`, `on`, and `off` plain strings. go-yaml's YAML
-// 1.2 core schema already resolves them as strings; this walk makes the
-// property of the model rather than of the library.
-func retagNorway(n *yaml.Node) {
+// retagCore resolves every untagged plain scalar under the YAML 1.2 core
+// schema. go-yaml applies YAML 1.1 resolutions the core schema lacks, such as
+// timestamps, `0b` binary, `_`-separated numbers, and the `<<` merge key; under
+// the core schema each of those, like `yes`, `no`, `on`, and `off`, is a
+// string. A scalar carrying an explicit tag, or written quoted or as a block,
+// keeps the tag go-yaml gave it.
+func retagCore(n *yaml.Node) {
 	if n == nil {
 		return
 	}
-	if n.Kind == yaml.ScalarNode && n.Tag == "!!bool" && n.Style == 0 && norwayWords[n.Value] {
-		n.Tag = "!!str"
+	if n.Kind == yaml.ScalarNode && n.Style == 0 {
+		n.Tag = coreTag(n.Value)
 	}
 	for _, c := range n.Content {
-		retagNorway(c)
+		retagCore(c)
 	}
+}
+
+// coreTag yields the tag the YAML 1.2 core schema resolves a plain scalar to.
+func coreTag(v string) string {
+	switch {
+	case coreNull.MatchString(v):
+		return "!!null"
+	case coreBool.MatchString(v):
+		return "!!bool"
+	case coreInt.MatchString(v):
+		return "!!int"
+	case coreFloat.MatchString(v):
+		return "!!float"
+	}
+	return "!!str"
 }
 
 func buildDoc(f *File, index int, docNode, content *yaml.Node) *Doc {
