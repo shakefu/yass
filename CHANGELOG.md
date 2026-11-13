@@ -2,6 +2,16 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.12.0 - 2026-11-13
+#### Features
+- (**cli**) lint obligations that restate a catalogued fact - (ee0feb5) - Jacob Alheid
+#### Bug Fixes
+- (**cli**) state only the problem in obligation-shape lint messages - (fd3a886) - Jacob Alheid
+#### Refactoring
+- (**cli**) catalogue the CLI's request-failure codes - (761a388) - Jacob Alheid
+
+- - -
+
 ## v0.11.0 - 2026-11-10
 #### Features
 - (**cli**) lint source code and Markdown tables in design content - (7fe4bf7) - Jacob Alheid
