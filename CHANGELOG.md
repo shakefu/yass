@@ -2,6 +2,19 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.13.1 - 2026-11-13
+#### Bug Fixes
+- (**cli**) resolve ref path tokens case-sensitively - (0a0dea8) - Jacob Alheid
+- (**schema**) reject yass keywords as spec and design names - (46d55ba) - Jacob Alheid
+#### Documentation
+- align the guides and reference with the specs and CLI - (636c741) - Jacob Alheid
+#### Refactoring
+- (**cli**) share ref-file resolution and the directory listing cache - (3c538a4) - Jacob Alheid
+- (**cli**) resolve ref paths through one cached helper - (25279d9) - Jacob Alheid
+- (**cli**) remove the unused App.ref helper - (9c32800) - Jacob Alheid
+
+- - -
+
 ## v0.13.0 - 2026-11-13
 #### Features
 - (**cli**) add --format json for record output - (6265d7e) - Jacob Alheid
