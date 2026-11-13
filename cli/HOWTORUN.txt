@@ -63,6 +63,8 @@ Examples, run from this directory
   ./yass root
   ./yass list
   ./yass list --filter '*@*Command*'
+  ./yass list --filter 'root*'       # the file record and its documents (* crosses @)
+  ./yass list --filter root          # the file record only
   ./yass query 03-root@RootCommand
   ./yass query --raw 04-query@Resolution
   ./yass query root@ExitPolicy

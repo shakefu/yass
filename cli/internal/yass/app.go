@@ -25,7 +25,8 @@ const synopsis = `usage: yass [-C DIR] [--version] [--help] [SUBCOMMAND [ARGS...
   --help, -h                     write this text and exit
 
   --raw                          emit the document as authored, resolving nothing
-  --filter GLOB                  emit only records whose REF matches GLOB
+  --filter GLOB                  emit only records whose whole REF matches GLOB;
+                                 * crosses @, so 'root*' matches root and root@Name
   --slot SLOT                    restrict matches to obligations of that slot
   --in                           report incoming edges only
   --out                          report outgoing edges only
