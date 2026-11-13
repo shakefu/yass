@@ -93,7 +93,7 @@ RETURN:
 - MUST-NOT: emit yass.lint.design_code for a bare assignment that ends in no semicolon, a `for each` loop, a guard closed by `then` or by a colon, or an unqualified or dotted call that ends no statement, since pseudocode in an algorithm writes each of those
   USES: SourcePatterns
   SEE: ../yass@Design
-- WHEN: "a line of a design's string content, or of a string field value of its catalogue records, holds a pipe and the next line is a Markdown table delimiter row of dashes divided by pipes"
+- WHEN: "a line of a design's string content, or of a string field value of its catalogue records, holds a pipe outside a backtick code span and the next line is a Markdown table delimiter row of dashes divided by pipes"
   MUST: emit code yass.lint.design_table at the first of those lines, because a Markdown table is a second syntax no tool checks and its rows belong in a catalog
   SEE: ../yass@Design
 - MUST: take as a catalogue every design of the project file set whose type is catalog and whose content is a mapping, whatever PATH selects, skipping a record that is not a mapping, a repeated identifier after its first record, and a field value that is not a scalar
