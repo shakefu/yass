@@ -151,7 +151,7 @@ RETURN:
 - MUST: be followed by any implementation bound to it through a USES reference
   SEE: Reference
 - WHEN: "the type is `catalog`"
-  MUST: be the only statement of each fact it records, so an obligation that binds it names an identifier and states no field value in any wording
+  MUST: be the only statement of each fact it records
   SEE: Obligation
 ERROR:
 - MUST: be rejected when it has no design name
@@ -274,6 +274,9 @@ INVARIANT:
 - MUST-NOT: carry the same Reference relation key more than once
 - MUST: be defined as reference-only iff it carries at least one Reference relation key and carries no Normativity keyword and carries no `WHEN` guard
   SEE: Reference
+- WHEN: it binds a catalog Design
+  MUST-NOT: state, in any wording, a field value that catalogue records
+  SEE: Design
 ---
 spec: Normativity
 INPUT:

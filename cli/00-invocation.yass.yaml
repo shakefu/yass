@@ -70,14 +70,15 @@ SIDE-EFFECT:
 INVARIANT:
 - MUST: treat the Synopsis design block as both the option table it parses against and the exact text `--help` writes, so nothing is added to that text and nothing is left out of it
   USES: Synopsis
-- MUST: read each operand placeholder of the synopsis against the rule that defines it, so a TARGET takes the ref-target grammar and a PATH takes a filesystem path
+- MUST: read each TARGET placeholder of the synopsis as a ref target
   SEE: 02-load@TargetResolution
+- MUST: read each PATH placeholder of the synopsis as a filesystem path
 - MUST-NOT: accept an abbreviated or prefixed subcommand token, so no token resolves by being unique
 - MUST-NOT: "accept a subcommand token in any casing other than the lowercase form the synopsis states"
 - MUST-NOT: accept a clustered short option, since every short option this program recognizes stands alone
 - MUST-NOT: read an environment variable, a dotfile, or a configuration directory to supply an option value
 - MUST-NOT: reorder operands, so a subcommand sees them exactly as given
-- MUST-NOT: emit a machine-readable rendering of any output, since the record grammar is the only encoding in v1
+- MUST-NOT: emit a machine-readable rendering of any output, since each command's output format is the only encoding of its answer in v1
   SEE: root@RecordFormat
 ---
 design: Synopsis

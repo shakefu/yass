@@ -26,6 +26,7 @@ SIDE-EFFECT:
 INVARIANT:
 - MUST: place every rule of the language in the construct Spec that owns it, rather than restating it here
   SEE: yass@Document
-- MUST: produce a specification rather than a running program, so nothing under this project root has an entry point, an invocation, or an exit status
-- MUST-NOT: produce an implementation of the language, so no command, invocation, or exit status is specified under this project root
+- MUST: produce a specification rather than a running program
+- MUST-NOT: produce an implementation of the language
+- MUST-NOT: specify a command, an entry point, an invocation, or an exit status under this project root
 - MUST: place a rule that binds tooling consuming the language in the construct Spec that owns it, where it is not an implementation

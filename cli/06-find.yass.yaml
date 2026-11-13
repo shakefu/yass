@@ -21,8 +21,10 @@ INPUT:
 - WHEN: "`--slot SLOT` is given"
   MUST: restrict obligation matches to obligations declared in that slot
 - WHEN: "`--slot SLOT` is given"
-  MUST-NOT: "restrict a design's content by it, since a design declares no slot, and emit design matches unrestricted"
+  MUST-NOT: restrict a design's content by it, since a design declares no slot
   SEE: ../yass@Design
+- WHEN: "`--slot SLOT` is given"
+  MUST: emit every design content match as it would be emitted with no slot given
 RETURN:
 - MUST: emit one record per matching field
   USES: root@RecordFormat

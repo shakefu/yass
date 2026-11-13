@@ -12,7 +12,8 @@ spec: Load
 INPUT:
 - MUST: take an ordered set of file paths, drawn from the project file set or named on the command line
   CONFORMS: 01-locate@FileSet::RETURN
-- MUST: rely on every path in that set naming an existing regular file, since the file set yields no other, and re-check that property only for a path a command took from the command line instead
+- MUST: rely on every path drawn from the project file set naming an existing regular file, since the file set yields no other
+- MUST: check that a path a command took from the command line names an existing regular file
 - WHEN: a path taken from the project file set does not exist when parsing reaches it
   MUST: report code yass.internal
 - MUST: read each file's bytes and decode them as UTF-8

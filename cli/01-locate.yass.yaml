@@ -48,7 +48,7 @@ spec: FileSet
 INPUT:
 - MUST: take the project root directory
   CONFORMS: RootDiscovery::RETURN
-- MUST: "rely on the project root existing and holding a `root.yass.yaml`, since discovery yields no directory without one, and re-check neither property"
+- MUST: "rely on the project root existing and holding a `root.yass.yaml`, and re-check neither property, since discovery yields no directory without one"
 - WHEN: the project root does not exist or does not hold that file when traversal begins
   MUST: report code yass.internal rather than fall back to another directory
 RETURN:
@@ -71,6 +71,7 @@ INVARIANT:
 - MUST: "compare the `.yass.yaml` suffix byte-for-byte and case-sensitively on every platform"
 - MUST-NOT: "match a file whose basename ends in `.yaml` without the `.yass` infix"
 - MUST-NOT: descend through a symbolic link that names a directory, so the traversal cannot cycle
-- MUST: read through a symbolic link that names a regular file, so a linked spec file is a member of the set
-- MUST: "yield at least one member, because the project root holds a `root.yass.yaml` and that basename ends with the suffix, so no command needs an empty-set case"
+- MUST: read through a symbolic link that names a regular file
+- MUST: "yield as a member a symbolic link that names a regular file and whose basename ends with `.yass.yaml`"
+- MUST: "yield at least one member, because the project root's own `root.yass.yaml` is always a member"
 - MUST: "treat the traversal's cases as exhaustive: it either reads a directory or fails to read it, and the failure is matched in ERROR, so that slot carries no residual"

@@ -184,6 +184,11 @@ RETURN:
 - WHEN: "a `::SLOT` token names a slot the referenced spec does not declare in its source document"
   MUST: emit code yass.ref.slot_undeclared
   CONFORMS: ../yass@Reference
+- WHEN: an addressed file yielded a parse failure
+  MUST: emit that failure's code as a diagnostic for the file
+  SEE: 02-load@Load::RETURN
+- WHEN: an addressed file yielded a parse failure
+  MUST: emit no further diagnostic for that file and continue with the next file, because its documents cannot be read
 ERROR:
 - WHEN: at least one diagnostic was emitted
   MUST: exit with the findings status after writing all of them
@@ -191,9 +196,6 @@ ERROR:
   MUST: report code yass.io.missing naming it
 - WHEN: "a PATH exists but is neither a directory nor a regular file"
   MUST: report code yass.io.not_a_spec_file naming it
-- WHEN: an addressed file yielded a parse failure
-  MUST: emit that failure's code as a diagnostic for the file, emit no further diagnostic for that file because its documents cannot be read, and continue with the next file
-  SEE: 02-load@Load::RETURN
 - WHEN: an addressed file cannot be read at all
   MUST: report code yass.io.unreadable naming it
 - MUST: report code yass.internal for any failure not matched by a guarded obligation in this slot
@@ -205,10 +207,11 @@ SIDE-EFFECT:
 - MUST: write every diagnostic of the ERROR slot to standard error, because each names a failure to check rather than a result of checking
 - MUST-NOT: rewrite, reformat, requote, or repair a file it validates
 INVARIANT:
-- MUST: be the only place this program names which rule a file violates, so every other command reports only that a file yielded no documents
-- MUST-NOT: judge whether an obligation's prose is correct, complete, achievable, or well worded, since verification is out of scope and staying out of it is what keeps the program independent of the language a spec describes
-- MUST-NOT: emit an advisory, so a validation diagnostic always names a rule the language definition states as a rejection
+- MUST: be the only place this program names which rule a file violates, since naming a violation is the answer of validation
+- MUST-NOT: judge whether an obligation's prose is correct, complete, achievable, or well worded, since verification is out of scope
+- MUST-NOT: emit an advisory
   SEE: 09-lint@Lint
+- MUST: emit a diagnostic only for a rule the language definition states as a rejection
 - MUST-NOT: report a missing schema modeline, which the language states as a `SHOULD` and lint reports as an advisory
   SEE: 09-lint@Lint
 - MUST-NOT: report an unreachable document, which the language states as a Root invariant and lint reports as an advisory
