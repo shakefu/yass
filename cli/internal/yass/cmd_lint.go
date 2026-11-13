@@ -155,6 +155,7 @@ func (a *App) cmdLint() (int, error) {
 		}
 	}
 
+	advisories = dedupeDiags(advisories)
 	sortDiags(advisories, files)
 	for _, d := range advisories {
 		a.out.line(a.diag(d))
@@ -206,4 +207,26 @@ func (a *App) underRoot(f *File) bool {
 	rel := a.rel(f.Abs)
 	return rel != "" && rel != ".." && !strings.HasPrefix(rel, "/") &&
 		!strings.HasPrefix(rel, "../")
+}
+
+// dedupeDiags drops every advisory identical to an earlier one in code,
+// location, line, and message, keeping the first, so two checks that reach
+// the same finding report it once.
+func dedupeDiags(ds []Diag) []Diag {
+	type key struct {
+		code, loc string
+		line      int
+		msg       string
+	}
+	seen := map[key]bool{}
+	out := ds[:0]
+	for _, d := range ds {
+		k := key{d.Code, d.Location, d.Line, d.Message}
+		if seen[k] {
+			continue
+		}
+		seen[k] = true
+		out = append(out, d)
+	}
+	return out
 }
