@@ -1550,13 +1550,18 @@ func TestLintPathSelectsReportingOnly(t *testing.T) {
 	}
 }
 
+// A root file with no spec supplies no origin for reachability, which lint
+// reports as an advisory on standard output.
 func TestLintRootSpecCount(t *testing.T) {
 	dir := t.TempDir()
 	write(t, dir, "root.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n")
 	got := run(dir, "lint")
 	wantStatus(t, got, ExitFindings)
-	if !strings.Contains(got.stderr, "yass.root.spec_count") {
-		t.Fatalf("stderr = %q", got.stderr)
+	if want := "warn\tyass.lint.no_origin\troot\t-\troot file carries no single named spec\n"; got.stdout != want {
+		t.Fatalf("stdout = %q, want %q", got.stdout, want)
+	}
+	if got.stderr != "" {
+		t.Fatalf("stderr = %q, want empty", got.stderr)
 	}
 }
 
@@ -1564,20 +1569,33 @@ func TestLintRootSpecCount(t *testing.T) {
 // which lint reports rather than passing the project in silence.
 func TestLintRootSpecUnnamed(t *testing.T) {
 	dir := t.TempDir()
+	write(t, dir, "root.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\nspec:\nINPUT:\n- MUST: x\n")
+	got := run(dir, "lint")
+	wantStatus(t, got, ExitFindings)
+	if want := "warn\tyass.lint.no_origin\troot\t6\troot spec has no name a reference could address\n"; got.stdout != want {
+		t.Fatalf("stdout = %q, want %q", got.stdout, want)
+	}
+	if got.stderr != "" {
+		t.Fatalf("stderr = %q, want empty", got.stderr)
+	}
+}
+
+// With no origin, every advisory that does not depend on reachability is
+// still written, sorted with the no-origin advisory, and none that does is
+// guessed at.
+func TestLintNoOriginKeepsOtherAdvisories(t *testing.T) {
+	dir := t.TempDir()
 	write(t, dir, "root.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\nspec:\nINPUT:\n- MUST: x\n  SEE: a@A\n")
 	write(t, dir, "a.yass.yaml", "---\ndescription: d\nversion: v1\n---\nspec: A\nINPUT:\n- MUST: x\n---\nspec: Orphan\nINPUT:\n- MUST: y\n")
 	got := run(dir, "lint")
 	wantStatus(t, got, ExitFindings)
-	if want := "error\tyass.spec.unnamed\troot\t6\tspec key has no string name\n"; got.stderr != want {
-		t.Fatalf("stderr = %q, want %q", got.stderr, want)
+	if got.stderr != "" {
+		t.Fatalf("stderr = %q, want empty", got.stderr)
 	}
-	// Every advisory that does not depend on reachability is still written,
-	// and none that does is guessed at.
-	if !strings.Contains(got.stdout, "yass.lint.modeline") {
-		t.Fatalf("stdout = %q", got.stdout)
-	}
-	if strings.Contains(got.stdout, "yass.lint.unreachable") {
-		t.Fatalf("no origin, so no reachability advisory:\n%s", got.stdout)
+	want := "warn\tyass.lint.modeline\ta\t1\tfirst line is not the schema modeline\n" +
+		"warn\tyass.lint.no_origin\troot\t6\troot spec has no name a reference could address\n"
+	if got.stdout != want {
+		t.Fatalf("stdout = %q, want %q", got.stdout, want)
 	}
 }
 

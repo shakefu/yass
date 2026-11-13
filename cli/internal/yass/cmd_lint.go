@@ -106,6 +106,11 @@ func (a *App) cmdLint() (int, error) {
 	warn := func(code, loc string, line int, msg string) {
 		advisories = append(advisories, Diag{Severity: "warn", Code: code, Location: loc, Line: line, Message: msg})
 	}
+	if noOrigin != nil {
+		// Reachability has no single origin, so no unreachable advisory is
+		// written, and the reader must know it was not checked.
+		advisories = append(advisories, *noOrigin)
+	}
 
 	for _, f := range files {
 		if !selected[f.Abs] {
@@ -155,12 +160,6 @@ func (a *App) cmdLint() (int, error) {
 		a.out.line(d.Record())
 	}
 
-	if noOrigin != nil {
-		// Reachability has no single origin; every advisory that does not
-		// depend on it has still been written.
-		a.err.line(noOrigin.Record())
-		return ExitFindings, nil
-	}
 	if len(advisories) > 0 {
 		return ExitFindings, nil
 	}
@@ -168,7 +167,7 @@ func (a *App) cmdLint() (int, error) {
 }
 
 // reachabilityOrigin returns the root file's spec, where every reachability
-// chain begins, or the diagnostic that says why the root file supplies no
+// chain begins, or the advisory that says why the root file supplies no
 // single origin: it carries a wrong number of specs, or its one spec has no
 // name a reference could address.
 func (a *App) reachabilityOrigin(files []*File) (*Doc, *Diag) {
@@ -178,14 +177,14 @@ func (a *App) reachabilityOrigin(files []*File) (*Doc, *Diag) {
 	}
 	if len(specs) != 1 {
 		return nil, &Diag{
-			Severity: "error", Code: "yass.root.spec_count", Location: refOf(RootBasename),
-			Message: "root file does not carry exactly one spec",
+			Severity: "warn", Code: "yass.lint.no_origin", Location: refOf(RootBasename),
+			Message: "root file carries no single named spec",
 		}
 	}
 	if !specs[0].Addressable() {
 		return nil, &Diag{
-			Severity: "error", Code: "yass.spec.unnamed", Location: refOf(RootBasename), Line: specs[0].Line,
-			Message: "spec key has no string name",
+			Severity: "warn", Code: "yass.lint.no_origin", Location: refOf(RootBasename), Line: specs[0].Line,
+			Message: "root spec has no name a reference could address",
 		}
 	}
 	return specs[0], nil

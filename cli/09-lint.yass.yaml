@@ -3,7 +3,7 @@
 description: >
   The graph-hygiene subcommand. `yass lint` reports what is well formed but wrong about a
   spec set as a whole — a design nothing binds, a document no reference chain reaches, a
-  missing schema modeline, an empty slot, a spec with no slot, an unresolved question left in
+  missing schema modeline, a root file that supplies reachability no single named origin, an empty slot, a spec with no slot, an unresolved question left in
   a file, a keyword written into prose, an obligation holding more than one requirement, source code
   or a Markdown table inside a design, an obligation stating a fact a catalog already records —
   each as one coded advisory.
@@ -26,7 +26,7 @@ INPUT:
 - WHEN: no PATH is given
   MUST: report advisories for every file of the project file set
 - WHEN: a PATH is given
-  MUST: report advisories only for the files that PATH selects, while still building the graph from the whole project file set
+  MUST: report advisories only for the files that PATH selects, together with yass.lint.no_origin, while still building the graph from the whole project file set
 - MUST-NOT: run validation, refuse to run because a file is invalid, or suppress an advisory because a file violates a rule, so lint stays usable on a spec set being written
   SEE: 08-validate@Validate
 RETURN:
@@ -117,6 +117,12 @@ RETURN:
   MUST: name that document as the advisory's location
 - WHEN: an open-question, prose-keyword, or obligation-shape advisory falls on a line no document holds
   MUST: name the file as the advisory's location
+- WHEN: "the project root's `root.yass.yaml` carries no spec, or more than one"
+  MUST: emit code yass.lint.no_origin naming the root file, emit every advisory that does not depend on reachability, and emit no yass.lint.unreachable, because reachability has no single origin
+  CONFORMS: ../yass@Root::ERROR
+- WHEN: "the project root's `root.yass.yaml` carries one spec whose `spec` key has no string name"
+  MUST: emit code yass.lint.no_origin at that spec's line, emit every advisory that does not depend on reachability, and emit no yass.lint.unreachable, because reachability has no origin a reference could address
+  CONFORMS: ../yass@Spec::ERROR
 - WHEN: a file of the project file set yielded a parse failure
   MUST: emit code yass.lint.unparsed naming that file, and emit every other advisory anyway, because a partial graph can yield a false reachability advisory and the reader must know the graph was partial
   SEE: 02-load@Load::RETURN
@@ -131,12 +137,6 @@ ERROR:
   MUST: report code yass.io.missing naming it
 - WHEN: "a PATH exists but is neither a directory nor a regular file"
   MUST: report code yass.io.not_a_spec_file naming it
-- WHEN: "the project root's `root.yass.yaml` carries no spec, or more than one, so reachability has no single origin"
-  MUST: report code yass.root.spec_count, emit every advisory that does not depend on reachability, and exit with the findings status
-  CONFORMS: ../yass@Root::ERROR
-- WHEN: "the project root's `root.yass.yaml` carries one spec whose `spec` key has no string name, so reachability has no origin a reference could address"
-  MUST: report code yass.spec.unnamed, emit every advisory that does not depend on reachability, and exit with the findings status
-  CONFORMS: ../yass@Spec::ERROR
 - WHEN: a file of the project file set cannot be read at all
   MUST: report code yass.io.unreadable naming it
 - MUST: report code yass.internal for any failure not matched by a guarded obligation in this slot
