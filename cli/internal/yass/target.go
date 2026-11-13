@@ -258,6 +258,32 @@ type refResolution struct {
 // an environment failure a referenced path turned into an unreadable file.
 // The codes are the ones 04-query@Resolution::ERROR enumerates.
 func (a *App) resolveRefFrom(carrier *Doc, r *Ref) (*refResolution, error) {
+	rr, err := a.resolveRefTarget(carrier, r)
+	if err != nil {
+		return nil, err
+	}
+	code := ""
+	switch r.Relation {
+	case "CONFORMS":
+		if rr.Doc.Kind == KindDesign {
+			code = "yass.ref.conforms_design"
+		}
+	case "USES":
+		if rr.Doc.Kind != KindDesign {
+			code = "yass.ref.uses_spec"
+		}
+	}
+	if code != "" {
+		return nil, fail(ExitUnresolved, code, carrier.Target(), r.Line, refMessage(code, r.Target))
+	}
+	return rr, nil
+}
+
+// resolveRefTarget resolves one reference's target as resolveRefFrom does,
+// without checking that the relation matches the kind of the document it
+// resolves to: a CONFORMS naming a design or a USES naming a spec still
+// resolves, and is an edge though validation reports it.
+func (a *App) resolveRefTarget(carrier *Doc, r *Ref) (*refResolution, error) {
 	bad := func(code string) error {
 		return fail(ExitUnresolved, code, carrier.Target(), r.Line, refMessage(code, r.Target))
 	}
@@ -301,16 +327,6 @@ func (a *App) resolveRefFrom(carrier *Doc, r *Ref) (*refResolution, error) {
 		}
 		if !declaresSlot(doc, t.Slot) {
 			return nil, bad("yass.ref.unresolved")
-		}
-	}
-	switch r.Relation {
-	case "CONFORMS":
-		if doc.Kind == KindDesign {
-			return nil, bad("yass.ref.conforms_design")
-		}
-	case "USES":
-		if doc.Kind != KindDesign {
-			return nil, bad("yass.ref.uses_spec")
 		}
 	}
 	return &refResolution{File: f, Doc: doc, Slot: t.Slot}, nil
