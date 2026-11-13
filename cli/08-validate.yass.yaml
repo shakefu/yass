@@ -199,6 +199,8 @@ ERROR:
   MUST: report code yass.io.not_a_spec_file naming it
 - WHEN: an addressed file cannot be read at all
   MUST: report code yass.io.unreadable naming it
+- WHEN: a file a reference target names exists but cannot be read, so whether the target resolves cannot be decided
+  MUST: report code yass.io.unreadable naming that file, rather than emit yass.ref.unresolved, because the file exists
 - MUST: report code yass.internal for any failure not matched by a guarded obligation in this slot
 - MUST: exit with the status the request-failure catalogue gives each code this spec reports to end a request
   USES: root@RequestFailures
