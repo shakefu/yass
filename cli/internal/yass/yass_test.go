@@ -1557,8 +1557,41 @@ func TestLintRootSpecCount(t *testing.T) {
 	write(t, dir, "root.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n")
 	got := run(dir, "lint")
 	wantStatus(t, got, ExitFindings)
-	if want := "warn\tyass.lint.no_origin\troot\t-\troot file carries no single named spec\n"; got.stdout != want {
+	if want := "warn\tyass.lint.no_origin\troot\t-\troot file supplies no single named spec\n"; got.stdout != want {
 		t.Fatalf("stdout = %q, want %q", got.stdout, want)
+	}
+	if got.stderr != "" {
+		t.Fatalf("stderr = %q, want empty", got.stderr)
+	}
+}
+
+// A root file that fails to parse supplies no origin for reachability, so lint
+// reports both the parse failure and the missing origin on standard output.
+func TestLintRootUnparsed(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "root.yass.yaml", modeline+"a: b\n  c: d\n- x\n")
+	got := run(dir, "lint")
+	wantStatus(t, got, ExitFindings)
+	for _, code := range []string{"yass.lint.unparsed", "yass.lint.no_origin"} {
+		if !strings.Contains(got.stdout, "\t"+code+"\t") {
+			t.Errorf("missing %s:\n%s", code, got.stdout)
+		}
+	}
+	if got.stderr != "" {
+		t.Fatalf("stderr = %q, want empty", got.stderr)
+	}
+}
+
+// A PATH restricts which files' advisories lint reports but never suppresses
+// the missing-origin advisory, which concerns the whole graph.
+func TestLintNoOriginWithPath(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "root.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n")
+	write(t, dir, "a.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\nspec: A\nINPUT:\n- MUST: x\n")
+	got := run(dir, "lint", "a.yass.yaml")
+	wantStatus(t, got, ExitFindings)
+	if !strings.Contains(got.stdout, "warn\tyass.lint.no_origin\troot\t-\troot file supplies no single named spec\n") {
+		t.Fatalf("stdout = %q", got.stdout)
 	}
 	if got.stderr != "" {
 		t.Fatalf("stderr = %q, want empty", got.stderr)
@@ -1568,15 +1601,23 @@ func TestLintRootSpecCount(t *testing.T) {
 // A root file whose one spec has no name supplies no origin for reachability,
 // which lint reports rather than passing the project in silence.
 func TestLintRootSpecUnnamed(t *testing.T) {
-	dir := t.TempDir()
-	write(t, dir, "root.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\nspec:\nINPUT:\n- MUST: x\n")
-	got := run(dir, "lint")
-	wantStatus(t, got, ExitFindings)
-	if want := "warn\tyass.lint.no_origin\troot\t6\troot spec has no name a reference could address\n"; got.stdout != want {
-		t.Fatalf("stdout = %q, want %q", got.stdout, want)
-	}
-	if got.stderr != "" {
-		t.Fatalf("stderr = %q, want empty", got.stderr)
+	for name, key := range map[string]string{
+		"missing":    "spec:",
+		"empty":      `spec: ""`,
+		"not-string": "spec: 5",
+	} {
+		t.Run(name, func(t *testing.T) {
+			dir := t.TempDir()
+			write(t, dir, "root.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\n"+key+"\nINPUT:\n- MUST: x\n")
+			got := run(dir, "lint")
+			wantStatus(t, got, ExitFindings)
+			if want := "warn\tyass.lint.no_origin\troot\t6\troot spec has no name a reference could address\n"; got.stdout != want {
+				t.Fatalf("stdout = %q, want %q", got.stdout, want)
+			}
+			if got.stderr != "" {
+				t.Fatalf("stderr = %q, want empty", got.stderr)
+			}
+		})
 	}
 }
 
@@ -1716,8 +1757,8 @@ ERROR:
 	}
 }
 
-// TestLintProseMessages pins each prose advisory's message: one clause naming
-// the problem, never a remedy.
+// TestLintProseMessages pins the message of each prose advisory case below and
+// checks that no advisory message those cases produce holds a "; " clause.
 func TestLintProseMessages(t *testing.T) {
 	tests := []struct {
 		name, description, body, code, want string
