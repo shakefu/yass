@@ -301,7 +301,8 @@ content: |
   A diagnostic is the record form shared by `yass validate` and `yass lint`. It carries five
   fields, in this order, under the same segmentation rules every other record obeys.
 
-    SEVERITY  `error` for a validation diagnostic, `warn` for a lint advisory
+    SEVERITY  `error` for a validation diagnostic or a request failure, `warn` for a lint
+              advisory
     CODE      `yass.<area>.<name>`, or the bare token `yass.internal`
     LOCATION  the most precise ref target known — `path`, `path@Name`, or `path@Name::SLOT`
               — root-relative with the `.yass.yaml` suffix removed, so the field can be
