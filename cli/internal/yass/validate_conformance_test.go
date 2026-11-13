@@ -102,3 +102,41 @@ func TestValidateBothKeysDocumentIsNeitherSpecNorDesign(t *testing.T) {
 		t.Fatalf("codes = %v, want two yass.ref.unresolved\n%s", refCodes, got.stdout)
 	}
 }
+
+// Only scalar keys with the same resolved tag and value are duplicates:
+// distinct complex keys and an int key beside a string key are not.
+func TestValidateDuplicateKeyComparesTagAndValue(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "root.yass.yaml", conformanceRoot)
+	write(t, dir, "d.yass.yaml", modeline+`---
+description: d
+version: v1
+---
+design: C
+type: catalog
+content:
+  ? [x]
+  : {f: c}
+  ? [y]
+  : {f: d}
+---
+design: E
+type: catalog
+content:
+  1: {f: c}
+  "1": {f: d}
+  x: {f: e}
+  x: {f: g}
+`)
+	got := run(dir, "validate", "d.yass.yaml")
+	wantStatus(t, got, ExitFindings)
+	var dups []string
+	for _, f := range fieldsOf(got.stdout) {
+		if f[1] == "yass.document.duplicate_key" {
+			dups = append(dups, f[2]+":"+f[3])
+		}
+	}
+	if strings.Join(dups, ",") != "d@E:20" {
+		t.Fatalf("duplicate_key = %v, want only d@E:20\n%s", dups, got.stdout)
+	}
+}
