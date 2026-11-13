@@ -100,6 +100,62 @@ content:
 	}
 }
 
+// C22: a folded scalar's advisory names the file line the source is on.
+func TestLintConformanceFoldedContentLine(t *testing.T) {
+	recs := lintRecords(t, map[string]string{
+		"root.yass.yaml": modeline + "spec: Root\nRETURN:\n- MUST: go\n  USES: a@Fold\n",
+		"a.yass.yaml": modeline + `design: Fold
+type: algorithm
+content: >
+  a
+
+  b
+
+  func main() {
+---
+design: Tab
+type: constraint
+content: >
+  x
+
+  a | b
+  ---|---
+`,
+	})
+	if got := withCode(recs, "yass.lint.design_code"); len(got) != 1 || got[0] != "a@Fold\t9" {
+		t.Fatalf("design_code = %v, want one at a@Fold line 9", got)
+	}
+	if got := withCode(recs, "yass.lint.design_table"); len(got) != 1 || got[0] != "a@Tab\t16" {
+		t.Fatalf("design_table = %v, want one at a@Tab line 16", got)
+	}
+}
+
+// C22: a block scalar in a catalogue record maps lines without reading past
+// its own indentation, and an empty block scalar reads nothing.
+func TestLintConformanceRecordBlockLines(t *testing.T) {
+	recs := lintRecords(t, map[string]string{
+		"root.yass.yaml": modeline + "spec: Root\nRETURN:\n- MUST: go\n  USES: a@Cat\n",
+		"a.yass.yaml": modeline + `design: Cat
+type: catalog
+content:
+  Foo:
+    note: |
+    other: "a | b"
+  Bar:
+    note: >
+      intro
+
+      a | b
+      ---|---
+    other: |
+      ---|---
+`,
+	})
+	if got := withCode(recs, "yass.lint.design_table"); len(got) != 1 || got[0] != "a@Cat\t12" {
+		t.Fatalf("design_table = %v, want one at a@Cat line 12", got)
+	}
+}
+
 // C23: a name beginning with `function` is not the word `function`.
 func TestLintConformanceFunctionIsAWord(t *testing.T) {
 	if got := designLint(t, "algorithm", "functional(x) {"); len(got) != 0 {

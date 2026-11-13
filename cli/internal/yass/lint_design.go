@@ -72,9 +72,10 @@ func designAdvisories(f *File) []Diag {
 		}
 		codeTyped := d.HasType && (d.Type == "schema" || d.Type == "algorithm")
 		for _, n := range texts {
-			lines := strings.Split(outsideCode(n.Value), "\n")
+			first, raw := scalarLines(f, n)
+			lines := strings.Split(outsideCode(strings.Join(raw, "\n")), "\n")
 			for i, l := range lines {
-				line := contentLine(n, i)
+				line := first + i
 				if i+1 < len(lines) && designTableRow.MatchString(l) && designTableRule.MatchString(lines[i+1]) {
 					warn("yass.lint.design_table", d.Target(), line, "design content holds a markdown table")
 				}
@@ -98,12 +99,38 @@ func isSourceLine(l string) bool {
 	return false
 }
 
-// contentLine maps the i-th line of a scalar's value to the file line it was
-// authored on: a block scalar's text starts on the line after its indicator,
-// and any other scalar is reported at the line it starts on.
-func contentLine(n *yaml.Node, i int) int {
-	if n.Style&(yaml.LiteralStyle|yaml.FoldedStyle) != 0 {
-		return n.Line + 1 + i
+// scalarLines returns the file line a scalar's text starts on and its lines as
+// authored. A block scalar's lines are read from the file itself, from the
+// line after its indicator to the last line indented at least as deeply as its
+// first non-blank line, with that indentation removed, so a folded scalar's
+// lines keep the file lines they were written on. Any other scalar, or a block
+// scalar with no line indented deeper than its indicator's, is its value,
+// reported at the line it starts on.
+func scalarLines(f *File, n *yaml.Node) (int, []string) {
+	if n.Style&(yaml.LiteralStyle|yaml.FoldedStyle) == 0 || n.Line < 1 || n.Line > len(f.Lines) {
+		return n.Line, strings.Split(n.Value, "\n")
 	}
-	return n.Line
+	head := f.Lines[n.Line-1]
+	base := len(head) - len(strings.TrimLeft(head, " "))
+	indent := -1
+	var raw []string
+	for _, l := range f.Lines[n.Line:] {
+		trimmed := strings.TrimLeft(l, " ")
+		if trimmed == "" {
+			raw = append(raw, "")
+			continue
+		}
+		depth := len(l) - len(trimmed)
+		if indent < 0 {
+			indent = depth
+		}
+		if depth < indent {
+			break
+		}
+		raw = append(raw, l[indent:])
+	}
+	if indent <= base {
+		return n.Line, strings.Split(n.Value, "\n")
+	}
+	return n.Line + 1, raw
 }
