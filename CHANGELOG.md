@@ -2,6 +2,18 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.12.2 - 2026-11-13
+#### Bug Fixes
+- (**lint**) cover an unparsed root file and tighten the lint spec - (89f2256) - Jacob Alheid
+- (**lint**) state only the problem in prose advisory messages - (b60599e) - Jacob Alheid
+- (**lint**) report a root file with no single named spec as an advisory - (9533d81) - Jacob Alheid
+- (**query**) give an inserted obligation its carrier's lone guard - (f2dffbd) - Jacob Alheid
+#### Documentation
+- (**spec**) state lint severities, locations and fixed word lists - (5d1b98e) - Jacob Alheid
+- (**spec**) state requirements hidden in reason clauses - (2e11742) - Jacob Alheid
+
+- - -
+
 ## v0.12.1 - 2026-11-13
 #### Bug Fixes
 - (**cli**) state in --help that --filter matches the whole REF - (6e1d0f6) - Jacob Alheid
