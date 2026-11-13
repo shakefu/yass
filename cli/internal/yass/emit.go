@@ -68,6 +68,25 @@ func resolvesToTimestamp(v string) bool {
 	return false
 }
 
+// unprintable reports whether r cannot appear raw in emitted YAML: it lies
+// outside YAML's printable set (C0 and C1 controls, DEL, surrogates, the
+// byte order mark, U+FFFE and U+FFFF), or a parser reads it as a line break
+// (NEL, LINE SEPARATOR, PARAGRAPH SEPARATOR). Tab and line feed are excluded:
+// callers decide where those may stand.
+func unprintable(r rune) bool {
+	switch {
+	case r == '\t' || r == '\n':
+		return false
+	case r < 0x20, r == 0x7f, r >= 0x80 && r <= 0x9f:
+		return true
+	case r == 0x2028, r == 0x2029, r == 0xfeff, r == 0xfffe, r == 0xffff:
+		return true
+	case r >= 0xd800 && r <= 0xdfff:
+		return true
+	}
+	return false
+}
+
 // plainSafe reports whether a value can be written as a plain scalar and read
 // back as the identical string.
 func plainSafe(v string) bool {
@@ -78,7 +97,7 @@ func plainSafe(v string) bool {
 		return false
 	}
 	for _, r := range v {
-		if r < 0x20 || r == 0x7f {
+		if unprintable(r) {
 			return false
 		}
 	}
@@ -118,12 +137,21 @@ func quoteDouble(v string) string {
 			b.WriteString(`\r`)
 		case '\t':
 			b.WriteString(`\t`)
+		case 0x85:
+			b.WriteString(`\N`)
+		case 0x2028:
+			b.WriteString(`\L`)
+		case 0x2029:
+			b.WriteString(`\P`)
 		default:
-			if r < 0x20 || r == 0x7f {
+			switch {
+			case !unprintable(r):
+				b.WriteRune(r)
+			case r < 0x100:
 				b.WriteString(fmt.Sprintf(`\x%02x`, r))
-				continue
+			default:
+				b.WriteString(fmt.Sprintf(`\u%04x`, r))
 			}
-			b.WriteRune(r)
 		}
 	}
 	b.WriteByte('"')
@@ -140,10 +168,7 @@ func blockable(v string) bool {
 		return false
 	}
 	for _, r := range v {
-		if r < 0x20 && r != '\n' {
-			return false
-		}
-		if r == 0x7f {
+		if r == '\t' || unprintable(r) {
 			return false
 		}
 	}
