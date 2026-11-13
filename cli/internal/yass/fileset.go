@@ -52,7 +52,9 @@ func (a *App) addressedFiles(paths []string, requireSpecBasename bool) ([]string
 			if requireSpecBasename && !isSpecBasename(baseName(abs)) {
 				return nil, notASpecFile(p)
 			}
-			all = append(all, abs)
+			// Canonical, as the Loader names it, so orderUnique takes one
+			// physical file once however the PATHs spell it.
+			all = append(all, canonicalPath(abs))
 		default:
 			return nil, notASpecFile(p)
 		}

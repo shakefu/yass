@@ -134,7 +134,8 @@ func (a *App) spelledExactly(base, token string) bool {
 }
 
 // refFile yields the file a reference's target addresses from carrier: carrier
-// itself when the target has no path token or its path names carrier.
+// itself when the target has no path token or its path names carrier, compared
+// by canonical path so any spelling of carrier's own path names carrier.
 // unresolved reports a path naming no regular file under its exact spelling;
 // err is the Loader's failure to read a file that exists.
 func (a *App) refFile(carrier *File, t parsedTarget) (f *File, unresolved bool, err error) {
@@ -143,7 +144,7 @@ func (a *App) refFile(carrier *File, t parsedTarget) (f *File, unresolved bool, 
 	}
 	base := filepath.Dir(carrier.Abs)
 	abs := filePathFor(a.Root, base, t.Path)
-	if abs == carrier.Abs {
+	if canonicalPath(abs) == carrier.Abs {
 		return carrier, false, nil
 	}
 	st, err := a.statRef(abs, base, t.Path)
@@ -187,7 +188,7 @@ func (a *App) ResolveTarget(raw string) (*Bound, error) {
 		return nil, fail(ExitUnresolved, f.FailCode, f.Ref, f.FailLine, failMessage(f.FailCode))
 	}
 
-	b := &Bound{Raw: raw, Abs: abs, File: f, Slot: t.Slot}
+	b := &Bound{Raw: raw, Abs: f.Abs, File: f, Slot: t.Slot}
 	if !t.HasPath || t.Name == "" {
 		b.WholeFile = true
 		b.Normal = f.Ref
