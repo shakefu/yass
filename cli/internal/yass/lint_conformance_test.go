@@ -63,3 +63,14 @@ func TestLintConformanceModelineOnUnparsedFile(t *testing.T) {
 		t.Fatalf("modeline = %v, want one naming b at line 1", got)
 	}
 }
+
+// C25: a nameless spec's USES reference binds its design.
+func TestLintConformanceNamelessSpecUsesDesign(t *testing.T) {
+	recs := lintRecords(t, map[string]string{
+		"root.yass.yaml": modeline + "description: r\n---\nspec: Root\nRETURN:\n- MUST: go\n  SEE: a@Algo\n",
+		"a.yass.yaml":    modeline + "description: a\n---\nspec: \"\"\nRETURN:\n- MUST: do it\n  USES: Algo\n---\ndesign: Algo\ntype: constraint\ncontent: x\n",
+	})
+	if got := withCode(recs, "yass.lint.design_unreferenced"); len(got) != 0 {
+		t.Fatalf("design_unreferenced = %v, want none", got)
+	}
+}
