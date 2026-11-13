@@ -112,7 +112,7 @@ RETURN:
   USES: FunctionWords
 - MUST: compare a context word or a content word by its stem
   USES: Stem
-- WHEN: "an obligation's guard or prose names an identifier and states, outside every identifier it names, a wording of a value that a field of the identifier's catalogue can take, or names an identifier whose catalogue has a vocabulary-backed field and holds `as when`, `as for`, `as if`, or `as though`"
+- WHEN: "an obligation's guard or prose names an identifier and states, outside every identifier it names, a wording of a value that a field of the identifier's catalogue can take, the field being one the identifier's record holds, or names an identifier whose catalogue has a vocabulary-backed field and holds `as when`, `as for`, `as if`, or `as though`"
   MUST: emit code yass.lint.restated_fact at the line of that obligation, whether the stated value agrees with the record or not, because a fact stated outside its catalogue is a second source that drifts
   SEE: ../yass@Design::RETURN
 - WHEN: an obligation's guard and prose name no identifier of a catalogue, the obligation carries no USES reference to that catalogue or to the vocabulary of the field, and they state a wording of a value that some record of that catalogue holds in a vocabulary-backed field
