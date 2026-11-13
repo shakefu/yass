@@ -1,6 +1,7 @@
 package yass
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -162,5 +163,34 @@ func TestLoadCoreSchemaPlainScalars(t *testing.T) {
 		if !strings.Contains(got.stdout, "yass.obligation.not_scalar") {
 			t.Errorf("%s must stay a non-string: status %d stdout %q", v, got.status, got.stdout)
 		}
+	}
+}
+
+// --- parse-failure line -----------------------------------------------------
+
+// A parse failure go-yaml reports without a line still names the 1-based line
+// the parser stopped on, never 0 (02-load@Load::RETURN).
+func TestLoadParseFailureLineIsNeverZero(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "root.yass.yaml", confRoot)
+	write(t, dir, "c.yass.yaml", modeline+"description: d\n---\nspec: S\nINPUT:\n- MUST: a\x01b\n")
+	write(t, dir, "al.yass.yaml", modeline+"description: d\n---\nspec: S\nINPUT:\n- MUST: ok\n- MUST: *x\n")
+	for _, c := range []struct{ target, want string }{
+		{"c", "error\tyass.document.not_yaml\tc\t6\t"},
+		{"al", "error\tyass.document.not_yaml\tal\t7\t"},
+	} {
+		got := run(dir, "query", c.target)
+		wantStatus(t, got, ExitUnresolved)
+		if !strings.HasPrefix(got.stderr, c.want) {
+			t.Errorf("query %s: stderr = %q, want prefix %q", c.target, got.stderr, c.want)
+		}
+	}
+	// A failure whose line neither go-yaml nor the bytes name falls back to
+	// the stream's last line.
+	if n := errLine(errors.New("yaml: some failure"), []byte("a\nb\nc\n")); n != 3 {
+		t.Errorf("fallback line = %d, want 3", n)
+	}
+	if n := errLine(errors.New("yaml: some failure"), nil); n != 1 {
+		t.Errorf("empty stream line = %d, want 1", n)
 	}
 }

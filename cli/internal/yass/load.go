@@ -97,7 +97,7 @@ func parseBytes(abs, rel string, data []byte) *File {
 		}
 		if err != nil {
 			f.FailCode = "yass.document.not_yaml"
-			f.FailLine = errLine(err)
+			f.FailLine = errLine(err, data)
 			return f
 		}
 		nodes = append(nodes, &n)
@@ -159,10 +159,48 @@ func invalidUTF8Line(data []byte) int {
 	return line
 }
 
-func errLine(err error) int {
-	if m := yamlErrLine.FindStringSubmatch(err.Error()); m != nil {
-		if n, e := strconv.Atoi(m[1]); e == nil {
+// yamlUnknownAnchor pulls the alias name out of go-yaml's undefined-alias error.
+var yamlUnknownAnchor = regexp.MustCompile(`unknown anchor '([^']*)' referenced`)
+
+// errLine yields the 1-based line a parse failure stopped on. go-yaml names the
+// line for most failures; for one it does not, the line is found in data: the
+// first character YAML disallows, the first use of an undefined alias, and
+// otherwise the stream's last line. It is never 0.
+func errLine(err error, data []byte) int {
+	msg := err.Error()
+	if m := yamlErrLine.FindStringSubmatch(msg); m != nil {
+		if n, e := strconv.Atoi(m[1]); e == nil && n > 0 {
 			return n
+		}
+	}
+	if strings.Contains(msg, "control characters are not allowed") {
+		if n := disallowedCharLine(data); n > 0 {
+			return n
+		}
+	}
+	if m := yamlUnknownAnchor.FindStringSubmatch(msg); m != nil {
+		alias := regexp.MustCompile(`\*` + regexp.QuoteMeta(m[1]) + `(?:$|[\s,\[\]{}])`)
+		if loc := alias.FindIndex(data); loc != nil {
+			return bytes.Count(data[:loc[0]], []byte{'\n'}) + 1
+		}
+	}
+	if n := len(fileLines(data)); n > 0 {
+		return n
+	}
+	return 1
+}
+
+// disallowedCharLine reports the 1-based line holding the first character
+// outside YAML's printable set, or 0 when there is none.
+func disallowedCharLine(data []byte) int {
+	line := 1
+	for _, r := range string(data) {
+		switch {
+		case r == '\n':
+			line++
+		case r == '\t' || r == '\r' || r == 0x85:
+		case r < 0x20 || r == 0x7F || r >= 0x80 && r < 0xA0 || r == 0xFFFE || r == 0xFFFF:
+			return line
 		}
 	}
 	return 0
