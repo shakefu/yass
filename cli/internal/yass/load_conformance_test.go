@@ -1,0 +1,139 @@
+package yass
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// --- one physical file, one *File ------------------------------------------
+
+const confRoot = modeline + "---\ndescription: r\nversion: v1\n---\nspec: R\nINPUT:\n- MUST: x\n"
+
+// Every spelling of one file's path that target resolution accepts reaches the
+// same loaded file, so incoming edges are found whichever spelling the target
+// or the reference uses (02-load@Load::INPUT, 07-refs@Refs::RETURN).
+func TestLoadOneFilePerPhysicalFileRefs(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "root.yass.yaml", confRoot)
+	write(t, dir, "sub/a.yass.yaml", modeline+`---
+description: d
+version: v1
+---
+spec: S
+INPUT:
+- MUST: a
+---
+spec: T
+INPUT:
+- MUST: b
+  SEE: S
+- MUST: c
+  SEE: ./a@S
+- MUST: d
+  SEE: sub/a@S
+`)
+	write(t, dir, "b.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\nspec: U\nINPUT:\n- MUST: a\n  SEE: sub/a@S\n")
+	want := "in\tSEE\tb@U|in\tSEE\tsub/a@T|in\tSEE\tsub/a@T|in\tSEE\tsub/a@T"
+	for _, target := range []string{"sub/a@S", "./sub/a@S", "sub/./a@S", "sub/../sub/a@S"} {
+		got := run(dir, "refs", target)
+		wantStatus(t, got, ExitOK)
+		if s := strings.Join(lines(got.stdout), "|"); s != want {
+			t.Errorf("refs %s:\n got %s\nwant %s", target, s, want)
+		}
+	}
+}
+
+// From a subdirectory, a `../` target and a `./x/../` reference both reach the
+// file the plain spelling names (07-refs@Refs::RETURN).
+func TestLoadRefsIncomingAcrossSpellings(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "root.yass.yaml", modeline+"---\ndescription: r\nversion: v1\n---\nspec: R\nINPUT:\n- MUST: y\n  SEE: u@U\n- MUST: z\n  SEE: ./x/../u@U\n")
+	write(t, dir, "u.yass.yaml", modeline+"---\ndescription: u\nversion: v1\n---\nspec: U\nINPUT:\n- MUST: x\n")
+	if err := os.Mkdir(filepath.Join(dir, "x"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	want := "in\tSEE\troot@R|in\tSEE\troot@R"
+	for _, c := range []struct{ dir, target string }{
+		{dir, "u@U"}, {dir, "./u@U"}, {filepath.Join(dir, "x"), "../u@U"},
+	} {
+		got := run(c.dir, "refs", "--in", c.target)
+		wantStatus(t, got, ExitOK)
+		if s := strings.Join(lines(got.stdout), "|"); s != want {
+			t.Errorf("refs %s from %s:\n got %s\nwant %s", c.target, c.dir, s, want)
+		}
+	}
+}
+
+// Two USES naming one design under different spellings of its file append the
+// design exactly once (04-query@Resolution::RETURN).
+func TestLoadQueryUsesDedupeAcrossSpellings(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "x.yass.yaml", modeline+"---\ndescription: x\nversion: v1\n---\ndesign: D\ntype: constraint\ncontent: d\n")
+	write(t, dir, "sub/y.yass.yaml", modeline+"---\ndescription: y\nversion: v1\n---\ndesign: E\ntype: constraint\ncontent: e\n")
+	write(t, dir, "root.yass.yaml", modeline+`---
+description: root
+version: v1
+---
+spec: A
+RETURN:
+- MUST: one
+  USES: x@D
+- MUST: two
+  USES: ./x@D
+- MUST: three
+  USES: sub/y@E
+- MUST: four
+  USES: sub/../sub/y@E
+`)
+	if err := os.Symlink(filepath.Join(dir, "sub"), filepath.Join(dir, "link")); err == nil {
+		write(t, dir, "root.yass.yaml", modeline+`---
+description: root
+version: v1
+---
+spec: A
+RETURN:
+- MUST: one
+  USES: x@D
+- MUST: two
+  USES: ./x@D
+- MUST: three
+  USES: sub/y@E
+- MUST: four
+  USES: sub/../sub/y@E
+- MUST: five
+  USES: link/y@E
+`)
+	}
+	got := run(dir, "query", "root@A")
+	wantStatus(t, got, ExitOK)
+	if n := strings.Count(got.stdout, "design: D\n"); n != 1 {
+		t.Errorf("design D appended %d times:\n%s", n, got.stdout)
+	}
+	if n := strings.Count(got.stdout, "design: E\n"); n != 1 {
+		t.Errorf("design E appended %d times:\n%s", n, got.stdout)
+	}
+}
+
+// Two PATHs naming one file, through a symbolically linked prefix or a
+// relative spelling, take it once under its root-relative REF
+// (05-list@List::INPUT, List::RETURN).
+func TestLoadListFilePathsDedupeAndRootRelative(t *testing.T) {
+	dir := t.TempDir() // on macOS under /var, a link to /private/var
+	write(t, dir, "root.yass.yaml", modeline+"---\ndescription: root\nversion: v1\n")
+	write(t, dir, "sub/a.yass.yaml", modeline+"---\ndescription: a\nversion: v1\n---\nspec: A\nINPUT:\n- MUST: x\n")
+	want := "sub/a\tfile\t1\ta|sub/a@A\tspec\tINPUT\t-"
+	check := func(name string, got result) {
+		t.Helper()
+		wantStatus(t, got, ExitOK)
+		if s := strings.Join(lines(got.stdout), "|"); s != want {
+			t.Errorf("%s:\n got %s\nwant %s", name, s, want)
+		}
+	}
+	check("relative and absolute", run(dir, "list", "./sub/a.yass.yaml", filepath.Join(dir, "sub", "a.yass.yaml")))
+	if err := os.Symlink(filepath.Join(dir, "sub"), filepath.Join(dir, "link")); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+	check("linked prefix and directory", run(dir, "list", "link/a.yass.yaml", "sub"))
+}

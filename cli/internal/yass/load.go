@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -40,7 +41,11 @@ func newLoader(root string) *Loader {
 
 // Load reads and parses one file, returning the cached model when the file has
 // already been read this invocation. A read failure is an environment error.
+// The file is keyed and named by its canonical path, so every spelling of one
+// file — `./`, `a/./b`, `x/../`, a symbolically linked directory — yields the
+// same *File, and its Rel and Ref are computed from that canonical path.
 func (l *Loader) Load(abs string) (*File, error) {
+	abs = canonicalPath(abs)
 	if f, ok := l.files[abs]; ok {
 		return f, nil
 	}
@@ -51,6 +56,18 @@ func (l *Loader) Load(abs string) (*File, error) {
 	f := parseBytes(abs, relTo(l.root, abs), data)
 	l.files[abs] = f
 	return f, nil
+}
+
+// canonicalPath names a file by the directory that physically holds it: the
+// directory part has its symbolic links, `.`, and `..` resolved the way the
+// kernel resolves them, while the basename is kept, so a symbolic link naming a
+// regular file stays a file of its own name. When the directory cannot be
+// resolved the path is cleaned lexically instead.
+func canonicalPath(abs string) string {
+	if dir, err := filepath.EvalSymlinks(filepath.Dir(abs)); err == nil {
+		return filepath.Join(dir, filepath.Base(abs))
+	}
+	return filepath.Clean(abs)
 }
 
 func refOf(rel string) string { return strings.TrimSuffix(rel, SpecSuffix) }
