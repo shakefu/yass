@@ -1716,6 +1716,47 @@ ERROR:
 	}
 }
 
+// TestLintProseMessages pins each prose advisory's message: one clause naming
+// the problem, never a remedy.
+func TestLintProseMessages(t *testing.T) {
+	tests := []struct {
+		name, description, body, code, want string
+	}{
+		{"open question on description", "is this the project?", "INPUT:\n- MUST: accept a thing\n",
+			"yass.lint.open_question", "description asks a question"},
+		{"open question on obligation", "d", "INPUT:\n- MUST: accept a thing?\n",
+			"yass.lint.open_question", "obligation asks a question"},
+		{"open question marker", "d", "INPUT:\n- MUST: accept a thing # TODO pick it\n",
+			"yass.lint.open_question", "open question or placeholder"},
+		{"prose condition", "d", "INPUT:\n- MUST: call the handler, when the queue is full\n",
+			"yass.lint.prose_keyword", "condition written into prose"},
+		{"prose keyword", "d", "INPUT:\n- MUST: retry and MUST-NOT give up\n",
+			"yass.lint.prose_keyword", "keyword written into prose"},
+		{"prose reference", "d", "INPUT:\n- MUST: emit a record USES root@Policy\n",
+			"yass.lint.prose_keyword", "reference written into prose"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			write(t, dir, "root.yass.yaml", modeline+"---\ndescription: "+tt.description+"\nversion: v1\n---\nspec: R\n"+tt.body)
+			got := run(dir, "lint")
+			var msgs []string
+			for _, l := range lines(got.stdout) {
+				f := strings.Split(l, "\t")
+				if strings.Contains(f[len(f)-1], "; ") {
+					t.Errorf("message holds a remedy clause: %s", l)
+				}
+				if f[1] == tt.code {
+					msgs = append(msgs, f[len(f)-1])
+				}
+			}
+			if len(msgs) != 1 || msgs[0] != tt.want {
+				t.Fatalf("got %q, want [%q]\n%s", msgs, tt.want, got.stdout)
+			}
+		})
+	}
+}
+
 // --- cross-cutting ----------------------------------------------------------
 
 func TestNorwayWordsStayStrings(t *testing.T) {
