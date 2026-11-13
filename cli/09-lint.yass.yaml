@@ -91,6 +91,7 @@ RETURN:
   USES: SourcePatterns
   SEE: ../yass@Design
 - MUST-NOT: emit yass.lint.design_code for a bare assignment that ends in no semicolon, a `for each` loop, a guard closed by `then` or by a colon, or an unqualified or dotted call that ends no statement, since pseudocode in an algorithm writes each of those
+  USES: SourcePatterns
   SEE: ../yass@Design
 - WHEN: "a line of a design's string content, or of a string field value of its catalogue records, holds a pipe and the next line is a Markdown table delimiter row of dashes divided by pipes"
   MUST: emit code yass.lint.design_table at the first of those lines, because a Markdown table is a second syntax no tool checks and its rows belong in a catalog
@@ -250,6 +251,23 @@ content: |
   - `#include` followed by an opening angle bracket or a double quote.
   - `package` and a dotted name that end the line, with an optional semicolon.
   - `use`, whitespace, a run of name characters and colons, and a semicolon right after it.
+
+  Pseudocode an algorithm writes holds no source code, whatever pattern above it matches. A
+  line is pseudocode when, after optional indentation, it is one of these:
+
+  - A `for each` loop: an optional closing brace and optional whitespace, then `for`,
+    whitespace, and `each` as a whole word, whatever follows.
+  - A bare assignment: a target as in the assignment statement above, or several joined by
+    commas with optional whitespace around each comma, optional whitespace, one of `=`,
+    `:=`, `+=`, or `-=`, optional whitespace, and a value that begins with a character that
+    is neither `=` nor whitespace, holds no brace, and ends, apart from trailing whitespace,
+    in a character other than a semicolon.
+  - A guard closed by `then` or by a colon: `if`, `else if`, `elif`, or `while` as a whole
+    word, any text, and the word `then` or a colon last on the line apart from trailing
+    whitespace.
+  - A call that ends no statement: a run of name characters and dots beginning with a
+    letter or an underscore, an opening parenthesis right after it, any text holding no
+    brace, and a closing parenthesis last on the line apart from trailing whitespace.
 ---
 design: Abbreviations
 type: constraint
