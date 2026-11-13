@@ -1,7 +1,6 @@
 package yass
 
 import (
-	"path/filepath"
 	"sort"
 
 	"gopkg.in/yaml.v3"
@@ -82,7 +81,7 @@ func (a *App) checkFile(f *File) []Diag {
 	}
 
 	if abs, rerr := resolveStart(f.Abs, f.Ref); rerr == nil {
-		if _, err := discoverRoot(abs, f.Ref); err != nil {
+		if _, err := discoverRoot(abs, f.Ref, a.names); err != nil {
 			if ce, ok := err.(*cliError); ok && ce.Diag.Code == "yass.root.not_found" {
 				out = append(out, diag("yass.root.not_found", f.Ref, 0,
 					"no "+RootBasename+" at or above path"))
@@ -343,23 +342,12 @@ func (a *App) checkRef(s *Slot, r *Ref) []Diag {
 			"slot token is not a recognized slot"))
 	}
 
-	carrier := s.Doc.File
-	target := carrier
-	if t.HasPath {
-		abs, st, err := a.statRef(filepath.Dir(carrier.Abs), t.Path)
-		if abs != carrier.Abs {
-			if err != nil || !st.Mode().IsRegular() {
-				return append(out, diag("yass.ref.unresolved", loc, r.Line, "reference target does not resolve"))
-			}
-			loaded, lerr := a.Loader.Load(abs)
-			if lerr != nil || !loaded.Parsed {
-				return append(out, diag("yass.ref.unresolved", loc, r.Line, "reference target does not resolve"))
-			}
-			target = loaded
-		}
-	}
-	if !target.Parsed {
+	unresolvedDiag := func() []Diag {
 		return append(out, diag("yass.ref.unresolved", loc, r.Line, "reference target does not resolve"))
+	}
+	target, unresolved, err := a.refFile(s.Doc.File, t)
+	if err != nil || unresolved || !target.Parsed {
+		return unresolvedDiag()
 	}
 
 	var doc *Doc
@@ -370,7 +358,7 @@ func (a *App) checkRef(s *Slot, r *Ref) []Diag {
 		}
 	}
 	if doc == nil {
-		return append(out, diag("yass.ref.unresolved", loc, r.Line, "reference target does not resolve"))
+		return unresolvedDiag()
 	}
 	if t.HasSlot {
 		if doc.Kind == KindDesign {

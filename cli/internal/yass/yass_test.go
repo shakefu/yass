@@ -948,7 +948,9 @@ func TestRootFileNameIsCaseSensitive(t *testing.T) {
 
 // The spelling check compares each path token component with the directory's
 // entry names byte-for-byte, so it refuses a differently cased spelling on any
-// filesystem, case-sensitive or not, and accepts every exact one.
+// filesystem, case-sensitive or not, and accepts every exact one. It is the
+// only test that exercises the spelling check on a case-sensitive filesystem
+// such as Linux CI.
 func TestSpelledExactly(t *testing.T) {
 	dir := t.TempDir()
 	write(t, dir, "a.yass.yaml", "")
