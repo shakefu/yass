@@ -109,17 +109,19 @@ func ParseArgs(args []string) (*Invocation, error) {
 	}
 
 	// --help takes precedence over every other option and over the subcommand
-	// token; a malformed vector is reported next; --version last.
+	// token; a malformed vector, including a malformed subcommand token or
+	// subcommand argument, is reported next; --version last, which the caller
+	// honours over dispatch once the whole vector has validated.
 	if inv.Help {
 		return inv, nil
 	}
 	if g.err != nil {
 		return nil, g.err
 	}
-	if inv.Version {
-		return inv, nil
-	}
 	if !g.haveSub {
+		if inv.Version {
+			return inv, nil
+		}
 		// No subcommand token: yield the default one, carrying no operand.
 		inv.Subcommand = DefaultSubcommand
 		return inv, nil
