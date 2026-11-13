@@ -98,9 +98,14 @@ RETURN:
   MUST: leave the obligation exactly as written, because SEE imposes nothing beyond the obligation's own prose
 - MUST: "precede each inserted obligation with a comment line holding `# CONFORMS: ` followed by the source ref target as written"
 - MUST: "precede each appended design document with a comment line holding `# USES: ` followed by the source ref target as written"
+- WHEN: the carrier obligation carries a guard and an inserted obligation carries none
+  MUST: "emit the inserted obligation with a `WHEN` whose value is the carrier's guard prose, written before every other key of that obligation"
+  SEE: ../yass@Guard
 - WHEN: an inserted obligation carries its own guard and the carrier obligation also carries a guard
   MUST: "emit the inserted obligation with a `WHEN` whose value is the carrier's guard prose, one ASCII space, the word `and`, one ASCII space, and the inserted obligation's own guard prose, so the conjunction is readable without the carrier in view"
   SEE: ../yass@Guard
+- WHEN: an inserted obligation carries its own guard and the carrier obligation carries none
+  MUST: emit the inserted obligation's guard unchanged
 - WHEN: an obligation is reference-only and its relation transcludes
   MUST: resolve it exactly as a carrier obligation resolves, then emit no obligation of its own, since a reference-only obligation adds none
   SEE: ../yass@Obligation
@@ -124,7 +129,7 @@ INVARIANT:
 - MUST-NOT: resolve a reference carried by an obligation it inserted or by a design it appended, because v1 resolves one level only
   SEE: ../yass@Reference
 - MUST-NOT: deduplicate an inserted obligation, so two carriers inlining the same slot each get their own copy in place
-- MUST-NOT: alter an inserted obligation apart from conjoining a carrier's guard into its own
+- MUST-NOT: alter an inserted obligation apart from the guard it takes from its carrier
 - MUST-NOT: detect or break a reference cycle, since resolving one level cannot enter one
 - MUST-NOT: emit any comment other than the provenance comments this spec requires, so a resolved fragment gains no prose channel
   SEE: ../yass@Design
