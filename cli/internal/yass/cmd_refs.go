@@ -61,11 +61,12 @@ func (a *App) cmdRefs() (int, error) {
 			}
 			for _, o := range s.Obligations {
 				for _, r := range sortedRefs(o) {
-					rr, err := a.resolveRefFrom(b.Doc, r)
+					rr, err := a.resolveRefTarget(b.Doc, r)
 					if err != nil {
 						// An unresolvable reference is a validation finding
 						// rather than an edge; anything else is a failure to
-						// serve the request.
+						// serve the request. A relation that mismatches its
+						// target's kind still resolves, so it is an edge.
 						if !unresolvedFailure(err) {
 							return 0, err
 						}
@@ -82,7 +83,7 @@ func (a *App) cmdRefs() (int, error) {
 			for _, s := range d.Slots {
 				for _, o := range s.Obligations {
 					for _, r := range sortedRefs(o) {
-						rr, err := a.resolveRefFrom(d, r)
+						rr, err := a.resolveRefTarget(d, r)
 						if err != nil {
 							if !unresolvedFailure(err) {
 								return 0, err

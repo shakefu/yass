@@ -194,3 +194,49 @@ func TestLoadParseFailureLineIsNeverZero(t *testing.T) {
 		t.Errorf("empty stream line = %d, want 1", n)
 	}
 }
+
+// --- refs over kind-mismatched references -----------------------------------
+
+// A CONFORMS resolving to a design and a USES resolving to a spec are resolved
+// references whose relation mismatches the target's kind: refs reports them as
+// edges in both directions, and only validation flags them
+// (07-refs@Refs::RETURN, Refs::ERROR).
+func TestLoadRefsKeepsKindMismatchedEdges(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "root.yass.yaml", modeline+`---
+description: r
+version: v1
+---
+spec: R
+INPUT:
+- MUST: x
+  CONFORMS: D
+- MUST: y
+  USES: S
+- MUST: z
+  SEE: D
+---
+spec: S
+INPUT:
+- MUST: q
+---
+design: D
+type: constraint
+content: c
+`)
+	for _, c := range []struct{ target, want string }{
+		{"root@R", "out\tCONFORMS\troot@D|out\tUSES\troot@S|out\tSEE\troot@D"},
+		{"root@D", "in\tCONFORMS\troot@R|in\tSEE\troot@R"},
+		{"root@S", "in\tUSES\troot@R"},
+	} {
+		got := run(dir, "refs", c.target)
+		wantStatus(t, got, ExitOK)
+		if s := strings.Join(lines(got.stdout), "|"); s != c.want {
+			t.Errorf("refs %s:\n got %s\nwant %s", c.target, s, c.want)
+		}
+	}
+	v := run(dir, "validate")
+	if !strings.Contains(v.stdout, "yass.ref.conforms_design") || !strings.Contains(v.stdout, "yass.ref.uses_spec") {
+		t.Errorf("validate must still report the mismatches:\n%s", v.stdout)
+	}
+}
