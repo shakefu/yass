@@ -27,8 +27,9 @@ var (
 	proseRef = regexp.MustCompile(`[\w./-]*@[A-Za-z_]`)
 
 	// shapeClauses matches a clause break: a semicolon, or a sentence end
-	// followed by a capitalized word.
-	shapeClauses = regexp.MustCompile(`; |[\w)\]"'][.!] +[A-Z]`)
+	// followed by a capitalized word, whatever precedes the period, so one
+	// that closes a blanked code span counts too.
+	shapeClauses = regexp.MustCompile(`; |[.!] +[A-Z]`)
 	// shapeAbbrev matches the abbreviations whose period ends no sentence.
 	shapeAbbrev = regexp.MustCompile(`\b(e\.g|i\.e|etc|vs|cf)\.`)
 	// shapeProcedure matches a connective that sequences steps.
