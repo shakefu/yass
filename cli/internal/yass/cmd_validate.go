@@ -32,7 +32,11 @@ func (a *App) cmdValidate() (int, error) {
 			return 0, lerr
 		}
 		loaded = append(loaded, f)
-		diags = append(diags, a.checkFile(f)...)
+		fd, cerr := a.checkFile(f)
+		if cerr != nil {
+			return 0, cerr
+		}
+		diags = append(diags, fd...)
 	}
 
 	sortDiags(diags, loaded)
@@ -87,13 +91,15 @@ func diag(code, location string, line int, message string) Diag {
 	return Diag{Severity: "error", Code: code, Location: location, Line: line, Message: message}
 }
 
-// checkFile runs every check against one addressed file.
-func (a *App) checkFile(f *File) []Diag {
+// checkFile runs every check against one addressed file. An error is a
+// failure to check, such as an unreadable referenced file, which ends the
+// request rather than becoming a diagnostic.
+func (a *App) checkFile(f *File) ([]Diag, error) {
 	var out []Diag
 
 	if !f.Parsed {
 		// The file's documents cannot be read, so no further diagnostic for it.
-		return []Diag{diag(f.FailCode, f.Ref, f.FailLine, failMessage(f.FailCode))}
+		return []Diag{diag(f.FailCode, f.Ref, f.FailLine, failMessage(f.FailCode))}, nil
 	}
 
 	if abs, rerr := resolveStart(f.Abs, f.Ref); rerr == nil {
@@ -142,7 +148,11 @@ func (a *App) checkFile(f *File) []Diag {
 				out = append(out, diag("yass.preamble.missing", f.Ref, d.Line,
 					"first document is not a preamble"))
 			}
-			out = append(out, a.checkSpec(d)...)
+			sd, err := a.checkSpec(d)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, sd...)
 		case KindDesign:
 			if d.Index == 0 {
 				out = append(out, diag("yass.preamble.missing", f.Ref, d.Line,
@@ -151,7 +161,7 @@ func (a *App) checkFile(f *File) []Diag {
 			out = append(out, checkDesign(d)...)
 		}
 	}
-	return out
+	return out, nil
 }
 
 // checkDocumentShape reports duplicate keys anywhere in the document.
@@ -256,7 +266,7 @@ func isStringSequence(n *yaml.Node) bool {
 	return true
 }
 
-func (a *App) checkSpec(d *Doc) []Diag {
+func (a *App) checkSpec(d *Doc) ([]Diag, error) {
 	var out []Diag
 	loc := d.File.Ref
 	if d.Addressable() {
@@ -287,17 +297,21 @@ func (a *App) checkSpec(d *Doc) []Diag {
 			continue
 		}
 		for _, o := range s.Obligations {
-			out = append(out, a.checkObligation(s, o)...)
+			od, err := a.checkObligation(s, o)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, od...)
 		}
 	}
-	return out
+	return out, nil
 }
 
-func (a *App) checkObligation(s *Slot, o *Obligation) []Diag {
+func (a *App) checkObligation(s *Slot, o *Obligation) ([]Diag, error) {
 	var out []Diag
 	loc := s.Target()
 	if !o.Mapping {
-		return []Diag{diag("yass.obligation.not_a_mapping", loc, o.Line, "obligation is not a mapping")}
+		return []Diag{diag("yass.obligation.not_a_mapping", loc, o.Line, "obligation is not a mapping")}, nil
 	}
 	hasRelation := false
 	for _, e := range o.Entries {
@@ -327,9 +341,13 @@ func (a *App) checkObligation(s *Slot, o *Obligation) []Diag {
 			"obligation carries a guard with no normativity keyword"))
 	}
 	for _, r := range o.Refs {
-		out = append(out, a.checkRef(s, r)...)
+		rd, err := a.checkRef(s, r)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, rd...)
 	}
-	return out
+	return out, nil
 }
 
 // isStringValue reports whether a node is a string scalar: prose positions
@@ -340,15 +358,17 @@ func isStringValue(n *yaml.Node) bool {
 }
 
 // checkRef checks one reference against the ref-target grammar, then against
-// the project.
-func (a *App) checkRef(s *Slot, r *Ref) []Diag {
+// the project. A referenced file that exists but cannot be read is an
+// environment failure, not an unresolved reference, so it is returned as the
+// error that ends the request.
+func (a *App) checkRef(s *Slot, r *Ref) ([]Diag, error) {
 	loc := s.Target()
 	if !r.IsString {
-		return []Diag{diag("yass.ref.not_a_string", loc, r.Line, "reference value is not a string")}
+		return []Diag{diag("yass.ref.not_a_string", loc, r.Line, "reference value is not a string")}, nil
 	}
 	t, ok := parseTarget(r.Target, false)
 	if !ok {
-		return []Diag{diag("yass.ref.syntax", loc, r.Line, "reference target is malformed")}
+		return []Diag{diag("yass.ref.syntax", loc, r.Line, "reference target is malformed")}, nil
 	}
 	var out []Diag
 	slotKnown := true
@@ -358,11 +378,14 @@ func (a *App) checkRef(s *Slot, r *Ref) []Diag {
 			"slot token is not a recognized slot"))
 	}
 
-	unresolvedDiag := func() []Diag {
-		return append(out, diag("yass.ref.unresolved", loc, r.Line, "reference target does not resolve"))
+	unresolvedDiag := func() ([]Diag, error) {
+		return append(out, diag("yass.ref.unresolved", loc, r.Line, "reference target does not resolve")), nil
 	}
 	target, unresolved, err := a.refFile(s.Doc.File, t)
-	if err != nil || unresolved || !target.Parsed {
+	if err != nil {
+		return nil, err
+	}
+	if unresolved || !target.Parsed {
 		return unresolvedDiag()
 	}
 
@@ -396,7 +419,7 @@ func (a *App) checkRef(s *Slot, r *Ref) []Diag {
 				"uses target resolves to a spec or slot"))
 		}
 	}
-	return out
+	return out, nil
 }
 
 func checkDesign(d *Doc) []Diag {
