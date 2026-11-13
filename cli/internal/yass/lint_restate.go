@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 
 	"gopkg.in/yaml.v3"
 )
@@ -314,23 +315,41 @@ func isDigits(s string) bool {
 	return true
 }
 
-// tokenChar reports whether a byte continues an identifier or a word.
-func tokenChar(b byte) bool {
-	return b == '_' || b >= '0' && b <= '9' || b >= 'a' && b <= 'z' || b >= 'A' && b <= 'Z' || b >= 0x80
+// tokenRune reports whether a character continues an identifier or a word: a
+// letter, a digit, or an underscore.
+func tokenRune(r rune) bool {
+	return r == '_' || unicode.IsLetter(r) || unicode.IsDigit(r)
 }
 
-// joinChar reports whether a byte joins two tokens into one, as the dot of a
-// code or the hyphen of `1-based` does, when a token character follows it.
-func joinChar(b byte) bool { return b == '.' || b == '-' || b == '/' || b == '@' }
+// joinRune reports whether a character joins two tokens into one, as the dot
+// of a code or the hyphen of `1-based` does, when a token character follows it.
+func joinRune(r rune) bool { return r == '.' || r == '-' || r == '/' || r == '@' }
 
-// wholeAt reports whether s[i:i+n] stands as a whole token of s.
+// wholeAt reports whether s[i:i+n] stands as a whole token of s. The
+// characters around it are decoded as runes, so a non-ASCII character that is
+// not a letter or a digit, such as a dash, bounds a token.
 func wholeAt(s string, i, n int) bool {
-	if i > 0 && (tokenChar(s[i-1]) || joinChar(s[i-1]) && i > 1 && tokenChar(s[i-2])) {
-		return false
+	if i > 0 {
+		r, w := utf8.DecodeLastRuneInString(s[:i])
+		if tokenRune(r) {
+			return false
+		}
+		if joinRune(r) && i-w > 0 {
+			if r2, _ := utf8.DecodeLastRuneInString(s[:i-w]); tokenRune(r2) {
+				return false
+			}
+		}
 	}
-	j := i + n
-	if j < len(s) && (tokenChar(s[j]) || joinChar(s[j]) && j+1 < len(s) && tokenChar(s[j+1])) {
-		return false
+	if j := i + n; j < len(s) {
+		r, w := utf8.DecodeRuneInString(s[j:])
+		if tokenRune(r) {
+			return false
+		}
+		if joinRune(r) && j+w < len(s) {
+			if r2, _ := utf8.DecodeRuneInString(s[j+w:]); tokenRune(r2) {
+				return false
+			}
+		}
 	}
 	return true
 }
