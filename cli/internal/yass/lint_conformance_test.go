@@ -64,6 +64,16 @@ func TestLintConformanceModelineOnUnparsedFile(t *testing.T) {
 	}
 }
 
+// C20: a period closing a code span, followed by a capital, breaks a clause.
+func TestLintConformanceClauseAfterCodeSpan(t *testing.T) {
+	recs := lintRecords(t, map[string]string{"root.yass.yaml": modeline + "spec: Root\nINPUT:\n- MUST: return `x`. Then fail\n- MUST: return x. Then fail\n- MUST: return `x`, e.g. Foo\n"}, "root.yass.yaml")
+	got := withCode(recs, "yass.lint.obligation_shape")
+	want := []string{"root@Root::INPUT\t4", "root@Root::INPUT\t5"}
+	if strings.Join(got, ",") != strings.Join(want, ",") {
+		t.Fatalf("obligation_shape = %v, want %v", got, want)
+	}
+}
+
 // C25: a nameless spec's USES reference binds its design.
 func TestLintConformanceNamelessSpecUsesDesign(t *testing.T) {
 	recs := lintRecords(t, map[string]string{
