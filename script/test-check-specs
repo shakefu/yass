@@ -79,8 +79,8 @@ check "undispositioned lint code fails" 1 "lint code yass.lint.novel has no disp
 	"$(stub novel 1 "warn${tab}yass.lint.novel${tab}a${tab}-${tab}something new
 ")" "$proj"
 
-check "lint diagnostic on stderr fails" 1 "^error .*/proj/root.yass.yaml:- yass.root.spec_count" \
-	"$(stub stderr 1 "" "error${tab}yass.root.spec_count${tab}root${tab}-${tab}root file carries no spec
+check "lint diagnostic on stderr fails" 1 "^error .*/proj/root.yass.yaml:- yass.internal" \
+	"$(stub stderr 1 "" "error${tab}yass.internal${tab}root${tab}-${tab}model records no entry for the file
 ")" "$proj"
 
 check "silent nonzero lint fails" 1 "yass lint exited 5 with no diagnostic" \

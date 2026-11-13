@@ -30,6 +30,8 @@ lint_disposition() {
 	yass.lint.unparsed) echo fail ;;
 	# A document no chain reaches from the root spec binds nothing.
 	yass.lint.unreachable) echo fail ;;
+	# With no root origin, reachability goes unchecked.
+	yass.lint.no_origin) echo fail ;;
 	# A design nothing USES is normative content with no force.
 	yass.lint.design_unreferenced) echo fail ;;
 	# A spec with no slot states no obligation and is an empty CONFORMS target.
