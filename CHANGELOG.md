@@ -2,6 +2,39 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.13.2 - 2026-11-13
+#### Bug Fixes
+- (**cli**) exempt pseudocode lines from design_code - (e0ab4a3) - Jacob Alheid
+- (**cli**) report design advisories at the file line of a folded scalar - (8128127) - Jacob Alheid
+- (**cli**) match the JavaScript function keyword as a whole word - (5b43b3d) - Jacob Alheid
+- (**cli**) bound restatement tokens by non-letter Unicode characters - (e25efce) - Jacob Alheid
+- (**cli**) break a clause at a period that closes a code span - (d91c88c) - Jacob Alheid
+- (**cli**) count a nameless spec's USES toward design references - (aef721c) - Jacob Alheid
+- (**cli**) check the modeline of a file that fails to parse - (20a225d) - Jacob Alheid
+- (**cli**) report identical lint advisories once - (ca814e7) - Jacob Alheid
+- (**cli**) report the non-specific tag `!` as a yaml feature - (4e75879) - Jacob Alheid
+- (**cli**) compare scalar keys by tag and value in the duplicate-key check - (ecbc652) - Jacob Alheid
+- (**cli**) treat a both-keys document as neither spec nor design - (96397ad) - Jacob Alheid
+- (**cli**) fail validate on an unreadable referenced file - (6f566a3) - Jacob Alheid
+- (**cli**) order validate and lint findings by file path with its suffix - (5f8724a) - Jacob Alheid
+- (**cli**) validate the subcommand and its arguments before --version - (fd675d8) - Jacob Alheid
+- (**cli**) reject an empty -C value with yass.args.empty - (b384306) - Jacob Alheid
+- (**cli**) write a root description of "-" in the overview - (4ff29cb) - Jacob Alheid
+- (**cli**) escape characters outside YAML's printable set in emitted scalars - (23bbc36) - Jacob Alheid
+- (**cli**) pin block scalar indentation when any line is indented - (ea0a366) - Jacob Alheid
+- (**cli**) report kind-mismatched references as refs edges - (8c16f8a) - Jacob Alheid
+- (**cli**) never record line 0 for a parse failure - (1bf573c) - Jacob Alheid
+- (**cli**) resolve plain scalars under the YAML 1.2 core schema - (c801071) - Jacob Alheid
+- (**cli**) load each physical file once whatever its path spelling - (4394988) - Jacob Alheid
+- (**spec**) skip code spans in the design_table pipe test - (2d50413) - Jacob Alheid
+- (**spec**) restrict restated_fact to a field the identifier's record holds - (40481cc) - Jacob Alheid
+- (**spec**) state the pseudocode lines design_code exempts - (eb730db) - Jacob Alheid
+- (**spec**) scope validate root.not_found to files outside the start root - (dfd2779) - Jacob Alheid
+- (**spec**) state validate's failure for an unreadable referenced file - (196a369) - Jacob Alheid
+- (**spec**) report yass.args.empty for an empty -C value - (a456d17) - Jacob Alheid
+
+- - -
+
 ## v0.13.1 - 2026-11-13
 #### Bug Fixes
 - (**cli**) resolve ref path tokens case-sensitively - (0a0dea8) - Jacob Alheid
