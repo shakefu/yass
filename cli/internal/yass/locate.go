@@ -128,6 +128,40 @@ func collectSpecFiles(dir string, root string) ([]string, error) {
 	return out, nil
 }
 
+// hasEntryNamed reports whether dir holds an entry whose name is exactly name,
+// compared byte-for-byte, so that a case-insensitive filesystem cannot answer
+// for a differently cased spelling. It serves two checks: that a directory's
+// root file is spelled `root.yass.yaml` (root discovery and the nested-root
+// check, which run without an App and so read the listing uncached), and, via
+// App.hasEntryNamed, that each component of a ref target's path token is
+// spelled as written. Every caller has already found the path by os.Stat, so
+// a directory that cannot be listed fails open and reports true: failing
+// closed would turn a correctly spelled, readable path into an unresolved one,
+// at the cost of accepting a misspelling only where the listing is denied.
+func hasEntryNamed(dir, name string) bool {
+	names := entryNames(dir)
+	return names == nil || names[name]
+}
+
+// entryNames returns the set of entry names dir holds, or nil when dir cannot
+// be opened or listed.
+func entryNames(dir string) map[string]bool {
+	d, err := os.Open(dir)
+	if err != nil {
+		return nil
+	}
+	defer d.Close() //nolint:errcheck
+	list, err := d.Readdirnames(-1)
+	if err != nil {
+		return nil
+	}
+	names := make(map[string]bool, len(list))
+	for _, n := range list {
+		names[n] = true
+	}
+	return names
+}
+
 func holdsRootFile(dir string) bool {
 	st, err := os.Stat(filepath.Join(dir, RootBasename))
 	return err == nil && st.Mode().IsRegular() && hasEntryNamed(dir, RootBasename)
