@@ -166,8 +166,11 @@ func (a *App) resolveSlots(doc *Doc, slots []*Slot) (*resolution, error) {
 					transcluded = true
 					for _, src := range slotOf(rr.Doc, rr.Slot).Obligations {
 						guard := ""
-						if src.HasGuard && o.HasGuard {
+						switch {
+						case o.HasGuard && src.HasGuard:
 							guard = o.Guard + " and " + src.Guard
+						case o.HasGuard:
+							guard = o.Guard
 						}
 						res.perSlot[si] = append(res.perSlot[si], insertion{
 							before: o, source: r.Target, obl: src, guard: guard,

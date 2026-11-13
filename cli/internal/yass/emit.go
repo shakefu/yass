@@ -353,8 +353,9 @@ func emitSeqItem(out *[]string, indent string, n *yaml.Node, seen map[*yaml.Node
 }
 
 // obligationLines renders one obligation as sequence-item lines, keeping the
-// authored order of its keys. guardOverride, when non-empty, replaces the WHEN
-// value with the conjunction of a carrier's guard and this obligation's own.
+// authored order of its keys. guardOverride, when non-empty, is the guard the
+// obligation takes from its carrier: it replaces the WHEN value, or, when the
+// obligation carries no guard of its own, is written as a leading WHEN.
 func obligationLines(o *Obligation, guardOverride string) ([]string, error) {
 	if !o.Mapping {
 		var sub []string
@@ -362,6 +363,9 @@ func obligationLines(o *Obligation, guardOverride string) ([]string, error) {
 		return sub, err
 	}
 	var lines []string
+	if guardOverride != "" && !o.HasGuard {
+		emitScalarValue(&lines, "  ", "WHEN", guardOverride)
+	}
 	for _, e := range o.Entries {
 		var sub []string
 		if e.Key == "WHEN" && guardOverride != "" {

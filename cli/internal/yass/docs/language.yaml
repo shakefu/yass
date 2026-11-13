@@ -341,8 +341,8 @@ SIDE-EFFECT:
 - WHEN: the relation is SEE
   MUST-NOT: be inlined
 - MUST: carry provenance as a comment naming the source ref when inlined or appended
-- WHEN: an inlined obligation carries its own Guard and the carrier obligation also carried a Guard
-  MUST: apply only when both guards hold, the carrier's guard conjoined with the inlined obligation's own guard
+- WHEN: the carrier obligation carried a Guard
+  MUST: apply an inlined obligation only when the carrier's guard holds, conjoined with the inlined obligation's own guard when it carries one
 INVARIANT:
 - CONFORMS: Keyword::INVARIANT
 ---
