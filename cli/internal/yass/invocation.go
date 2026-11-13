@@ -102,6 +102,11 @@ func ParseArgs(args []string) (*Invocation, error) {
 	}
 
 	g := scanGlobal(inv, args)
+	if g.err == nil && inv.StartDir == "" {
+		// The last -C value is empty: reject it like an empty operand rather
+		// than let it resolve to the process working directory.
+		g.err = fail(ExitUsage, "yass.args.empty", "", 0, "value of option -C is the empty string")
+	}
 
 	// --help takes precedence over every other option and over the subcommand
 	// token; a malformed vector is reported next; --version last.
