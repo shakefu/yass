@@ -94,7 +94,7 @@ func proseAdvisories(f *File) []Diag {
 			if vn := d.value("description"); vn != nil {
 				line = vn.Line
 			}
-			warn("yass.lint.open_question", f.Ref, line, "description asks a question; decide it before the spec is handed off")
+			warn("yass.lint.open_question", f.Ref, line, "description asks a question")
 		}
 		if d.Kind != KindSpec || !d.Addressable() {
 			continue
@@ -110,18 +110,18 @@ func proseAdvisories(f *File) []Diag {
 				}
 				if openQuestionMark.MatchString(prose) || openQuestionMark.MatchString(guard) {
 					warn("yass.lint.open_question", s.Target(), o.Line,
-						"obligation asks a question; decide it before the spec is handed off")
+						"obligation asks a question")
 				}
 				switch {
 				case leadingCondition.MatchString(strings.TrimSpace(prose)) || trailingCondition.MatchString(prose):
 					warn("yass.lint.prose_keyword", s.Target(), o.Line,
-						"condition written into prose; state it as a WHEN guard")
+						"condition written into prose")
 				case proseNormativity.MatchString(prose) || proseNormativity.MatchString(guard):
 					warn("yass.lint.prose_keyword", s.Target(), o.Line,
-						"keyword written into prose; split it into its own obligation or guard")
+						"keyword written into prose")
 				case proseRef.MatchString(prose) || proseRef.MatchString(guard):
 					warn("yass.lint.prose_keyword", s.Target(), o.Line,
-						"reference written into prose; state it under its relation key")
+						"reference written into prose")
 				}
 				if msg := shapeProblem(o, s.Name, prose, guard); msg != "" {
 					warn("yass.lint.obligation_shape", s.Target(), o.Line, msg)
@@ -134,7 +134,7 @@ func proseAdvisories(f *File) []Diag {
 	for i, l := range f.Lines {
 		if openMarker.MatchString(outsideCode(l)) {
 			warn("yass.lint.open_question", f.locationOf(i+1), i+1,
-				"open question or placeholder; resolve it with the user before the spec is handed off")
+				"open question or placeholder")
 		}
 	}
 	return out
