@@ -2,6 +2,8 @@ package yass
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/json"
 	"errors"
 	"io"
 	"strconv"
@@ -28,6 +30,79 @@ func (d Diag) Record() string {
 		line = strconv.Itoa(d.Line)
 	}
 	return record(d.Severity, d.Code, d.Location, line, d.Message)
+}
+
+// Field names of each command's records, in field order: the lowercase names
+// root@RecordFormat and root@DiagnosticFormat give them, and the keys of the
+// JSON form root@JsonRecordFormat fixes.
+var (
+	rootFields   = []string{"path"}
+	listFields   = []string{"ref", "kind", "detail", "description"}
+	findFields   = []string{"ref", "what", "text"}
+	refsFields   = []string{"dir", "relation", "ref"}
+	updateFields = []string{"action", "from", "to"}
+	diagFields   = []string{"severity", "code", "location", "line", "message"}
+)
+
+// record renders one standard-output record in the format the invocation
+// selected: the text form of root@RecordFormat, or one JSON object.
+func (a *App) record(names []string, fields ...string) string {
+	if a.Inv.Format != FormatJSON {
+		return record(fields...)
+	}
+	return jsonRecord(names, fields, -1)
+}
+
+// diag renders one diagnostic written to standard output in the selected
+// format. Standard error stays text, so it calls Diag.Record directly.
+func (a *App) diag(d Diag) string {
+	if a.Inv.Format != FormatJSON {
+		return d.Record()
+	}
+	return jsonRecord(diagFields, []string{d.Severity, d.Code, d.Location, strconv.Itoa(d.Line), d.Message}, 3)
+}
+
+// jsonRecord writes one compact JSON object whose keys are names in order and
+// whose values are the text form's fields: a string, or null where the field
+// is empty after collapsing, so a real "-" stays a string. The field at index lineAt is the LINE field, written as an
+// integer, or null when it is not positive.
+func jsonRecord(names, fields []string, lineAt int) string {
+	var b strings.Builder
+	b.WriteByte('{')
+	for i, name := range names {
+		if i > 0 {
+			b.WriteByte(',')
+		}
+		b.WriteString(jsonString(name))
+		b.WriteByte(':')
+		if i == lineAt {
+			if n, err := strconv.Atoi(fields[i]); err == nil && n > 0 {
+				b.WriteString(strconv.Itoa(n))
+			} else {
+				b.WriteString("null")
+			}
+			continue
+		}
+		if strings.Join(strings.Fields(fields[i]), "") == "" {
+			b.WriteString("null")
+		} else {
+			b.WriteString(jsonString(field(fields[i])))
+		}
+	}
+	b.WriteByte('}')
+	return b.String()
+}
+
+// jsonString encodes s as a JSON string with no HTML escaping, leaving
+// non-ASCII text as raw UTF-8.
+func jsonString(s string) string {
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+	if err := enc.Encode(s); err != nil {
+		return `""`
+	}
+	return strings.TrimSuffix(buf.String(), "\n")
 }
 
 // record joins fields with one TAB, collapsing whitespace within each field

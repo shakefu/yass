@@ -44,14 +44,14 @@ func (a *App) cmdList() (int, error) {
 			// part of the answer the filter selected.
 			if matchesAny(a.Inv.Filters, fileRef) {
 				status = ExitFindings
-				a.out.line(record(fileRef, "file", "", ""))
+				a.out.line(a.record(listFields, fileRef, "file", "", ""))
 			}
 			continue
 		}
 
 		pre := a.preambleOf(f)
 		description := ""
-		if pre != nil {
+		if pre != nil && strings.TrimSpace(pre.Description) != "" {
 			description = truncateScalars(field(pre.Description), descriptionLimit)
 		}
 
@@ -80,9 +80,9 @@ func (a *App) cmdList() (int, error) {
 		if pre == nil {
 			status = ExitFindings
 		}
-		a.out.line(record(fileRef, "file", strconv.Itoa(count), description))
+		a.out.line(a.record(listFields, fileRef, "file", strconv.Itoa(count), description))
 		for _, dr := range selected {
-			a.out.line(record(dr.ref, dr.kind, dr.detail, ""))
+			a.out.line(a.record(listFields, dr.ref, dr.kind, dr.detail, ""))
 		}
 	}
 	return status, nil

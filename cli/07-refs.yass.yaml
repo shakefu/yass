@@ -8,7 +8,8 @@ version: v1
 ---
 spec: Refs
 INPUT:
-- MUST: "be invoked as `yass refs [--in] [--out] TARGET`, taking exactly one TARGET operand"
+- MUST: "be invoked as `yass refs [--in] [--out] [--format FORMAT] TARGET`, taking exactly one TARGET operand"
+  SEE: root@YassCli::RETURN
 - MUST: take TARGET as target resolution binds it
   CONFORMS: 02-load@TargetResolution::RETURN
 - MUST: rely on the existence, uniqueness, kind, and slot-declaration guarantees target resolution establishes, and re-check none of them

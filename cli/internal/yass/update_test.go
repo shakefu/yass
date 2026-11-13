@@ -156,6 +156,11 @@ func TestUpdateAlreadyCurrent(t *testing.T) {
 	if h.downloads != 0 {
 		t.Fatalf("a current installation downloaded %d archive(s)", h.downloads)
 	}
+	js := run(t.TempDir(), "update", "--format", "json")
+	wantStatus(t, js, ExitOK)
+	if js.stdout != `{"action":"current","from":"9.9.9","to":"9.9.9"}`+"\n" {
+		t.Fatalf("json update record = %q", js.stdout)
+	}
 	content, _ := os.ReadFile(exe)
 	if string(content) != "installed" {
 		t.Fatalf("a current installation was rewritten: %q", content)
@@ -262,7 +267,7 @@ func TestUpdateWindowsAssetIsAZip(t *testing.T) {
 	}
 }
 
-func TestUpdateTakesNoOperandAndNoOption(t *testing.T) {
+func TestUpdateTakesNoOperandAndNoOtherOption(t *testing.T) {
 	dir := t.TempDir()
 	got := run(dir, "update", "extra")
 	wantStatus(t, got, ExitUsage)

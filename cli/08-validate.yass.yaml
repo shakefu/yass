@@ -12,7 +12,8 @@ version: v1
 ---
 spec: Validate
 INPUT:
-- MUST: "be invoked as `yass validate [PATH...]`"
+- MUST: "be invoked as `yass validate [--format FORMAT] [PATH...]`"
+  SEE: root@YassCli::RETURN
 - WHEN: no PATH is given
   MUST: take the project file set
   CONFORMS: 01-locate@FileSet::RETURN

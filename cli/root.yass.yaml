@@ -65,6 +65,9 @@ RETURN:
 - MUST: answer an invocation that names no subcommand, so a reader who does not yet know how to drive the program is oriented rather than rejected
   SEE: 11-overview@Overview
 - MUST: write whatever the dispatched command yields, and nothing of its own
+- WHEN: "the invocation selects the `json` record format"
+  MUST: write each record the dispatched command puts on standard output in the JSON form, one object per line in place of its text line
+  USES: JsonRecordFormat
 - MUST: exit with the status the dispatched command selects
   USES: ExitPolicy
 - MUST: be usable with no configuration file, no environment variable, and no per-repository setup
@@ -151,7 +154,7 @@ content:
     meaning: "the command served its request and reported at least one finding about the spec set: a validation diagnostic, a lint advisory, or a file it could not parse"
   2:
     label: usage
-    meaning: "the request could not be understood, because the argument vector is malformed: an unknown subcommand, an unknown option, a missing option value, a missing or excess operand, an empty operand, or a target that fails the ref-target grammar or names an unrecognized slot"
+    meaning: "the request could not be understood, because the argument vector is malformed: an unknown subcommand, an unknown option, an unknown record format, a missing option value, a missing or excess operand, an empty operand, or a target that fails the ref-target grammar or names an unrecognized slot"
   3:
     label: unresolved
     meaning: "the request was understood and the thing it names is absent: a missing path, or a target that resolves to no document"
@@ -170,6 +173,7 @@ content:
   yass.args.missing_operand:    {exit: 2}
   yass.args.missing_value:      {exit: 2}
   yass.args.target_syntax:      {exit: 2}
+  yass.args.unknown_format:     {exit: 2}
   yass.args.unknown_option:     {exit: 2}
   yass.args.unknown_subcommand: {exit: 2}
   yass.docs.unknown:            {exit: 3}
@@ -201,6 +205,8 @@ content: |
   - Standard error carries only a failure of the program to serve the request — a malformed
     argument vector, an unresolvable target, an unreadable path, an internal fault. One
     event is never written to both streams, and one record is never split across them.
+  - Standard error is written in the text form whatever record format standard output
+    uses, because a failure to serve the request is not part of the answer.
   - All output is UTF-8 with LF line endings, no BOM, and no Unicode normalization of text
     taken from a spec file.
   - No ANSI escape, no colour, no cursor control, on either stream, whether or not the
@@ -218,7 +224,9 @@ type: schema
 format: line-grammar
 content: |
   Record output is line-oriented so a consumer splits it, never needing a regex or a parser.
-  It is the output form of every command except three. `query` emits a YAML stream; `docs`
+  This grammar is its text form, the default. `--format json` writes the same records in
+  the JSON form JsonRecordFormat states, which keeps one record per line and takes its keys
+  and values from the fields below. Records are the output form of every command except three. `query` emits a YAML stream; `docs`
   given a NAME emits that document as text; `overview` emits a fixed block. Each of those
   answers is a document rather than a sequence of fields, and forcing it into records would
   destroy the thing being served.
@@ -234,9 +242,8 @@ content: |
   - A field that has nothing to report holds a single `-`. A field whose value is empty
     after collapsing and trimming holds a single `-` as well, so `-` is the only spelling
     of an absent field.
-  - A literal `-` that is the whole of a real value is indistinguishable from an absent
-    field. No field of any record defined by this project can take `-` as a real value, so
-    the ambiguity never arises.
+  - A literal `-` that is the whole of a real value, such as a description of `-`, is
+    indistinguishable from an absent field in this form. The JSON form keeps the two apart.
   - Every record emitted by one command carries the same field count, in one fixed order,
     however many records that command emits.
   - A command with nothing to report writes zero bytes: no header line, no column ruler, no
@@ -293,6 +300,48 @@ content: |
 
   Canonical relation order, wherever a relation sequence is emitted:
   CONFORMS, USES, SEE.
+---
+design: JsonRecordFormat
+type: schema
+format: json-lines
+content: |
+  The JSON form of record output, selected by `--format json` on `root`, `list`, `find`,
+  `refs`, `validate`, `lint`, and `update`. It carries exactly the records the text form
+  carries, in the same order, one per line, line-buffered the same way.
+
+  Segmentation, completely:
+  - Each record is one JSON object on one line, terminated by exactly one LF `0x0A`.
+    There is no array wrapper, no blank line, and no header or trailing record.
+  - A command with nothing to report writes zero bytes, as in the text form.
+  - Records carry no version field.
+
+  Keys: the record's field names from RecordFormat and DiagnosticFormat, lower-cased,
+  every field present, written in field order.
+
+    root        {"path"}
+    list        {"ref", "kind", "detail", "description"}
+    find        {"ref", "what", "text"}
+    refs        {"dir", "relation", "ref"}
+    update      {"action", "from", "to"}
+    diagnostic  {"severity", "code", "location", "line", "message"}
+
+  Values:
+  - Each value is a JSON string holding exactly the text the text form writes for that
+    field, after the same whitespace collapsing and truncation.
+  - A field that is empty after collapsing is JSON `null`. A field whose whole value is `-`
+    stays the string `"-"`, so a real `-` is never read as an absent field.
+  - A byte sequence that is not valid UTF-8 is written as U+FFFD, since a JSON string holds
+    only Unicode text.
+  - `line` is a JSON integer, or `null` when no line is known. No other field is typed,
+    so a list `detail` stays a string even when it holds a count.
+
+  Encoding: compact, with no space after `:` or `,`. A string escapes only `"`, `\`, and
+  control characters. `<`, `>`, and `&` are written as themselves, and non-ASCII text is
+  written as raw UTF-8, so the same records always encode to the same bytes.
+
+  Example, one `list` file record:
+
+    {"ref":"root","kind":"file","detail":"7","description":"The root file of …"}
 ---
 design: DiagnosticFormat
 type: schema
@@ -358,8 +407,8 @@ content: |
     through `head -200` and never learns what the cut dropped, so the line budget is what a
     reader is sure to see. A carried document too long for it opens with one line stating
     its length, so a cut read is a known one.
-  - Help is exactly the Synopsis design block and nothing else: a synopsis line, one line
-    per subcommand, one line per option, the exit-code table, and one closing line pointing
+  - Help is exactly the Synopsis design block and nothing else: a synopsis line, one entry
+    per subcommand, one entry per option, the exit-code table, and one closing line pointing
     at the orientation block. No examples, no paragraphs, and no text outside the block.
   - There is no per-subcommand help in v1, because the synopsis states each subcommand's
     operands and options.

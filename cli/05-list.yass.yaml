@@ -9,7 +9,8 @@ version: v1
 ---
 spec: List
 INPUT:
-- MUST: "be invoked as `yass list [--filter GLOB] [PATH...]`"
+- MUST: "be invoked as `yass list [--filter GLOB] [--format FORMAT] [PATH...]`"
+  SEE: root@YassCli::RETURN
 - WHEN: no PATH is given
   MUST: take the project file set
   CONFORMS: 01-locate@FileSet::RETURN

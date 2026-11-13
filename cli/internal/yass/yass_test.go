@@ -2899,3 +2899,232 @@ func TestRestatedFactMissingField(t *testing.T) {
 		t.Fatal("want an advisory for the record that holds the field")
 	}
 }
+
+// --- --format json ------------------------------------------------------------
+
+// jsonProject is a one-file project whose description carries the characters
+// HTML escaping would rewrite, and non-ASCII text JSON could escape.
+func jsonProject(t *testing.T) string {
+	t.Helper()
+	dir := t.TempDir()
+	write(t, dir, "root.yass.yaml", modeline+`---
+description: a <b> & "c" café
+version: v1
+---
+spec: R
+INPUT:
+- MUST: "take <x> & y \\ z \x01"
+  USES: D
+---
+design: D
+type: constraint
+content: |
+  one
+`)
+	return dir
+}
+
+func TestFormatJSONRoot(t *testing.T) {
+	dir := jsonProject(t)
+	got := run(dir, "root", "--format", "json")
+	wantStatus(t, got, ExitOK)
+	want := `{"path":"` + realpath(t, dir) + `"}` + "\n"
+	if got.stdout != want {
+		t.Fatalf("stdout = %q, want %q", got.stdout, want)
+	}
+}
+
+func TestFormatJSONList(t *testing.T) {
+	dir := jsonProject(t)
+	got := run(dir, "list", "--format=json")
+	wantStatus(t, got, ExitOK)
+	want := `{"ref":"root","kind":"file","detail":"2","description":"a <b> & \"c\" café"}` + "\n" +
+		`{"ref":"root@R","kind":"spec","detail":"INPUT","description":null}` + "\n" +
+		`{"ref":"root@D","kind":"design","detail":"constraint","description":null}` + "\n"
+	if got.stdout != want {
+		t.Fatalf("stdout = %q, want %q", got.stdout, want)
+	}
+	// The text form is unchanged, and naming it explicitly selects it.
+	text := run(dir, "list")
+	explicit := run(dir, "list", "--format", "text")
+	if explicit.stdout != text.stdout || !strings.HasPrefix(text.stdout, "root\tfile\t2\t") {
+		t.Fatalf("text form changed: %q vs %q", explicit.stdout, text.stdout)
+	}
+}
+
+func TestFormatJSONFind(t *testing.T) {
+	dir := jsonProject(t)
+	got := run(dir, "find", "--format", "json", "x>")
+	wantStatus(t, got, ExitOK)
+	want := `{"ref":"root@R::INPUT","what":"MUST","text":"take <x> & y \\ z \u0001"}` + "\n"
+	if got.stdout != want {
+		t.Fatalf("stdout = %q, want %q", got.stdout, want)
+	}
+	empty := run(dir, "find", "--format", "json", "absent text")
+	wantStatus(t, empty, ExitOK)
+	if empty.stdout != "" {
+		t.Fatalf("an empty result must write zero bytes: %q", empty.stdout)
+	}
+}
+
+func TestFormatJSONRefs(t *testing.T) {
+	dir := project(t)
+	got := run(dir, "refs", "--format", "json", "--out", "a@Alpha::INPUT")
+	wantStatus(t, got, ExitOK)
+	want := `{"dir":"out","relation":"CONFORMS","ref":"a@Beta::RETURN"}` + "\n" +
+		`{"dir":"out","relation":"CONFORMS","ref":"sub/b@Beta::RETURN"}` + "\n"
+	if got.stdout != want {
+		t.Fatalf("stdout = %q, want %q", got.stdout, want)
+	}
+}
+
+func TestFormatJSONValidate(t *testing.T) {
+	dir := project(t)
+	write(t, dir, "bad.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\nspec: .X\nINPUT:\n- MUST: x\n")
+	text := run(dir, "validate")
+	got := run(dir, "validate", "--format", "json")
+	wantStatus(t, got, ExitFindings)
+	tl, jl := lines(text.stdout), lines(got.stdout)
+	if len(tl) == 0 || len(tl) != len(jl) {
+		t.Fatalf("text and json record counts differ:\n%s\n%s", text.stdout, got.stdout)
+	}
+	for i, l := range tl {
+		f := strings.Split(l, "\t")
+		line := f[3]
+		if line == "-" {
+			line = "null"
+		}
+		loc := `"` + f[2] + `"`
+		if f[2] == "-" {
+			loc = "null"
+		}
+		want := `{"severity":"` + f[0] + `","code":"` + f[1] + `","location":` + loc +
+			`,"line":` + line + `,"message":"` + f[4] + `"}`
+		if jl[i] != want {
+			t.Fatalf("record %d = %q, want %q", i, jl[i], want)
+		}
+	}
+	if !strings.Contains(got.stdout, `"line":6,`) {
+		t.Fatalf("line must be a JSON integer: %s", got.stdout)
+	}
+}
+
+func TestFormatJSONLint(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "root.yass.yaml", "---\ndescription: d\nversion: v1\n---\nspec: R\nINPUT: []\n")
+	got := run(dir, "lint", "--format", "json")
+	wantStatus(t, got, ExitFindings)
+	want := `{"severity":"warn","code":"yass.lint.modeline","location":"root","line":1,"message":"first line is not the schema modeline"}` + "\n" +
+		`{"severity":"warn","code":"yass.lint.slot_empty","location":"root@R::INPUT","line":6,"message":"slot declares no obligation"}` + "\n"
+	if got.stdout != want {
+		t.Fatalf("stdout = %q, want %q", got.stdout, want)
+	}
+	clean := run(project(t), "lint", "--format", "json", "sub/b.yass.yaml")
+	wantStatus(t, clean, ExitOK)
+	if clean.stdout != "" {
+		t.Fatalf("a clean lint must write zero bytes: %q", clean.stdout)
+	}
+}
+
+// Standard error stays text under every format.
+func TestFormatJSONLeavesStandardErrorText(t *testing.T) {
+	dir := project(t)
+	missing := run(dir, "lint", "--format", "json", "nope.yass.yaml")
+	wantStatus(t, missing, ExitUnresolved)
+	if missing.stdout != "" || missing.stderr != "error\tyass.io.missing\tnope.yass.yaml\t-\tpath does not exist\n" {
+		t.Fatalf("stdout = %q stderr = %q", missing.stdout, missing.stderr)
+	}
+	write(t, dir, "sub/broken.yass.yaml", modeline+"a: b\n  c: d\n- x\n")
+	got := run(dir, "refs", "--format", "json", "--out", "root@Proj")
+	wantStatus(t, got, ExitFindings)
+	if !strings.HasPrefix(got.stderr, "error\tyass.document.not_yaml\tsub/broken\t") {
+		t.Fatalf("stderr = %q", got.stderr)
+	}
+	if !strings.Contains(got.stdout, `{"dir":"out","relation":"USES","ref":"root@Policy"}`) {
+		t.Fatalf("stdout = %q", got.stdout)
+	}
+}
+
+func TestFormatArgumentErrors(t *testing.T) {
+	dir := project(t)
+	for _, args := range [][]string{
+		{"list", "--format", "xml"},
+		{"root", "--format=JSON"},
+		{"lint", "--format="},
+	} {
+		got := run(dir, args...)
+		wantStatus(t, got, ExitUsage)
+		if got.stdout != "" || !strings.HasPrefix(got.stderr, "error\tyass.args.unknown_format\t-\t-\tunknown format") {
+			t.Errorf("%v: stdout = %q stderr = %q", args, got.stdout, got.stderr)
+		}
+	}
+	for _, args := range [][]string{
+		{"query", "--format", "json", "a@Alpha"},
+		{"docs", "--format", "json"},
+		{"overview", "--format", "json"},
+		{"--format", "json", "list"},
+	} {
+		got := run(dir, args...)
+		wantStatus(t, got, ExitUsage)
+		if !strings.Contains(got.stderr, "yass.args.unknown_option") {
+			t.Errorf("%v: stderr = %q", args, got.stderr)
+		}
+	}
+	got := run(dir, "list", "--format")
+	wantStatus(t, got, ExitUsage)
+	if !strings.Contains(got.stderr, "yass.args.missing_value") {
+		t.Fatalf("stderr = %q", got.stderr)
+	}
+}
+
+// An unknown line and an absent location are JSON null, and a field's value is
+// the collapsed text the text form writes.
+func TestFormatJSONDiagnosticNulls(t *testing.T) {
+	a := &App{Inv: &Invocation{Format: FormatJSON}}
+	got := a.diag(Diag{Severity: "error", Code: "yass.x.y", Message: "two\t words  here"})
+	want := `{"severity":"error","code":"yass.x.y","location":null,"line":null,"message":"two words here"}`
+	if got != want {
+		t.Fatalf("diag = %q, want %q", got, want)
+	}
+	text := &App{Inv: &Invocation{}}
+	if text.diag(Diag{Severity: "error", Code: "yass.x.y", Message: "m"}) != "error\tyass.x.y\t-\t-\tm" {
+		t.Fatal("text form changed")
+	}
+}
+
+// A file that does not parse keeps its list record, its unknown fields null.
+func TestFormatJSONListUnparsedFileIsNull(t *testing.T) {
+	dir := project(t)
+	write(t, dir, "bad.yass.yaml", "a: b\n  c: d\n- x\n")
+	got := run(dir, "list", "--format", "json", "bad.yass.yaml")
+	wantStatus(t, got, ExitFindings)
+	if got.stdout != `{"ref":"bad","kind":"file","detail":null,"description":null}`+"\n" {
+		t.Fatalf("stdout = %q", got.stdout)
+	}
+}
+
+// The JSON form keeps a real "-" apart from an absent field, which the text
+// form cannot.
+func TestFormatJSONKeepsRealDash(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "root.yass.yaml", modeline+"---\ndescription: \"-\"\nversion: v1\n---\nspec: R\nINPUT:\n- MUST: x\n")
+	write(t, dir, "a.yass.yaml", modeline+"---\ndescription: \"\"\nversion: v1\n---\nspec: A\nINPUT:\n- MUST: y\n")
+	got := run(dir, "list", "--format", "json", "--filter", "*")
+	wantStatus(t, got, ExitOK)
+	if !strings.Contains(got.stdout, `{"ref":"root","kind":"file","detail":"1","description":"-"}`) {
+		t.Fatalf("a real - must stay a string:\n%s", got.stdout)
+	}
+	if !strings.Contains(got.stdout, `{"ref":"a","kind":"file","detail":"1","description":null}`) {
+		t.Fatalf("an empty description must be null:\n%s", got.stdout)
+	}
+}
+
+// An unknown format names the value quoted, so an empty or padded value
+// is still visible.
+func TestFormatUnknownNamesValueQuoted(t *testing.T) {
+	got := run(project(t), "list", "--format=")
+	wantStatus(t, got, ExitUsage)
+	if !strings.Contains(got.stderr, "yass.args.unknown_format") || !strings.Contains(got.stderr, `unknown format ""`) {
+		t.Fatalf("stderr = %q", got.stderr)
+	}
+}

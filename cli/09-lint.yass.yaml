@@ -15,7 +15,8 @@ version: v1
 ---
 spec: Lint
 INPUT:
-- MUST: "be invoked as `yass lint [PATH...]`"
+- MUST: "be invoked as `yass lint [--format FORMAT] [PATH...]`"
+  SEE: root@YassCli::RETURN
 - MUST: take the project file set, whatever PATH selects, because reachability and reference counting are properties of the whole graph
   CONFORMS: 01-locate@FileSet::RETURN
 - MUST: take the loaded model of every file in that set

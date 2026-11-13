@@ -51,7 +51,7 @@ func (a *App) cmdUpdate() (int, error) {
 		return 0, err
 	}
 	if latest == programVersion {
-		a.out.line(record("current", programVersion, latest))
+		a.out.line(a.record(updateFields, "current", programVersion, latest))
 		return ExitOK, nil
 	}
 
@@ -60,7 +60,7 @@ func (a *App) cmdUpdate() (int, error) {
 		return 0, internal("installed binary cannot be located: " + err.Error())
 	}
 	if brewManaged(exe) {
-		a.out.line(record("homebrew", programVersion, latest))
+		a.out.line(a.record(updateFields, "homebrew", programVersion, latest))
 		return ExitOK, nil
 	}
 
@@ -72,7 +72,7 @@ func (a *App) cmdUpdate() (int, error) {
 		return 0, fail(ExitEnvironment, "yass.update.denied", "", 0,
 			"cannot replace "+exe+": "+err.Error())
 	}
-	a.out.line(record("updated", programVersion, latest))
+	a.out.line(a.record(updateFields, "updated", programVersion, latest))
 	return ExitOK, nil
 }
 

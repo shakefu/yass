@@ -9,7 +9,8 @@ version: v1
 ---
 spec: Find
 INPUT:
-- MUST: "be invoked as `yass find [--slot SLOT] PATTERN`, taking exactly one PATTERN operand"
+- MUST: "be invoked as `yass find [--slot SLOT] [--format FORMAT] PATTERN`, taking exactly one PATTERN operand"
+  SEE: root@YassCli::RETURN
 - MUST: take the project file set
   CONFORMS: 01-locate@FileSet::RETURN
 - MUST: take the loaded model of every file in that set
