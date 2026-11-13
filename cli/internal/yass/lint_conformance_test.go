@@ -166,6 +166,36 @@ func TestLintConformanceFunctionIsAWord(t *testing.T) {
 	}
 }
 
+// C24: pseudocode the MUST-NOT exempts is never reported, whatever source
+// pattern it also matches.
+func TestLintConformancePseudocodeExempt(t *testing.T) {
+	for _, c := range []string{
+		"for each item in items {",
+		"} for each item in items {",
+		"y := cache.get(k)",
+		"x, err := os.Open(path)",
+		"failed = err != nil",
+		"if err != nil then",
+		"while err != nil:",
+		"check(err != nil)",
+	} {
+		if got := designLint(t, "algorithm", c); len(got) != 0 {
+			t.Errorf("%q: got %v, want no advisory", c, got)
+		}
+	}
+	for _, c := range []string{
+		"for item in items {",
+		"y := cache.Get(k, func() {",
+		"m := map[string]int{}",
+		"x := &pkg.Thing{}",
+		"if err != nil {",
+	} {
+		if got := designLint(t, "algorithm", c); len(got) != 1 {
+			t.Errorf("%q: got %v, want one advisory", c, got)
+		}
+	}
+}
+
 // C25: a nameless spec's USES reference binds its design.
 func TestLintConformanceNamelessSpecUsesDesign(t *testing.T) {
 	recs := lintRecords(t, map[string]string{

@@ -11,8 +11,9 @@ import (
 // The design-content advisories of 09-lint@Lint::RETURN match fixed character
 // patterns line by line, skipping backtick code spans as every prose pattern
 // does. The code patterns are deliberately narrow: pseudocode is what an
-// algorithm holds, so only shapes that are source in a real language match —
-// never a bare assignment, a `for each`, or an unqualified call.
+// algorithm holds, so only shapes that are source in a real language match,
+// and a line of pseudocode never does: a `for each` loop, a bare assignment,
+// a guard closed by `then` or a colon, or a call that ends no statement.
 
 var (
 	// designCode matches one line of source in a real programming language.
@@ -35,6 +36,16 @@ var (
 		regexp.MustCompile(`\berr\s*!=\s*nil\b`),
 		// An import or a package clause.
 		regexp.MustCompile(`^\s*(import\s+(\(|"|[\w.]+;)|from\s+[\w.]+\s+import\s+\w|#include\s*[<"]|package\s+[\w.]+;?\s*$|use\s+[\w:]+;)`),
+	}
+	// pseudocode matches the lines of pseudocode SourcePatterns exempts,
+	// whatever code pattern they also match: a `for each` loop, a bare
+	// assignment, a guard closed by `then` or a colon, and a call that ends
+	// no statement.
+	pseudocode = []*regexp.Regexp{
+		regexp.MustCompile(`^\s*(\}\s*)?for\s+each\b`),
+		regexp.MustCompile(`^\s*[A-Za-z_][\w.\[\]*]*(\s*,\s*[A-Za-z_][\w.\[\]*]*)*\s*(=|:=|\+=|-=)\s*([^=\s{};]|[^=\s{}][^{}]*[^{};\s])\s*$`),
+		regexp.MustCompile(`^\s*(if|else\s+if|elif|while)\b.*(\bthen|:)\s*$`),
+		regexp.MustCompile(`^\s*[A-Za-z_][\w.]*\([^{}]*\)\s*$`),
 	}
 	// designTableRow matches a Markdown table row: a line holding a pipe.
 	designTableRow = regexp.MustCompile(`\|`)
@@ -91,6 +102,11 @@ func designAdvisories(f *File) []Diag {
 // isSourceLine reports whether a line of design content has the shape of
 // source in a real programming language.
 func isSourceLine(l string) bool {
+	for _, re := range pseudocode {
+		if re.MatchString(l) {
+			return false
+		}
+	}
 	for _, re := range designCode {
 		if re.MatchString(l) {
 			return true
