@@ -110,3 +110,34 @@ func TestBlockScalarPinsIndentationOfAnyIndentedLine(t *testing.T) {
 		{"MUST": "p", "WHEN": "\n  \nz"},
 	})
 }
+
+// A character outside YAML's printable set, or one a parser reads as a line
+// break, is escaped in a double-quoted scalar rather than written raw, so the
+// output stays a well-formed stream that reads back as the authored string.
+func TestUnprintableCharactersAreEscaped(t *testing.T) {
+	for _, v := range []string{
+		"a\u0080b",
+		"a\u0085b",
+		"a\u009fb",
+		"a\u2028b",
+		"a\u2029b",
+		"a\ufeffb",
+		"a\ufffeb",
+		"a\u009fb\nsecond",
+		"line\u2028\nnext",
+		"\ufeff",
+		"\u0085",
+	} {
+		assertScalarReadsBack(t, v)
+	}
+	queryReadsBack(t, `- MUST: "a\x80b"
+- MUST: "a\u2028b"
+- MUST: "a\x85b"
+- MUST: "a\ufeffb"
+`, []map[string]string{
+		{"MUST": "a\u0080b"},
+		{"MUST": "a\u2028b"},
+		{"MUST": "a\u0085b"},
+		{"MUST": "a\ufeffb"},
+	})
+}
