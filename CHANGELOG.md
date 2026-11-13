@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.13.0 - 2026-11-13
+#### Features
+- (**cli**) add --format json for record output - (6265d7e) - Jacob Alheid
+
+- - -
+
 ## v0.12.2 - 2026-11-13
 #### Bug Fixes
 - (**lint**) cover an unparsed root file and tighten the lint spec - (89f2256) - Jacob Alheid
