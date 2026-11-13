@@ -48,7 +48,9 @@ func discoverRoot(start, label string) (string, error) {
 		st, err := os.Stat(candidate)
 		switch {
 		case err == nil:
-			if st.Mode().IsRegular() {
+			// The name compares byte-for-byte, so a differently cased file a
+			// case-insensitive filesystem stats as the same is no root.
+			if st.Mode().IsRegular() && hasEntryNamed(dir, RootBasename) {
 				return dir, nil
 			}
 		case os.IsPermission(err):
@@ -128,7 +130,7 @@ func collectSpecFiles(dir string, root string) ([]string, error) {
 
 func holdsRootFile(dir string) bool {
 	st, err := os.Stat(filepath.Join(dir, RootBasename))
-	return err == nil && st.Mode().IsRegular()
+	return err == nil && st.Mode().IsRegular() && hasEntryNamed(dir, RootBasename)
 }
 
 func relTo(base, path string) string {

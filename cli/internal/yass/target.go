@@ -1,6 +1,7 @@
 package yass
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -102,6 +103,63 @@ func filePathFor(root, base, token string) string {
 	return prefix + string(filepath.Separator) + filepath.FromSlash(token) + SpecSuffix
 }
 
+// statRefFile stats the file a ref target's path token names, resolved as
+// filePathFor resolves it. A file the filesystem finds only under another
+// spelling — a differently cased one, on a case-insensitive filesystem —
+// reports fs.ErrNotExist, because a path token compares byte-for-byte and
+// case-sensitively on every platform.
+func statRefFile(root, base, token string) (fs.FileInfo, error) {
+	st, err := os.Stat(filePathFor(root, base, token))
+	if err == nil && !spelledExactly(root, base, token) {
+		return nil, fs.ErrNotExist
+	}
+	return st, err
+}
+
+// spelledExactly reports whether the file filePathFor yields for token names
+// directory entries spelled exactly as the token spells them, component by
+// component from the base it resolves against. A case-insensitive filesystem
+// would otherwise let os.Stat answer for a differently cased spelling, while a
+// ref target's path token compares byte-for-byte and case-sensitively. The `.`
+// and `..` components of a leading `./` or `../`, and empty components, name
+// no entry and are passed through for the kernel to resolve.
+func spelledExactly(root, base, token string) bool {
+	dir := root
+	if strings.HasPrefix(token, "./") || strings.HasPrefix(token, "../") {
+		dir = base
+	}
+	parts := strings.Split(token, "/")
+	parts[len(parts)-1] += SpecSuffix
+	for _, p := range parts {
+		if p != "" && p != "." && p != ".." && !hasEntryNamed(dir, p) {
+			return false
+		}
+		dir += string(filepath.Separator) + p
+	}
+	return true
+}
+
+// hasEntryNamed reports whether dir holds an entry whose name is exactly name,
+// compared byte-for-byte. The caller has already found the path by os.Stat, so
+// a directory that cannot be listed leaves that answer standing.
+func hasEntryNamed(dir, name string) bool {
+	d, err := os.Open(dir)
+	if err != nil {
+		return true
+	}
+	defer d.Close() //nolint:errcheck
+	names, err := d.Readdirnames(-1)
+	if err != nil {
+		return true
+	}
+	for _, n := range names {
+		if n == name {
+			return true
+		}
+	}
+	return false
+}
+
 // ResolveTarget binds one command-line target against the loaded model. A
 // target the grammar or the slot vocabulary rejects exits with the usage
 // status; a well-formed target that addresses nothing exits with the
@@ -116,7 +174,7 @@ func (a *App) ResolveTarget(raw string) (*Bound, error) {
 	}
 
 	abs := filePathFor(a.Root, a.StartDir, t.Path)
-	st, err := os.Stat(abs)
+	st, err := statRefFile(a.Root, a.StartDir, t.Path)
 	if err != nil || !st.Mode().IsRegular() {
 		if err != nil && os.IsPermission(err) {
 			return nil, unreadable(a.rel(abs))
@@ -224,7 +282,7 @@ func (a *App) resolveRefFrom(carrier *Doc, r *Ref) (*refResolution, error) {
 	if abs == carrier.File.Abs {
 		f = carrier.File
 	} else {
-		st, err := os.Stat(abs)
+		st, err := statRefFile(a.Root, filepath.Dir(carrier.File.Abs), t.Path)
 		if err != nil || !st.Mode().IsRegular() {
 			return nil, bad("yass.ref.unresolved")
 		}
