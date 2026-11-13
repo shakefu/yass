@@ -32,7 +32,7 @@
       "required": ["spec"],
       "additionalProperties": false,
       "properties": {
-        "spec": { "type": "string", "pattern": "^[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*$" },
+        "spec": { "$ref": "#/$defs/documentName" },
         "INPUT": { "$ref": "#/$defs/slot" },
         "RETURN": { "$ref": "#/$defs/slot" },
         "ERROR": { "$ref": "#/$defs/slot" },
@@ -47,7 +47,7 @@
       "required": ["design", "type", "content"],
       "additionalProperties": false,
       "properties": {
-        "design": { "type": "string", "pattern": "^[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*$" },
+        "design": { "$ref": "#/$defs/documentName" },
         "type": { "enum": ["constraint", "algorithm", "procedure", "schema", "catalog"] },
         "format": { "type": "string", "minLength": 1 },
         "content": {}
@@ -74,6 +74,13 @@
         "type": "object",
         "additionalProperties": { "type": ["string", "number", "integer", "boolean", "null"] }
       }
+    },
+
+    "documentName": {
+      "title": "Spec or design name (a yass keyword in any casing is reserved)",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+(\\.[A-Za-z0-9_-]+)*$",
+      "not": { "pattern": "^([Ii][Nn][Pp][Uu][Tt]|[Rr][Ee][Tt][Uu][Rr][Nn]|[Ee][Rr][Rr][Oo][Rr]|[Ss][Ii][Dd][Ee]-[Ee][Ff][Ff][Ee][Cc][Tt]|[Ii][Nn][Vv][Aa][Rr][Ii][Aa][Nn][Tt]|[Mm][Uu][Ss][Tt]|[Mm][Uu][Ss][Tt]-[Nn][Oo][Tt]|[Ss][Hh][Oo][Uu][Ll][Dd]|[Ss][Hh][Oo][Uu][Ll][Dd]-[Nn][Oo][Tt]|[Mm][Aa][Yy]|[Ww][Hh][Ee][Nn]|[Cc][Oo][Nn][Ff][Oo][Rr][Mm][Ss]|[Uu][Ss][Ee][Ss]|[Ss][Ee][Ee])$" }
     },
 
     "slot": {
