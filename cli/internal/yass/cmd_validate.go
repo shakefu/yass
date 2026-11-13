@@ -164,7 +164,10 @@ func (a *App) checkFile(f *File) ([]Diag, error) {
 	return out, nil
 }
 
-// checkDocumentShape reports duplicate keys anywhere in the document.
+// checkDocumentShape reports duplicate keys anywhere in the document. Two keys
+// are the same only when both are scalars with the same resolved tag and
+// value: `1` and `"1"` are distinct, and a non-scalar key is left to the
+// shape checks rather than compared.
 func (a *App) checkDocumentShape(d *Doc) []Diag {
 	var out []Diag
 	loc := d.File.Ref
@@ -177,14 +180,19 @@ func (a *App) checkDocumentShape(d *Doc) []Diag {
 			return
 		}
 		if n.Kind == yaml.MappingNode {
-			seen := map[string]bool{}
+			type scalarKey struct{ tag, value string }
+			seen := map[scalarKey]bool{}
 			for i := 0; i+1 < len(n.Content); i += 2 {
 				k := n.Content[i]
-				if seen[k.Value] {
+				if k.Kind != yaml.ScalarNode {
+					continue
+				}
+				sk := scalarKey{k.ShortTag(), k.Value}
+				if seen[sk] {
 					out = append(out, diag("yass.document.duplicate_key", loc, k.Line,
 						"mapping carries duplicate key "+k.Value))
 				}
-				seen[k.Value] = true
+				seen[sk] = true
 			}
 		}
 		for _, c := range n.Content {
