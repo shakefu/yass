@@ -1,7 +1,6 @@
 package yass
 
 import (
-	"os"
 	"path/filepath"
 	"sort"
 
@@ -351,7 +350,7 @@ func (a *App) checkRef(s *Slot, r *Ref) []Diag {
 	}
 	target := carrier
 	if abs != carrier.Abs {
-		st, err := os.Stat(abs)
+		st, err := statRefFile(a.Root, filepath.Dir(carrier.Abs), t.Path)
 		if err != nil || !st.Mode().IsRegular() {
 			return append(out, diag("yass.ref.unresolved", loc, r.Line, "reference target does not resolve"))
 		}

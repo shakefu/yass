@@ -871,6 +871,81 @@ func TestTargetIsCaseSensitive(t *testing.T) {
 	wantStatus(t, got, ExitUnresolved)
 }
 
+// A path token compares case-sensitively on every platform: a differently
+// cased spelling of an existing file or directory resolves to nothing, even
+// where a case-insensitive filesystem would open the file it spells.
+func TestTargetPathTokenIsCaseSensitive(t *testing.T) {
+	dir := project(t)
+	for _, target := range []string{"A@Alpha", "A", "Root", "SUB/b@Beta", "sub/B@Beta", "./Sub/b@Beta"} {
+		got := run(dir, "query", target)
+		wantStatus(t, got, ExitUnresolved)
+		if !strings.Contains(got.stderr, "yass.ref.unresolved") {
+			t.Errorf("%s: stderr = %q", target, got.stderr)
+		}
+		if got.stdout != "" {
+			t.Errorf("%s: stdout must be empty, got %q", target, got.stdout)
+		}
+	}
+	// The exact spellings, including `./` and `../` lead segments, resolve.
+	for _, target := range []string{"a@Alpha", "./sub/b@Beta", "sub/../a@Alpha"} {
+		wantStatus(t, run(dir, "query", target), ExitOK)
+	}
+	wantStatus(t, run(filepath.Join(dir, "sub"), "query", "../a@Alpha"), ExitOK)
+	wantStatus(t, run(filepath.Join(dir, "sub"), "query", "../A@Alpha"), ExitUnresolved)
+}
+
+// A reference inside a document compares its path token case-sensitively too.
+func TestInFileRefPathTokenIsCaseSensitive(t *testing.T) {
+	cases := []struct{ rel, ref string }{
+		{"c.yass.yaml", "A@Alpha"},
+		{"c.yass.yaml", "SUB/b@Beta::RETURN"},
+		{"sub/c.yass.yaml", "./B@Beta::RETURN"},
+		{"sub/c.yass.yaml", "../A@Alpha"},
+	}
+	for _, c := range cases {
+		dir := project(t)
+		write(t, dir, c.rel, modeline+"---\ndescription: c\nversion: v1\n---\nspec: C\nINPUT:\n- MUST: x\n  SEE: "+c.ref+"\n")
+		codes := validateCodes(t, dir)
+		found := false
+		for _, code := range codes {
+			if strings.Contains(code, "yass.ref.unresolved") {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("%s in %s: codes = %q, want yass.ref.unresolved", c.ref, c.rel, codes)
+		}
+		// Resolution for a command, not only validation, refuses the spelling:
+		// refs drops an unresolvable reference rather than report an edge.
+		carrier := strings.TrimSuffix(c.rel, SpecSuffix) + "@C"
+		got := run(dir, "refs", "--out", carrier)
+		wantStatus(t, got, ExitOK)
+		if got.stdout != "" {
+			t.Errorf("refs --out %s carrying %s: stdout = %q, want no edge", carrier, c.ref, got.stdout)
+		}
+	}
+}
+
+// The project root's file name compares byte-for-byte, so a differently cased
+// root file neither makes a project root nor hides a subtree as a nested one.
+func TestRootFileNameIsCaseSensitive(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "ROOT.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\nspec: R\nINPUT:\n- MUST: x\n")
+	got := run(dir, "root")
+	wantStatus(t, got, ExitNoRoot)
+	if !strings.Contains(got.stderr, "yass.root.not_found") {
+		t.Fatalf("stderr = %q", got.stderr)
+	}
+
+	proj := project(t)
+	write(t, proj, "sub/other/Root.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\nspec: R\nINPUT:\n- MUST: x\n")
+	list := run(proj, "list", "--format", "json")
+	wantStatus(t, list, ExitOK)
+	if !strings.Contains(list.stdout, "sub/other/Root") {
+		t.Fatalf("a differently cased root file must stay in the outer file set:\n%s", list.stdout)
+	}
+}
+
 // The suffix is appended to the path token exactly as written: `.` and `..`
 // segments stay part of the name looked up, so a token spelling a directory
 // names no file rather than resolving to the neighbour a cleaned path would
