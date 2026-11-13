@@ -100,6 +100,16 @@ content:
 	}
 }
 
+// C23: a name beginning with `function` is not the word `function`.
+func TestLintConformanceFunctionIsAWord(t *testing.T) {
+	if got := designLint(t, "algorithm", "functional(x) {"); len(got) != 0 {
+		t.Fatalf("got %v, want no advisory", got)
+	}
+	if got := designLint(t, "algorithm", "function(x) {"); len(got) != 1 {
+		t.Fatalf("anonymous function: got %v, want one advisory", got)
+	}
+}
+
 // C25: a nameless spec's USES reference binds its design.
 func TestLintConformanceNamelessSpecUsesDesign(t *testing.T) {
 	recs := lintRecords(t, map[string]string{
