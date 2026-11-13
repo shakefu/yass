@@ -49,3 +49,17 @@ content:
 		t.Fatalf("restated_fact = %v, want one at root@Root::INPUT line 3", got)
 	}
 }
+
+// C19: a file that fails to parse still gets the modeline advisory.
+func TestLintConformanceModelineOnUnparsedFile(t *testing.T) {
+	recs := lintRecords(t, map[string]string{
+		"root.yass.yaml": modeline + "spec: Root\nRETURN:\n- MUST: go\n",
+		"b.yass.yaml":    "spec: B\nINPUT: [ unclosed\n",
+	})
+	if got := withCode(recs, "yass.lint.unparsed"); len(got) != 1 || !strings.HasPrefix(got[0], "b\t") {
+		t.Fatalf("unparsed = %v, want one naming b", got)
+	}
+	if got := withCode(recs, "yass.lint.modeline"); len(got) != 1 || got[0] != "b\t1" {
+		t.Fatalf("modeline = %v, want one naming b at line 1", got)
+	}
+}
