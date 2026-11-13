@@ -52,9 +52,12 @@ func (a *App) cmdLint() (int, error) {
 			continue
 		}
 		for _, d := range f.Docs {
-			if d.Kind != KindSpec || !d.Addressable() {
+			if d.Kind != KindSpec {
 				continue
 			}
+			// A nameless spec's USES references still bind their designs, but
+			// no reference chain can reach it, so it contributes no edge.
+			addressable := d.Addressable()
 			for _, s := range d.Slots {
 				for _, o := range s.Obligations {
 					for _, r := range o.Refs {
@@ -73,7 +76,9 @@ func (a *App) cmdLint() (int, error) {
 							obligationUses[o] = append(obligationUses[o], rr.Doc)
 						}
 						// CONFORMS, USES, and SEE weigh the same as edges.
-						edges[d] = append(edges[d], rr.Doc)
+						if addressable {
+							edges[d] = append(edges[d], rr.Doc)
+						}
 					}
 				}
 			}
