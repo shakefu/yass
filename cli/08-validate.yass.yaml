@@ -86,8 +86,8 @@ RETURN:
 - WHEN: "a file named exactly `root.yass.yaml` carries no spec document, or more than one"
   MUST: emit code yass.root.spec_count
   CONFORMS: ../yass@Root
-- WHEN: no file named `root.yass.yaml` is at or above an addressed file
-  MUST: emit code yass.root.not_found
+- WHEN: a project root governs the starting directory, and no file named `root.yass.yaml` is at or above an addressed file outside that root
+  MUST: emit code yass.root.not_found for that file
   CONFORMS: ../yass@Root
 - WHEN: "a document carries a `spec` key whose value is absent, empty, or not a string"
   MUST: emit code yass.spec.unnamed
@@ -193,6 +193,9 @@ RETURN:
 ERROR:
 - WHEN: at least one diagnostic was emitted
   MUST: exit with the findings status after writing all of them
+- WHEN: no project root governs the starting directory
+  MUST: report code yass.root.not_found naming the starting path and check no file, whatever PATHs are given, because locating the project root precedes every check
+  SEE: 01-locate@RootDiscovery::ERROR
 - WHEN: a PATH does not exist
   MUST: report code yass.io.missing naming it
 - WHEN: "a PATH exists but is neither a directory nor a regular file"
