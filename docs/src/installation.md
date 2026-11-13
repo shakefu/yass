@@ -155,10 +155,12 @@ updated	0.4.1	0.4.3
 ```
 
 The fields are action, installed version, and newest stable version. The action
-is `current` when already current, `updated` after replacement, or `homebrew`
-when an older Homebrew-managed binary is detected. For `homebrew`, run
-`brew update` and `brew upgrade yass`. With `--format json` the record is one JSON
-object instead: `{"action":"updated","from":"0.4.1","to":"0.4.3"}`.
+is `current` when the installed version equals the newest stable version. When
+the versions differ, it is `homebrew` for a Homebrew-managed binary, which yass
+does not replace, and `updated` for any other binary after yass replaces it.
+`updated` can therefore also mean a move down from a newer or `dev` build. For
+`homebrew`, run `brew update` and `brew upgrade yass`. With `--format json` the
+record is one JSON object instead: `{"action":"updated","from":"0.4.1","to":"0.4.3"}`.
 
 `yass update` selects the newest stable release, even when you previously
 installed a pinned version. To keep or change a pin, rerun the installer with

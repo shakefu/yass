@@ -12,14 +12,19 @@ How a spec points at another spec, slot, or design, what each relation binds, an
   - `@` separates a path from the spec name (`path@SpecName`) for **other files**.
   - `::` separates the spec name from a slot (`SpecName::SLOT`); omit it to address the
     whole spec. The `SLOT` token must name one of the five recognized slots (see
-    *Slots*); any other slot token is a validation error.
+    *Slots*), and the referenced spec must declare that slot in its own document. Any
+    other slot token, or a slot the target spec does not declare, is a validation error.
   - **Path resolution:** a `./` or `../` path is **relative to the referencing file**; a
     path with any other lead resolves **from the project root** (see *Project root*
     in `yass docs documents`) — including one whose leading dot opens a hidden name, such as `.config`,
     which is a root-relative token, not a file-relative one. A path beginning with `/`
     is **rejected**: yass paths are file-relative or root-relative, never absolute. A
     path may climb with `../` past the project root; the reached file stays governed by
-    its own nearest root. The `.yass.yaml` extension is omitted.
+    its own nearest root. The `.yass.yaml` extension is omitted: resolution appends
+    that literal suffix to the path token and tries no other basename or extension.
+  - **Token charsets:** the path token uses `/` separators and only `[A-Za-z0-9._/-]`, so
+    a backslash is rejected; the name token uses only `[A-Za-z0-9._-]`; the slot token
+    uses only `[A-Z-]`. Paths and names compare case-sensitively, byte for byte.
   - The **slot is the finest addressable unit**. Named anchors, never line numbers.
     Slots belong to specs only: **`::SLOT` on a target that resolves to a design is a
     validation error** — a design carries no slots.
@@ -69,11 +74,11 @@ How a spec points at another spec, slot, or design, what each relation binds, an
      *constraint* — if the target's rules bind this spec, that is whole-spec `CONFORMS`,
      and reaching for `SEE` silently drops the requirement.
 
-- **Guards conjoin when an inlined obligation is itself guarded.** When a slot-targeted
-  `CONFORMS` carrier has a `WHEN` guard and an inlined obligation carries its own `WHEN`,
-  the inlined obligation applies only when **both** guards hold — the carrier's guard
-  conjoined with the inner guard. (This is the language-level meaning; how a tool renders
-  the combined guard text is the tool's concern.)
+- **A carrier's guard scopes what it inlines.** When a slot-targeted `CONFORMS` carrier
+  has a `WHEN` guard, every inlined obligation applies only when that guard holds. An
+  inlined obligation that carries its own `WHEN` applies only when **both** guards hold
+  — the carrier's guard conjoined with the inner guard. (This is the language-level
+  meaning; how a tool renders the combined guard text is the tool's concern.)
 
 - **Slot-targeted `CONFORMS` carries the dataflow reading.** When one spec's `INPUT`
   consumes the data another spec's slot produces — characteristically an `INPUT` that

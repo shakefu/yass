@@ -10,8 +10,8 @@ The schema is published at:
 
 <https://shakefu.github.io/yass/v1.schema.json>
 
-Point yaml-language-server at it with the modeline every `.yass.yaml` file
-carries as its first line:
+Point yaml-language-server at it with the modeline a `.yass.yaml` file should
+carry as its first line (`yass lint` reports a missing one as `yass.lint.modeline`):
 
 ```yaml
 # yaml-language-server: $schema=https://shakefu.github.io/yass/v1.schema.json
