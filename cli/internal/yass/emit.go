@@ -181,11 +181,17 @@ func emitScalarItem(out *[]string, indent, v string) {
 
 // blockScalar renders a literal block scalar header and its indented body. The
 // body is always indented two spaces past its parent, so the explicit
-// indentation indicator a leading-space first line needs is always 2.
+// indentation indicator is always 2. It is written whenever any line opens with
+// a space or tab: a parser would otherwise infer the indentation from the first
+// non-empty line, dropping that line's leading spaces or rejecting a longer
+// whitespace-only line before it.
 func blockScalar(v, indent string) (string, []string) {
 	header := "|"
-	if strings.HasPrefix(v, " ") || strings.HasPrefix(v, "\t") {
-		header += "2"
+	for _, l := range strings.Split(v, "\n") {
+		if strings.HasPrefix(l, " ") || strings.HasPrefix(l, "\t") {
+			header += "2"
+			break
+		}
 	}
 	trailing := 0
 	for i := len(v) - 1; i >= 0 && v[i] == '\n'; i-- {
