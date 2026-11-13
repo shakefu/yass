@@ -50,9 +50,7 @@ type App struct {
 	Loader   *Loader
 	out      *stream
 	err      *stream
-	// dirNames caches each directory's entry names for the ref spelling
-	// check, keyed by directory; a nil set marks one that cannot be listed.
-	dirNames map[string]map[string]bool
+	names    *dirNames // directory listings for the exact-spelling checks
 }
 
 // Main runs one invocation and returns the single exit status it selects.
@@ -75,7 +73,7 @@ func Main(args []string, stdout, stderr io.Writer) int {
 		return finish(out, errs, ExitOK)
 	}
 
-	a := &App{Inv: inv, out: out, err: errs}
+	a := &App{Inv: inv, out: out, err: errs, names: newDirNames()}
 	status := a.dispatch()
 	return finish(out, errs, status)
 }
@@ -126,7 +124,7 @@ func (a *App) prepare() error {
 		return err
 	}
 	a.StartDir = startDirectory(start)
-	root, err := discoverRoot(a.StartDir, a.Inv.StartDir)
+	root, err := discoverRoot(a.StartDir, a.Inv.StartDir, a.names)
 	if err != nil {
 		return err
 	}

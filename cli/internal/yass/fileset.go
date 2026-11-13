@@ -10,7 +10,7 @@ import (
 // byte-wise ascending project-root-relative path. It always holds at least the
 // root file itself.
 func (a *App) projectFileSet() ([]string, error) {
-	return collectSpecFiles(a.Root, a.Root)
+	return collectSpecFiles(a.Root, a.Root, a.names)
 }
 
 // addressedFiles turns PATH operands into an ordered set of absolute file
@@ -43,7 +43,7 @@ func (a *App) addressedFiles(paths []string, requireSpecBasename bool) ([]string
 				}
 				return nil, missingPath(p)
 			}
-			files, err := collectSpecFiles(real, a.Root)
+			files, err := collectSpecFiles(real, a.Root, a.names)
 			if err != nil {
 				return nil, err
 			}

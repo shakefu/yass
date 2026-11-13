@@ -18,7 +18,7 @@ func (a *App) cmdRoot() (int, error) {
 			return 0, err
 		}
 	}
-	root, err := discoverRoot(target, label)
+	root, err := discoverRoot(target, label, a.names)
 	if err != nil {
 		return 0, err
 	}

@@ -31,7 +31,7 @@ func resolveStart(path, label string) (string, error) {
 // project root is located by that name and by nothing else; the ascent never
 // descends into a child directory and never moves sideways. label is how the
 // path is named in a diagnostic.
-func discoverRoot(start, label string) (string, error) {
+func discoverRoot(start, label string, names *dirNames) (string, error) {
 	info, err := os.Stat(start)
 	if err != nil {
 		if os.IsPermission(err) {
@@ -48,9 +48,7 @@ func discoverRoot(start, label string) (string, error) {
 		st, err := os.Stat(candidate)
 		switch {
 		case err == nil:
-			// The name compares byte-for-byte, so a differently cased file a
-			// case-insensitive filesystem stats as the same is no root.
-			if st.Mode().IsRegular() && hasEntryNamed(dir, RootBasename) {
+			if isRootFile(dir, st, names) {
 				return dir, nil
 			}
 		case os.IsPermission(err):
@@ -88,14 +86,14 @@ func isSpecBasename(name string) bool {
 // including dir itself when dir is not the project root, so a directory
 // operand naming a nested project root yields nothing rather than the files
 // that nearer root governs.
-func collectSpecFiles(dir string, root string) ([]string, error) {
+func collectSpecFiles(dir string, root string, names *dirNames) ([]string, error) {
 	var out []string
 	err := filepath.WalkDir(dir, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
 			return unreadable(relTo(root, path))
 		}
 		if entry.IsDir() {
-			if path != root && holdsRootFile(path) {
+			if path != root && holdsRootFile(path, names) {
 				return fs.SkipDir
 			}
 			return nil
@@ -128,18 +126,32 @@ func collectSpecFiles(dir string, root string) ([]string, error) {
 	return out, nil
 }
 
-// hasEntryNamed reports whether dir holds an entry whose name is exactly name,
-// compared byte-for-byte, so that a case-insensitive filesystem cannot answer
-// for a differently cased spelling. It serves two checks: that a directory's
-// root file is spelled `root.yass.yaml` (root discovery and the nested-root
-// check, which run without an App and so read the listing uncached), and, via
-// App.hasEntryNamed, that each component of a ref target's path token is
-// spelled as written. Every caller has already found the path by os.Stat, so
-// a directory that cannot be listed fails open and reports true: failing
-// closed would turn a correctly spelled, readable path into an unresolved one,
-// at the cost of accepting a misspelling only where the listing is denied.
-func hasEntryNamed(dir, name string) bool {
-	names := entryNames(dir)
+// dirNames caches directory listings so a name can be compared with a
+// directory's entries byte-for-byte: a case-insensitive filesystem lets os.Stat
+// answer for a differently cased spelling, while the root file's name and each
+// component of a ref target's path token are case-sensitive on every platform.
+// A nil set records a directory that cannot be listed.
+type dirNames struct{ m map[string]map[string]bool }
+
+func newDirNames() *dirNames { return &dirNames{m: map[string]map[string]bool{}} }
+
+// has reports whether dir holds an entry named exactly name, reading each
+// directory's listing at most once; a nil receiver reads it uncached. Every
+// caller has already found the path by os.Stat, so a directory that cannot be
+// listed fails open and reports true: failing closed would turn a correctly
+// spelled, readable path into an unresolved one, at the cost of accepting a
+// misspelling only where the listing is denied.
+func (c *dirNames) has(dir, name string) bool {
+	var names map[string]bool
+	if c == nil {
+		names = entryNames(dir)
+	} else {
+		var seen bool
+		if names, seen = c.m[dir]; !seen {
+			names = entryNames(dir)
+			c.m[dir] = names
+		}
+	}
 	return names == nil || names[name]
 }
 
@@ -162,9 +174,15 @@ func entryNames(dir string) map[string]bool {
 	return names
 }
 
-func holdsRootFile(dir string) bool {
+// isRootFile reports whether st, the stat of dir's root.yass.yaml, is a
+// regular file listed under exactly that name.
+func isRootFile(dir string, st fs.FileInfo, names *dirNames) bool {
+	return st.Mode().IsRegular() && names.has(dir, RootBasename)
+}
+
+func holdsRootFile(dir string, names *dirNames) bool {
 	st, err := os.Stat(filepath.Join(dir, RootBasename))
-	return err == nil && st.Mode().IsRegular() && hasEntryNamed(dir, RootBasename)
+	return err == nil && isRootFile(dir, st, names)
 }
 
 func relTo(base, path string) string {

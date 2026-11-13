@@ -90,51 +90,42 @@ type Bound struct {
 	WholeFile bool
 }
 
-// filePathFor turns a path token into a file path. A token beginning with `./`
-// or `../` resolves against base; any other token resolves from the project
-// root. The suffix is appended to the token exactly as written, and the join
-// cleans nothing, so `.` and `..` segments stay part of the name spelled and
-// the kernel alone resolves what they climb.
-func filePathFor(root, base, token string) string {
-	prefix := root
+// tokenBase yields the directory a path token resolves against: base for a
+// token beginning with `./` or `../`, and the project root for any other.
+func tokenBase(root, base, token string) string {
 	if strings.HasPrefix(token, "./") || strings.HasPrefix(token, "../") {
-		prefix = base
+		return base
 	}
-	return prefix + string(filepath.Separator) + filepath.FromSlash(token) + SpecSuffix
+	return root
 }
 
-// statRef resolves a ref target's path token against the project root, or
-// against base for a token led by `./` or `../`, as filePathFor resolves it,
-// and stats the file it names. It returns the absolute path with the stat
-// result. A file the filesystem finds only under another spelling — a
-// differently cased one, on a case-insensitive filesystem — reports
-// fs.ErrNotExist, because a path token compares byte-for-byte and
-// case-sensitively on every platform.
-func (a *App) statRef(base, token string) (string, fs.FileInfo, error) {
-	abs := filePathFor(a.Root, base, token)
+// filePathFor turns a path token into a file path against tokenBase. The
+// suffix is appended to the token exactly as written, and the join cleans
+// nothing, so `.` and `..` segments stay part of the name spelled and the
+// kernel alone resolves what they climb.
+func filePathFor(root, base, token string) string {
+	return tokenBase(root, base, token) + string(filepath.Separator) + filepath.FromSlash(token) + SpecSuffix
+}
+
+// statRef stats abs, the file filePathFor yields for token, and reports
+// fs.ErrNotExist for a file found only under another spelling of the token.
+func (a *App) statRef(abs, base, token string) (fs.FileInfo, error) {
 	st, err := os.Stat(abs)
 	if err == nil && !a.spelledExactly(base, token) {
-		return abs, nil, fs.ErrNotExist
+		return nil, fs.ErrNotExist
 	}
-	return abs, st, err
+	return st, err
 }
 
-// spelledExactly reports whether the file filePathFor yields for token names
-// directory entries spelled exactly as the token spells them, component by
-// component from the base it resolves against. A case-insensitive filesystem
-// would otherwise let os.Stat answer for a differently cased spelling, while a
-// ref target's path token compares byte-for-byte and case-sensitively. The `.`
-// and `..` components of a leading `./` or `../`, and empty components, name
-// no entry and are passed through for the kernel to resolve.
+// spelledExactly reports whether each component of token names a directory
+// entry spelled exactly so, walking from tokenBase; `.`, `..`, and empty
+// components name no entry and are left for the kernel to resolve.
 func (a *App) spelledExactly(base, token string) bool {
-	dir := a.Root
-	if strings.HasPrefix(token, "./") || strings.HasPrefix(token, "../") {
-		dir = base
-	}
+	dir := tokenBase(a.Root, base, token)
 	parts := strings.Split(token, "/")
 	parts[len(parts)-1] += SpecSuffix
 	for _, p := range parts {
-		if p != "" && p != "." && p != ".." && !a.hasEntryNamed(dir, p) {
+		if p != "" && p != "." && p != ".." && !a.names.has(dir, p) {
 			return false
 		}
 		dir += string(filepath.Separator) + p
@@ -142,19 +133,28 @@ func (a *App) spelledExactly(base, token string) bool {
 	return true
 }
 
-// hasEntryNamed is the package hasEntryNamed with each directory's names read
-// at most once per App run, since every reference into a directory checks
-// its spelling against the same listing.
-func (a *App) hasEntryNamed(dir, name string) bool {
-	if a.dirNames == nil {
-		a.dirNames = make(map[string]map[string]bool)
+// refFile yields the file a reference's target addresses from carrier: carrier
+// itself when the target has no path token or its path names carrier.
+// unresolved reports a path naming no regular file under its exact spelling;
+// err is the Loader's failure to read a file that exists.
+func (a *App) refFile(carrier *File, t parsedTarget) (f *File, unresolved bool, err error) {
+	if !t.HasPath {
+		return carrier, false, nil
 	}
-	names, seen := a.dirNames[dir]
-	if !seen {
-		names = entryNames(dir)
-		a.dirNames[dir] = names
+	base := filepath.Dir(carrier.Abs)
+	abs := filePathFor(a.Root, base, t.Path)
+	if abs == carrier.Abs {
+		return carrier, false, nil
 	}
-	return names == nil || names[name]
+	st, err := a.statRef(abs, base, t.Path)
+	if err != nil || !st.Mode().IsRegular() {
+		return nil, true, nil
+	}
+	f, err = a.Loader.Load(abs)
+	if err != nil {
+		return nil, false, err
+	}
+	return f, false, nil
 }
 
 // ResolveTarget binds one command-line target against the loaded model. A
@@ -170,7 +170,8 @@ func (a *App) ResolveTarget(raw string) (*Bound, error) {
 		return nil, fail(ExitUsage, "yass.ref.slot_unknown", raw, 0, "slot token is not a recognized slot")
 	}
 
-	abs, st, err := a.statRef(a.StartDir, t.Path)
+	abs := filePathFor(a.Root, a.StartDir, t.Path)
+	st, err := a.statRef(abs, a.StartDir, t.Path)
 	if err != nil || !st.Mode().IsRegular() {
 		if err != nil && os.IsPermission(err) {
 			return nil, unreadable(a.rel(abs))
@@ -270,24 +271,13 @@ func (a *App) resolveRefFrom(carrier *Doc, r *Ref) (*refResolution, error) {
 		return nil, bad("yass.ref.unresolved")
 	}
 
-	f := carrier.File
-	if t.HasPath {
-		abs, st, err := a.statRef(filepath.Dir(carrier.File.Abs), t.Path)
-		if abs != carrier.File.Abs {
-			if err != nil || !st.Mode().IsRegular() {
-				return nil, bad("yass.ref.unresolved")
-			}
-			// A referenced file that exists but cannot be read is an
-			// environment failure, not an unresolved reference
-			// (root@YassCli::ERROR).
-			loaded, lerr := a.Loader.Load(abs)
-			if lerr != nil {
-				return nil, lerr
-			}
-			f = loaded
-		}
+	// A referenced file that exists but cannot be read is an environment
+	// failure, not an unresolved reference (root@YassCli::ERROR).
+	f, unresolved, err := a.refFile(carrier.File, t)
+	if err != nil {
+		return nil, err
 	}
-	if !f.Parsed {
+	if unresolved || !f.Parsed {
 		return nil, bad("yass.ref.unresolved")
 	}
 

@@ -97,7 +97,7 @@ func (a *App) cmdOverview() (int, error) {
 func (a *App) surveyProject() (overviewProject, error) {
 	var p overviewProject
 
-	root, err := discoverRoot(a.StartDir, a.Inv.StartDir)
+	root, err := discoverRoot(a.StartDir, a.Inv.StartDir, a.names)
 	if err != nil {
 		if e, ok := err.(*cliError); ok && e.Status == ExitNoRoot {
 			return p, nil
