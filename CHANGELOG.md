@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.12.1 - 2026-11-13
+#### Bug Fixes
+- (**cli**) state in --help that --filter matches the whole REF - (6e1d0f6) - Jacob Alheid
+
+- - -
+
 ## v0.12.0 - 2026-11-13
 #### Features
 - (**cli**) lint obligations that restate a catalogued fact - (ee0feb5) - Jacob Alheid
