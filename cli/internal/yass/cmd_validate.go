@@ -121,7 +121,7 @@ func (a *App) checkFile(f *File) ([]Diag, error) {
 		if d.Node != nil {
 			out = append(out, checkNodeFeatures(d, d.Node)...)
 		}
-		if d.Index > 0 && d.hasKey("spec") && d.hasKey("design") {
+		if d.bothKeys() {
 			// Neither classification rule may claim the document, so no
 			// spec, design, or slot check runs under either reading.
 			out = append(out, diag("yass.document.both_keys", f.Ref, d.Line,
