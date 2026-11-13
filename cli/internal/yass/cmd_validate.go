@@ -220,7 +220,7 @@ func checkNodeFeatures(d *Doc, n *yaml.Node) []Diag {
 			out = append(out, diag("yass.document.yaml_feature", loc, n.Line, "uses a yaml alias"))
 		case n.Anchor != "":
 			out = append(out, diag("yass.document.yaml_feature", loc, n.Line, "uses a yaml anchor"))
-		case n.Style&yaml.TaggedStyle != 0:
+		case n.Style&yaml.TaggedStyle != 0, startsWithTag(d.File.Lines, n):
 			out = append(out, diag("yass.document.yaml_feature", loc, n.Line, "uses an explicit yaml tag"))
 		}
 		for _, c := range n.Content {
@@ -229,6 +229,31 @@ func checkNodeFeatures(d *Doc, n *yaml.Node) []Diag {
 	}
 	walk(n)
 	return out
+}
+
+// startsWithTag reports whether the source at a node's start position holds a
+// tag property. The parser drops the non-specific tag `!` from the node, so
+// it is found in the source: a node's position is that of its first
+// property, and no plain, quoted, or collection node can begin with `!`.
+// A block mapping starts where its first key does, so a tag there is the
+// key's and is reported once, for the key. Columns count characters, not
+// bytes.
+func startsWithTag(lines []string, n *yaml.Node) bool {
+	if n.Kind == yaml.DocumentNode || n.Line < 1 || n.Line > len(lines) || n.Column < 1 {
+		return false
+	}
+	if n.Kind == yaml.MappingNode && len(n.Content) > 0 &&
+		n.Content[0].Line == n.Line && n.Content[0].Column == n.Column {
+		return false
+	}
+	col := n.Column - 1
+	for _, r := range lines[n.Line-1] {
+		if col == 0 {
+			return r == '!'
+		}
+		col--
+	}
+	return false
 }
 
 func checkPreamble(d *Doc) []Diag {

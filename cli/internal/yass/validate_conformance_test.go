@@ -140,3 +140,34 @@ content:
 		t.Fatalf("duplicate_key = %v, want only d@E:20\n%s", dups, got.stdout)
 	}
 }
+
+// The non-specific tag property `!` is an explicit tag; a `!` inside a
+// scalar is not, and a tag on a block mapping's first key is reported once.
+func TestValidateNonSpecificTagIsYamlFeature(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "root.yass.yaml", modeline+`---
+description: r
+version: v1
+---
+spec: R
+INPUT:
+- MUST: ! v
+- MUST: !foo v
+- MUST: !<tag:yaml.org,2002:str> v
+- MUST: "not ! a tag"
+- MUST: plain ! text
+- ! MUST: y
+- MUST: ! [z]
+`)
+	got := run(dir, "validate")
+	wantStatus(t, got, ExitFindings)
+	var ls []string
+	for _, f := range fieldsOf(got.stdout) {
+		if f[1] == "yass.document.yaml_feature" {
+			ls = append(ls, f[3])
+		}
+	}
+	if strings.Join(ls, ",") != "8,9,10,13,14" {
+		t.Fatalf("yaml_feature lines = %v, want [8 9 10 13 14]\n%s", ls, got.stdout)
+	}
+}
