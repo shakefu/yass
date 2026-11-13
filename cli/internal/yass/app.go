@@ -135,9 +135,6 @@ func (a *App) prepare() error {
 // rel renders an absolute path project-root-relative with `/` separators.
 func (a *App) rel(abs string) string { return relTo(a.Root, abs) }
 
-// ref renders an absolute spec-file path as the ref target addressing the file.
-func (a *App) ref(abs string) string { return refOf(a.rel(abs)) }
-
 func report(errs, out *stream, err error) int {
 	e := asCLIError(err)
 	errs.line(e.Diag.Record())
