@@ -48,7 +48,8 @@ INVARIANT:
 - MUST: carry in each entry what the rule detects, why it exists, how to resolve a finding, and a minimal bad and good YAML example
 - MUST: derive the entry's guidance from the rule the lint spec states, adding no condition to that rule
   SEE: 09-lint@Lint
-- MUST: fail a test when an entry's bad example does not trigger its rule or its good example triggers it, wherever the detector can run on a snippet
+- MUST: fail a test when an entry's bad example does not trigger its rule, wherever the detector can run on a snippet
+- MUST: fail a test when an entry's good example produces any lint advisory or validation finding
 - MUST: keep each entry's documentation within 200 lines
   USES: root@Brevity
 - MUST-NOT: require a project root, discover one, or vary its answer with the starting directory

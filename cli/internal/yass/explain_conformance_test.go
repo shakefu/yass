@@ -10,21 +10,7 @@ import (
 
 // yass: 13-explain@Explain::RETURN
 func TestExplainIndex(t *testing.T) {
-	const want = `yass.lint.design_code
-yass.lint.design_table
-yass.lint.design_unreferenced
-yass.lint.modeline
-yass.lint.no_origin
-yass.lint.obligation_shape
-yass.lint.open_question
-yass.lint.prose_keyword
-yass.lint.restated_fact
-yass.lint.restated_value
-yass.lint.slot_empty
-yass.lint.spec_empty
-yass.lint.unparsed
-yass.lint.unreachable
-`
+	want := strings.Join(explanationRuleIDs(t), "\n") + "\n"
 	got := run(t.TempDir(), "explain")
 	wantStatus(t, got, ExitOK)
 	if got.stdout != want || got.stderr != "" {
@@ -88,6 +74,11 @@ func TestExplainReadsNoTree(t *testing.T) {
 // yass: 13-explain@Explain::RETURN
 func TestExplainServesEveryEntryWithinBudget(t *testing.T) {
 	for _, rule := range lintExplanations {
+		for name, value := range map[string]string{"Detects": rule.Detects, "Why": rule.Why, "Resolve": rule.Remedy} {
+			if strings.ContainsAny(value, "\r\n") {
+				t.Errorf("%s %s must occupy one line", rule.ID, name)
+			}
+		}
 		got := run(t.TempDir(), "explain", rule.ID)
 		wantStatus(t, got, ExitOK)
 		if got.stderr != "" || got.stdout != rule.text() {

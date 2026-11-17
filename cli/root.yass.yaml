@@ -406,9 +406,9 @@ content: |
     of the lint rule the reader named. All stay bounded: the block's wording is fixed by a
     design block and nothing is added to it per invocation; `docs` writes the corpus
     document byte-for-byte with nothing beside it but the length line the line budget
-    below requires of a document too long for it; `explain` writes the carried rule
-    documentation byte-for-byte within that budget. Each is written only when asked for,
-    and an invocation naming no subcommand is the asking for overview.
+    below requires of a document too long for it; `explain` renders the carried registry
+    entry in the ExplanationText form within that budget. Each is written only when asked
+    for, and an invocation naming no subcommand is the asking for overview.
   - That exemption is about total context, not generosity with it. A reader who cannot tell
     what a project is, or what notation its files are written in, opens files until it can —
     which costs more of the context this policy exists to protect than the block does. The
