@@ -102,12 +102,21 @@ func (a *App) checkFile(f *File) ([]Diag, error) {
 		return []Diag{diag(f.FailCode, f.Ref, f.FailLine, failMessage(f.FailCode))}, nil
 	}
 
-	if abs, rerr := resolveStart(f.Abs, f.Ref); rerr == nil {
+	// Whether a root file lies at or above the file is in question only for a
+	// file outside the governing root, which is itself at or above every file
+	// under it. An ascent that cannot decide, because a directory on it cannot
+	// be read, is a failure to check rather than a finding or a pass.
+	abs, err := resolveStart(f.Abs, f.Ref)
+	if err != nil {
+		return nil, err
+	}
+	if !a.atOrBelowRoot(abs) {
 		if _, err := discoverRoot(abs, f.Ref, a.names); err != nil {
-			if ce, ok := err.(*cliError); ok && ce.Diag.Code == "yass.root.not_found" {
-				out = append(out, diag("yass.root.not_found", f.Ref, 0,
-					"no "+RootBasename+" at or above path"))
+			if ce, ok := err.(*cliError); !ok || ce.Diag.Code != "yass.root.not_found" {
+				return nil, err
 			}
+			out = append(out, diag("yass.root.not_found", f.Ref, 0,
+				"no "+RootBasename+" at or above path"))
 		}
 	}
 	if baseName(f.Abs) == RootBasename && len(f.specDocs()) != 1 {
