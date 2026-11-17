@@ -77,7 +77,8 @@ INVARIANT:
 - MUST-NOT: "match a file whose basename ends in `.yaml` without the `.yass` infix"
 - MUST-NOT: descend through a symbolic link that names a directory, so the traversal cannot cycle
 - MUST: read through a symbolic link that names a regular file
-- MUST-NOT: yield a file inside a directory that cannot be read, or pass over such a directory as one a nearer project root governs, whatever that directory holds
+- MUST: take as a directory in the traversal the project root and each directory below it that the traversal reaches without following a symbolic link, so the directory holding a link's target is not one
+- MUST-NOT: yield a file from a directory in the traversal that cannot be read, or pass over such a directory as one a nearer project root governs, whatever that directory holds
   USES: ReadableDirectory
 - MUST: "yield as a member a symbolic link that names a regular file and whose basename ends with `.yass.yaml`"
 - MUST: "yield at least one member, because the project root's own `root.yass.yaml` is always a member"
