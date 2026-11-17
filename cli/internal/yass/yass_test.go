@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -555,6 +556,153 @@ func TestUnreadableDirectory(t *testing.T) {
 	wantStatus(t, got, ExitEnvironment)
 	if !strings.Contains(got.stderr, "yass.io.unreadable") || !strings.Contains(got.stderr, "shut") {
 		t.Fatalf("ascent stderr = %q, want yass.io.unreadable naming shut", got.stderr)
+	}
+}
+
+// denyDir sets a directory's mode for the rest of the test and restores a mode
+// the temporary tree can be removed under. It skips the test where a mode
+// denies nothing: under the superuser and on Windows.
+func denyDir(t *testing.T, dir string, mode os.FileMode) {
+	t.Helper()
+	if runtime.GOOS == "windows" || os.Geteuid() == 0 {
+		t.Skip("directory modes deny nothing here")
+	}
+	if err := os.Chmod(dir, mode); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(dir, 0o755) })
+}
+
+// unreadableLocation requires a request to have failed with exactly one
+// yass.io.unreadable diagnostic and nothing on standard output, and returns the
+// location that diagnostic names.
+func unreadableLocation(t *testing.T, got result) string {
+	t.Helper()
+	wantStatus(t, got, ExitEnvironment)
+	recs := lines(got.stderr)
+	if got.stdout != "" || len(recs) != 1 {
+		t.Fatalf("want one diagnostic and no output\nstdout:\n%s\nstderr:\n%s", got.stdout, got.stderr)
+	}
+	fields := strings.Split(recs[0], "\t")
+	if len(fields) < 3 || fields[1] != "yass.io.unreadable" {
+		t.Fatalf("stderr = %q, want a yass.io.unreadable diagnostic", got.stderr)
+	}
+	return fields[2]
+}
+
+// realDir makes a directory under a fresh temporary tree and returns its path
+// with symbolic links resolved, which is how the ascent names a directory.
+func realDir(t *testing.T, rel string) string {
+	t.Helper()
+	base, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := filepath.Join(base, filepath.FromSlash(rel))
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	return dir
+}
+
+const bareRoot = modeline + "---\ndescription: bare\nversion: v1\n---\nspec: Bare\nINPUT:\n- MUST: x\n"
+
+// A directory on the ascent cannot be read when its entries cannot be listed
+// or a named entry in it cannot be examined, whichever it lacks and whatever
+// it holds: it is named by the diagnostic and never yielded as a project root.
+func TestAscentUnreadableDirectory(t *testing.T) {
+	t.Run("search-only directory holding a root file", func(t *testing.T) {
+		proj := realDir(t, "proj")
+		write(t, proj, "root.yass.yaml", bareRoot)
+		denyDir(t, proj, 0o111)
+		if loc := unreadableLocation(t, run(proj, "root")); loc != proj {
+			t.Fatalf("location = %q, want %q", loc, proj)
+		}
+	})
+	t.Run("search-only directory holding a root file, from below", func(t *testing.T) {
+		proj := realDir(t, "proj")
+		write(t, proj, "root.yass.yaml", bareRoot)
+		below := filepath.Join(proj, "below")
+		if err := os.Mkdir(below, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		denyDir(t, proj, 0o111)
+		if loc := unreadableLocation(t, run(below, "root")); loc != proj {
+			t.Fatalf("location = %q, want %q", loc, proj)
+		}
+	})
+	t.Run("search-only ancestor with no root file", func(t *testing.T) {
+		anc := realDir(t, "anc")
+		child := filepath.Join(anc, "child")
+		if err := os.Mkdir(child, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		denyDir(t, anc, 0o111)
+		if loc := unreadableLocation(t, run(child, "root")); loc != anc {
+			t.Fatalf("location = %q, want %q", loc, anc)
+		}
+	})
+	t.Run("read-only directory", func(t *testing.T) {
+		dir := realDir(t, "ro")
+		denyDir(t, dir, 0o444)
+		if loc := unreadableLocation(t, run(dir, "root")); loc != dir {
+			t.Fatalf("location = %q, want %q", loc, dir)
+		}
+	})
+	// The ascent stops at the nearest root, so a directory above it that
+	// cannot be read is never examined.
+	t.Run("project below a search-only ancestor", func(t *testing.T) {
+		anc := realDir(t, "anc")
+		proj := filepath.Join(anc, "proj")
+		write(t, proj, "root.yass.yaml", bareRoot)
+		denyDir(t, anc, 0o111)
+		got := run(proj, "root")
+		wantStatus(t, got, ExitOK)
+		if got.stdout != proj+"\n" || got.stderr != "" {
+			t.Fatalf("stdout = %q, stderr = %q, want the root %q", got.stdout, got.stderr, proj)
+		}
+		if got := run(proj, "list"); got.status != ExitOK || got.stderr != "" {
+			t.Fatalf("list under a search-only ancestor: status %d, stderr %q", got.status, got.stderr)
+		}
+	})
+}
+
+// A directory in the traversal that cannot be read is named itself, relative to
+// the project root, rather than a file inside it, and is neither passed over
+// nor skipped as a nested project root.
+func TestTraversalUnreadableDirectory(t *testing.T) {
+	const lockedSpec = modeline + "---\ndescription: locked\nversion: v1\n---\nspec: L\nINPUT:\n- MUST: x\n"
+	cases := []struct {
+		name string
+		rel  string // the directory denied, relative to the project root
+		file bool   // whether it holds a spec file
+		mode os.FileMode
+		args []string
+	}{
+		{"read-only empty directory", "locked", false, 0o444, []string{"list"}},
+		{"read-only directory holding a spec file", "locked", true, 0o444, []string{"list"}},
+		{"read-only directory below another", "open/locked", true, 0o444, []string{"list"}},
+		{"read-only directory as the PATH operand", "locked", true, 0o444, []string{"list", "locked"}},
+		{"search-only directory", "locked", true, 0o111, []string{"list"}},
+		{"search-only nested project root", "sub/nested", false, 0o111, []string{"list"}},
+		{"search-only nested project root, validate", "sub/nested", false, 0o111, []string{"validate"}},
+		{"read-only nested project root", "sub/nested", false, 0o444, []string{"list"}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			dir := project(t)
+			denied := filepath.Join(dir, filepath.FromSlash(c.rel))
+			if err := os.MkdirAll(denied, 0o755); err != nil {
+				t.Fatal(err)
+			}
+			if c.file {
+				write(t, dir, c.rel+"/x.yass.yaml", lockedSpec)
+			}
+			denyDir(t, denied, c.mode)
+			if loc := unreadableLocation(t, run(dir, c.args...)); loc != c.rel {
+				t.Fatalf("location = %q, want %q", loc, c.rel)
+			}
+		})
 	}
 }
 

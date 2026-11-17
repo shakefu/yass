@@ -29,8 +29,10 @@ func resolveStart(path, label string) (string, error) {
 // discoverRoot yields the nearest directory at or above an already-resolved
 // absolute starting path that holds a file named exactly root.yass.yaml. A
 // project root is located by that name and by nothing else; the ascent never
-// descends into a child directory and never moves sideways. label is how the
-// path is named in a diagnostic.
+// descends into a child directory and never moves sideways. Every directory it
+// examines must be one that can be read, whatever it holds, so a directory
+// that cannot be listed is never yielded as a project root and never climbed
+// past. label is how the path is named in a diagnostic.
 func discoverRoot(start, label string, names *dirNames) (string, error) {
 	info, err := os.Stat(start)
 	if err != nil {
@@ -44,15 +46,17 @@ func discoverRoot(start, label string, names *dirNames) (string, error) {
 		dir = filepath.Dir(start)
 	}
 	for {
-		candidate := filepath.Join(dir, RootBasename)
-		st, err := os.Stat(candidate)
-		switch {
-		case err == nil:
-			if isRootFile(dir, st, names) {
-				return dir, nil
-			}
-		case os.IsPermission(err):
+		// The traversal learns that a directory cannot be listed from its own
+		// read of it; the ascent reads no directory otherwise, so it asks.
+		if names.listing(dir) == nil {
 			return "", unreadable(dir)
+		}
+		held, readable := rootFileIn(dir, names)
+		if !readable {
+			return "", unreadable(dir)
+		}
+		if held {
+			return dir, nil
 		}
 		parent := filepath.Dir(dir)
 		if parent == dir {
@@ -85,7 +89,10 @@ func isSpecBasename(name string) bool {
 // and never descends into a subdirectory that holds its own root.yass.yaml —
 // including dir itself when dir is not the project root, so a directory
 // operand naming a nested project root yields nothing rather than the files
-// that nearer root governs.
+// that nearer root governs. A directory that cannot be read ends the traversal
+// with a diagnostic naming that directory: the walk reports one it cannot
+// list, and the root-file probe reports one whose entries cannot be examined,
+// before any file inside it is taken and before it is skipped as a nested root.
 func collectSpecFiles(dir string, root string, names *dirNames) ([]string, error) {
 	var out []string
 	err := filepath.WalkDir(dir, func(path string, entry fs.DirEntry, err error) error {
@@ -93,7 +100,11 @@ func collectSpecFiles(dir string, root string, names *dirNames) ([]string, error
 			return unreadable(relTo(root, path))
 		}
 		if entry.IsDir() {
-			if path != root && holdsRootFile(path, names) {
+			held, readable := rootFileIn(path, names)
+			if !readable {
+				return unreadable(relTo(root, path))
+			}
+			if held && path != root {
 				return fs.SkipDir
 			}
 			return nil
@@ -142,17 +153,24 @@ func newDirNames() *dirNames { return &dirNames{m: map[string]map[string]bool{}}
 // spelled, readable path into an unresolved one, at the cost of accepting a
 // misspelling only where the listing is denied.
 func (c *dirNames) has(dir, name string) bool {
-	var names map[string]bool
-	if c == nil {
-		names = entryNames(dir)
-	} else {
-		var seen bool
-		if names, seen = c.m[dir]; !seen {
-			names = entryNames(dir)
-			c.m[dir] = names
-		}
-	}
+	names := c.listing(dir)
 	return names == nil || names[name]
+}
+
+// listing returns the set of entry names dir holds, or nil when dir cannot be
+// listed, reading each directory's listing at most once; a nil receiver reads
+// it uncached. Root discovery and traversal ask it directly, because a
+// directory that cannot be listed is one they report rather than accept.
+func (c *dirNames) listing(dir string) map[string]bool {
+	if c == nil {
+		return entryNames(dir)
+	}
+	names, seen := c.m[dir]
+	if !seen {
+		names = entryNames(dir)
+		c.m[dir] = names
+	}
+	return names
 }
 
 // entryNames returns the set of entry names dir holds, or nil when dir cannot
@@ -174,15 +192,25 @@ func entryNames(dir string) map[string]bool {
 	return names
 }
 
-// isRootFile reports whether st, the stat of dir's root.yass.yaml, is a
-// regular file listed under exactly that name.
-func isRootFile(dir string, st fs.FileInfo, names *dirNames) bool {
-	return st.Mode().IsRegular() && names.has(dir, RootBasename)
-}
-
-func holdsRootFile(dir string, names *dirNames) bool {
+// rootFileIn reports whether dir holds a regular file listed under exactly the
+// name root.yass.yaml, and whether dir could be read far enough to tell. A
+// directory cannot be read when a named entry in it cannot be examined or its
+// entries cannot be listed; both are judged by the outcome of the operation,
+// never by mode bits. Examining the root file's name probes the first, whether
+// or not the file exists. The listing is consulted only where that name
+// answers, since only there does the exact spelling need confirming, so a
+// caller that requires every directory to be listable asks for the listing
+// itself.
+func rootFileIn(dir string, names *dirNames) (held, readable bool) {
 	st, err := os.Stat(filepath.Join(dir, RootBasename))
-	return err == nil && isRootFile(dir, st, names)
+	if err != nil {
+		return false, !os.IsPermission(err)
+	}
+	if !st.Mode().IsRegular() {
+		return false, true
+	}
+	listed := names.listing(dir)
+	return listed[RootBasename], listed != nil
 }
 
 func relTo(base, path string) string {
