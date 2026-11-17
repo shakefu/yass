@@ -210,8 +210,12 @@ func (a *App) findRootFile(files []*File) *File {
 
 // underRoot reports whether a file lies at or below the project root, so
 // reachability never crosses a project root boundary.
-func (a *App) underRoot(f *File) bool {
-	rel := a.rel(f.Abs)
+func (a *App) underRoot(f *File) bool { return a.atOrBelowRoot(f.Abs) }
+
+// atOrBelowRoot reports whether an absolute path lies at or below the project
+// root.
+func (a *App) atOrBelowRoot(abs string) bool {
+	rel := a.rel(abs)
 	return rel != "" && rel != ".." && !strings.HasPrefix(rel, "/") &&
 		!strings.HasPrefix(rel, "../")
 }

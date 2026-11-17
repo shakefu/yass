@@ -2,6 +2,7 @@ package yass
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -70,6 +71,65 @@ func TestValidateUnreadableReferencedFile(t *testing.T) {
 	wantStatus(t, got, ExitEnvironment)
 	if got.stdout != "" || !strings.Contains(got.stderr, "yass.io.unreadable\tu.yass.yaml") {
 		t.Fatalf("stdout = %q, stderr = %q, want only yass.io.unreadable naming u.yass.yaml", got.stdout, got.stderr)
+	}
+}
+
+// An addressed file outside the governing project root is checked for a root
+// file at or above it. A directory on that ascent that cannot be read leaves
+// the question undecided, which ends the request with yass.io.unreadable
+// naming the directory: it is neither the yass.root.not_found finding nor a
+// pass (08-validate@Validate::RETURN, Validate::ERROR,
+// 01-locate@ReadableDirectory).
+func TestValidateOutsideFileUnreadableAscent(t *testing.T) {
+	const orphan = modeline + "---\ndescription: o\nversion: v1\n---\nspec: O\nINPUT:\n- MUST: x\n"
+	base := realDir(t, "base")
+	proj := filepath.Join(base, "proj")
+	write(t, proj, "root.yass.yaml", conformanceRoot)
+	anc := filepath.Join(base, "anc")
+	write(t, anc, "orphan.yass.yaml", orphan)
+	write(t, anc, "rooted/root.yass.yaml", conformanceRoot)
+	write(t, anc, "rooted/x.yass.yaml", orphan)
+
+	// With every directory readable the unrooted file is a finding.
+	got := run(proj, "validate", "../anc/orphan.yass.yaml")
+	wantStatus(t, got, ExitFindings)
+	if !strings.Contains(got.stdout, "yass.root.not_found\t../anc/orphan") || got.stderr != "" {
+		t.Fatalf("stdout = %q, stderr = %q, want yass.root.not_found for the file", got.stdout, got.stderr)
+	}
+
+	denyDir(t, anc, 0o111)
+	if loc := unreadableLocation(t, run(proj, "validate", "../anc/orphan.yass.yaml")); loc != anc {
+		t.Fatalf("location = %q, want %q", loc, anc)
+	}
+	// The ascent stops at the nearest root, below the directory that cannot
+	// be read.
+	got = run(proj, "validate", "../anc/rooted/x.yass.yaml")
+	if got.status != ExitOK || got.stdout != "" || got.stderr != "" {
+		t.Fatalf("a file under its own root: status %d\nstdout:\n%s\nstderr:\n%s", got.status, got.stdout, got.stderr)
+	}
+}
+
+// A file addressed by name under the governing project root has that root at
+// or above it, so no directory between the two is examined for one: a
+// directory that grants search but no listing still lets the file be read and
+// checked, as it does for every other command taking the same operand
+// (08-validate@Validate::INPUT, Validate::RETURN).
+func TestValidateFileOperandUnderUnlistableDirectory(t *testing.T) {
+	dir := t.TempDir()
+	write(t, dir, "root.yass.yaml", conformanceRoot)
+	write(t, dir, "locked/x.yass.yaml", modeline+"---\ndescription: x\nversion: v1\n---\nspec: X\nINPUT:\n- MUST: x\n  SEE: nowhere@Gone\n")
+	denyDir(t, filepath.Join(dir, "locked"), 0o111)
+	got := run(dir, "validate", "locked/x.yass.yaml")
+	wantStatus(t, got, ExitFindings)
+	if !strings.Contains(got.stdout, "yass.ref.unresolved\tlocked/x@X") || got.stderr != "" {
+		t.Fatalf("stdout = %q, stderr = %q, want the file checked", got.stdout, got.stderr)
+	}
+	if got := run(dir, "list", "locked/x.yass.yaml"); got.status != ExitOK || got.stderr != "" {
+		t.Fatalf("list the same operand: status %d, stderr %q", got.status, got.stderr)
+	}
+	// The traversal does list the directory, so it reports it.
+	if loc := unreadableLocation(t, run(dir, "validate")); loc != "locked" {
+		t.Fatalf("location = %q, want %q", loc, "locked")
 	}
 }
 
