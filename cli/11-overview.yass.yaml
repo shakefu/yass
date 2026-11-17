@@ -123,7 +123,6 @@ content: |
       yass refs TARGET             what a document points at, and what points at it
       yass validate                check the files against the language definition
       yass lint                    report graph hygiene
-      yass explain ID              explain a lint rule and how to resolve a finding
 
   5 — the corpus:
 
@@ -136,7 +135,8 @@ content: |
                      yass docs coverage
       the language   yass docs language, then the write path
       implement      yass docs implementing
-      yass docs      index every carried document, with its line count
+      yass docs        index every carried document, with its line count
+      yass explain ID  explain a lint rule and how to resolve a finding
 
   6 — the rule for spending the corpus, which is the whole reason it is a command rather
   than another section of this block:

@@ -43,8 +43,7 @@ const overviewReading = `read a spec set
   yass find PATTERN            search obligation prose and design content
   yass refs TARGET             what a document points at, and what points at it
   yass validate                check the files against the language definition
-  yass lint                    report graph hygiene
-  yass explain ID              explain a lint rule and how to resolve a finding`
+  yass lint                    report graph hygiene`
 
 const overviewWriting = `per task: run every command of its path in order, and read each document whole
   new spec       yass docs brainstorming, then the write path
@@ -55,7 +54,8 @@ const overviewWriting = `per task: run every command of its path in order, and r
                  yass docs coverage
   the language   yass docs language, then the write path
   implement      yass docs implementing
-  yass docs      index every carried document, with its line count`
+  yass docs        index every carried document, with its line count
+  yass explain ID  explain a lint rule and how to resolve a finding`
 
 const overviewSpending = `Read a carried document only when your task matches its path. Implementing against a
 spec set that already exists takes the implement path alone: the notation above is all
