@@ -43,7 +43,8 @@ const overviewReading = `read a spec set
   yass find PATTERN            search obligation prose and design content
   yass refs TARGET             what a document points at, and what points at it
   yass validate                check the files against the language definition
-  yass lint                    report graph hygiene`
+  yass lint                    report graph hygiene
+  yass explain ID              explain a lint rule and how to resolve a finding`
 
 const overviewWriting = `per task: run every command of its path in order, and read each document whole
   new spec       yass docs brainstorming, then the write path

@@ -1,0 +1,87 @@
+# yaml-language-server: $schema=https://shakefu.github.io/yass/v1.schema.json
+---
+description: >
+  The `yass explain` subcommand. One Spec, indexing lint rule ids or serving the
+  documentation of one rule. The documentation travels inside the program, so a reader
+  can understand and resolve a lint finding without a project root or a source checkout.
+version: v1
+---
+spec: Explain
+INPUT:
+- MUST: "be invoked as `yass explain [ID]`"
+- MUST: take the parsed operands invocation yielded, relying on it to have rejected a second ID
+  CONFORMS: 00-invocation@Invocation::RETURN
+- MUST: recognize exactly the full lint rule ids the registry declares
+  USES: RuleIds
+- MUST: match ID byte-for-byte, so no id resolves by abbreviation, by prefix, or in another casing
+- MUST-NOT: load, parse, or address a spec file, since the documentation is carried inside the program
+  SEE: 02-load@Load
+RETURN:
+- WHEN: ID is omitted
+  MUST: write one explain record per registered rule, in the order RuleIds declares
+  USES: root@RecordFormat
+  SEE: RuleIds
+- WHEN: ID names a registered rule
+  MUST: write that rule's documentation as a text stream, adding no provenance comment or trailing summary
+  USES: ExplanationText
+- MUST: write the index and the documentation to standard output
+  USES: root@OutputPolicy
+- MUST: exit with the ok status once the index or the documentation is written
+ERROR:
+- WHEN: ID is given and is not a registered rule id
+  MUST: report code yass.explain.unknown naming ID and write nothing to standard output
+- MUST-NOT: name the recognized rule ids in a diagnostic, since an invocation with no operand is the index
+  USES: root@Brevity
+- MUST: report code yass.internal for any failure not matched by a guarded obligation in this slot
+- MUST: exit with the status the request-failure catalogue gives each code this spec reports to end a request
+  USES: root@RequestFailures
+SIDE-EFFECT:
+- MUST-NOT: read, create, modify, delete, or rename any file or directory, since every explanation is carried inside the program
+  CONFORMS: root@YassCli::SIDE-EFFECT
+- MUST: write every diagnostic in this slot to standard error
+  USES: root@OutputPolicy
+INVARIANT:
+- MUST: "carry exactly one documentation entry for every `yass.lint.*` code the linter can emit, with no other codes"
+  SEE: 09-lint@Lint
+- MUST: "fail a test of this program when the registered ids differ from the `yass.lint.*` codes the linter can emit or the lint spec defines"
+  SEE: 09-lint@Lint
+- MUST: carry in each entry what the rule detects, why it exists, how to resolve a finding, and a minimal bad and good YAML example
+- MUST: derive the entry's guidance from the rule the lint spec states, adding no condition to that rule
+  SEE: 09-lint@Lint
+- MUST: fail a test when an entry's bad example does not trigger its rule or its good example triggers it, wherever the detector can run on a snippet
+- MUST: keep each entry's documentation within 200 lines
+  USES: root@Brevity
+- MUST-NOT: require a project root, discover one, or vary its answer with the starting directory
+- MUST-NOT: change a lint finding's message or output to advertise this command
+  SEE: 09-lint@Lint
+---
+design: RuleIds
+type: catalog
+content:
+  yass.lint.design_code: {order: 1}
+  yass.lint.design_table: {order: 2}
+  yass.lint.design_unreferenced: {order: 3}
+  yass.lint.modeline: {order: 4}
+  yass.lint.no_origin: {order: 5}
+  yass.lint.obligation_shape: {order: 6}
+  yass.lint.open_question: {order: 7}
+  yass.lint.prose_keyword: {order: 8}
+  yass.lint.restated_fact: {order: 9}
+  yass.lint.restated_value: {order: 10}
+  yass.lint.slot_empty: {order: 11}
+  yass.lint.spec_empty: {order: 12}
+  yass.lint.unparsed: {order: 13}
+  yass.lint.unreachable: {order: 14}
+---
+design: ExplanationText
+type: schema
+format: text-template
+content: |
+  Write the full rule ID, one empty line, then three lines holding `Detects: ` and the
+  detection guidance, `Why: ` and the rationale, and `Resolve: ` and the remedy, respectively.
+  Each of those values is one line. Follow them with one empty line, `Bad:`, a fenced YAML
+  block holding the bad example, one empty line, `Good:`, and a fenced YAML block holding
+  the good example. Each opening fence is exactly three backticks followed by `yaml`, and
+  each closing fence is exactly three backticks. Every line ends in LF, including the
+  final closing fence, and there is no empty line after it. Strip trailing LF characters
+  from each stored example before supplying the one LF before its closing fence.

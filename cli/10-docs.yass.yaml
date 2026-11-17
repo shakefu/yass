@@ -5,8 +5,8 @@ description: >
   inside itself: with no operand it indexes the corpus, and with a name it writes that
   document whole. The corpus is built into the program rather than read from the file tree,
   because an agent holding this program does not hold the checkout those documents live in.
-  It is the one command whose answer is about the yass language rather than about the spec
-  set under the starting directory.
+  Its answer is about the yass language rather than about the spec set under the starting
+  directory.
 version: v1
 related:
 - ../context/BRAINSTORMING.md
