@@ -609,7 +609,9 @@ const bareRoot = modeline + "---\ndescription: bare\nversion: v1\n---\nspec: Bar
 
 // A directory on the ascent cannot be read when its entries cannot be listed
 // or a named entry in it cannot be examined, whichever it lacks and whatever
-// it holds: it is named by the diagnostic and never yielded as a project root.
+// it holds: it is named by the diagnostic and never yielded as a project root
+// (01-locate@RootDiscovery::ERROR, RootDiscovery::INVARIANT,
+// 01-locate@ReadableDirectory).
 func TestAscentUnreadableDirectory(t *testing.T) {
 	t.Run("search-only directory holding a root file", func(t *testing.T) {
 		proj := realDir(t, "proj")
@@ -650,11 +652,12 @@ func TestAscentUnreadableDirectory(t *testing.T) {
 		}
 	})
 	// The ascent stops at the nearest root, so a directory above it that
-	// cannot be read is never examined.
+	// cannot be read is never examined (01-locate@RootDiscovery::RETURN).
 	t.Run("project below a search-only ancestor", func(t *testing.T) {
 		anc := realDir(t, "anc")
 		proj := filepath.Join(anc, "proj")
-		write(t, proj, "root.yass.yaml", bareRoot)
+		write(t, proj, "root.yass.yaml", bareRoot+"  SEE: ../sib/s@S\n")
+		write(t, anc, "sib/s.yass.yaml", modeline+"---\ndescription: s\nversion: v1\n---\nspec: S\nINPUT:\n- MUST: x\n")
 		denyDir(t, anc, 0o111)
 		got := run(proj, "root")
 		wantStatus(t, got, ExitOK)
@@ -664,18 +667,34 @@ func TestAscentUnreadableDirectory(t *testing.T) {
 		if got := run(proj, "list"); got.status != ExitOK || got.stderr != "" {
 			t.Fatalf("list under a search-only ancestor: status %d, stderr %q", got.status, got.stderr)
 		}
+		// Only discovery and traversal report a directory that cannot be
+		// listed. Resolving a ref path through one still takes the spelling
+		// the kernel answered for, so a reference that climbs through the
+		// ancestor resolves.
+		if got := run(proj, "validate"); got.status != ExitOK || got.stdout != "" || got.stderr != "" {
+			t.Fatalf("validate a ref through a search-only ancestor: status %d\nstdout:\n%s\nstderr:\n%s", got.status, got.stdout, got.stderr)
+		}
+		got = run(proj, "query", "../sib/s@S")
+		wantStatus(t, got, ExitOK)
+		if !strings.Contains(got.stdout, "spec: S") {
+			t.Fatalf("query through a search-only ancestor: stdout = %q", got.stdout)
+		}
 	})
 }
 
 // A directory in the traversal that cannot be read is named itself, relative to
 // the project root, rather than a file inside it, and is neither passed over
-// nor skipped as a nested project root.
+// nor skipped as a nested project root (01-locate@FileSet::ERROR,
+// FileSet::INVARIANT, 01-locate@ReadableDirectory).
 func TestTraversalUnreadableDirectory(t *testing.T) {
 	const lockedSpec = modeline + "---\ndescription: locked\nversion: v1\n---\nspec: L\nINPUT:\n- MUST: x\n"
+	// The nested project root is the one project builds at sub/nested, which
+	// holds a root.yass.yaml and a spec file; each such case requires it.
+	const nested = "sub/nested"
 	cases := []struct {
 		name string
 		rel  string // the directory denied, relative to the project root
-		file bool   // whether it holds a spec file
+		file bool   // whether to write a spec file into it
 		mode os.FileMode
 		args []string
 	}{
@@ -684,9 +703,9 @@ func TestTraversalUnreadableDirectory(t *testing.T) {
 		{"read-only directory below another", "open/locked", true, 0o444, []string{"list"}},
 		{"read-only directory as the PATH operand", "locked", true, 0o444, []string{"list", "locked"}},
 		{"search-only directory", "locked", true, 0o111, []string{"list"}},
-		{"search-only nested project root", "sub/nested", false, 0o111, []string{"list"}},
-		{"search-only nested project root, validate", "sub/nested", false, 0o111, []string{"validate"}},
-		{"read-only nested project root", "sub/nested", false, 0o444, []string{"list"}},
+		{"search-only nested project root", nested, false, 0o111, []string{"list"}},
+		{"search-only nested project root, validate", nested, false, 0o111, []string{"validate"}},
+		{"read-only nested project root", nested, false, 0o444, []string{"list"}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -694,6 +713,11 @@ func TestTraversalUnreadableDirectory(t *testing.T) {
 			denied := filepath.Join(dir, filepath.FromSlash(c.rel))
 			if err := os.MkdirAll(denied, 0o755); err != nil {
 				t.Fatal(err)
+			}
+			if c.rel == nested {
+				if st, err := os.Stat(filepath.Join(denied, RootBasename)); err != nil || !st.Mode().IsRegular() {
+					t.Fatalf("the fixture holds no root file at %s: %v", nested, err)
+				}
 			}
 			if c.file {
 				write(t, dir, c.rel+"/x.yass.yaml", lockedSpec)
@@ -703,6 +727,25 @@ func TestTraversalUnreadableDirectory(t *testing.T) {
 				t.Fatalf("location = %q, want %q", loc, c.rel)
 			}
 		})
+	}
+}
+
+// The directory holding a symbolic link's target is not a directory in the
+// traversal, so a link to a regular file is a member whether or not that
+// directory can be listed (01-locate@FileSet::INVARIANT).
+func TestTraversalReadsLinkIntoUnlistableDirectory(t *testing.T) {
+	base := realDir(t, "base")
+	proj := filepath.Join(base, "proj")
+	write(t, proj, "root.yass.yaml", bareRoot+"  SEE: a@X\n")
+	target := write(t, base, "ext/x.yass.yaml", modeline+"---\ndescription: x\nversion: v1\n---\nspec: X\nINPUT:\n- MUST: x\n")
+	if err := os.Symlink(target, filepath.Join(proj, "a.yass.yaml")); err != nil {
+		t.Skipf("symbolic links are unavailable: %v", err)
+	}
+	denyDir(t, filepath.Join(base, "ext"), 0o111)
+	got := run(proj, "list")
+	wantStatus(t, got, ExitOK)
+	if !strings.Contains(got.stdout, "a@X\tspec") || got.stderr != "" {
+		t.Fatalf("stdout = %q, stderr = %q, want the linked file a member", got.stdout, got.stderr)
 	}
 }
 
