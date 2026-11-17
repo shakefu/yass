@@ -2,6 +2,18 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.13.3 - 2026-11-17
+#### Bug Fixes
+- (**cli**) end validate when the ascent from a file outside the root cannot be read - (eae66b8) - Jacob Alheid
+- (**cli**) fail root discovery and traversal on directories that cannot be listed or searched - (b29590a) - Jacob Alheid
+- (**spec**) state validate's outcome when a file's ascent cannot be read - (00828ab) - Jacob Alheid
+- (**spec**) scope the unreadable traversal rule to directories in the traversal - (0c243ed) - Jacob Alheid
+- (**spec**) define directory "cannot be read" as lacking read or search - (afd9327) - Jacob Alheid
+#### Tests
+- (**cli**) cite specs and guard ref resolution in the unreadable-directory tests - (c491922) - Jacob Alheid
+
+- - -
+
 ## v0.13.2 - 2026-11-13
 #### Bug Fixes
 - (**cli**) exempt pseudocode lines from design_code - (e0ab4a3) - Jacob Alheid
