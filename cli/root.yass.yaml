@@ -8,9 +8,9 @@ description: >
   arrives with no context, reports where a project root is, emits one addressed document with its references
   resolved, indexes what a spec set holds, searches obligation prose, reports the reference
   edges of a document, checks files against the language definition, reports graph hygiene,
-  serves the language documents it carries inside itself, and replaces its own installed
-  binary with the newest published release. It never writes a spec file and never judges
-  what an obligation says. Every command answers with the smallest output that
+  serves the language documents it carries inside itself, explains lint rules, and replaces
+  its own installed binary with the newest published release. It never writes a spec file
+  and never judges what an obligation says. Every command answers with the smallest output that
   carries the answer, because the reader's context is the scarce resource.
 version: v1
 related:
@@ -57,6 +57,9 @@ INPUT:
 - WHEN: "the subcommand is `docs`"
   MUST: dispatch to the command that indexes the carried documents and writes one
   SEE: 10-docs@Docs
+- WHEN: "the subcommand is `explain`"
+  MUST: dispatch to the command that indexes lint rule ids and explains one
+  SEE: 13-explain@Explain
 - WHEN: "the subcommand is `update`"
   MUST: dispatch to the command that replaces this program's installed binary with the newest release
   SEE: 12-update@Update
@@ -113,6 +116,8 @@ INVARIANT:
   USES: ExitPolicy
 - MUST-NOT: "select status 4 from `docs`, since it serves a corpus the program carries"
   USES: ExitPolicy
+- MUST-NOT: "select status 4 from `explain`, since it serves lint rule documentation the program carries"
+  USES: ExitPolicy
 - MUST-NOT: "select status 4 from `update`, since it concerns the installed program itself"
   USES: ExitPolicy
 - WHEN: an invocation returns status 1
@@ -157,7 +162,7 @@ content:
     meaning: "the request could not be understood, because the argument vector is malformed: an unknown subcommand, an unknown option, an unknown record format, a missing option value, a missing or excess operand, an empty operand, or a target that fails the ref-target grammar or names an unrecognized slot"
   3:
     label: unresolved
-    meaning: "the request was understood and the thing it names is absent: a missing path, or a target that resolves to no document"
+    meaning: "the request was understood and the thing it names is absent: a missing path, a target that resolves to no document, an unknown carried-document name, or an unknown lint rule id"
   4:
     label: no-root
     meaning: there is no project to understand the request against, because no file named root.yass.yaml is at or above the starting path
@@ -180,6 +185,7 @@ content:
   yass.document.encoding:       {exit: 3}
   yass.document.not_yaml:       {exit: 3}
   yass.document.yaml_feature:   {exit: 3}
+  yass.explain.unknown:         {exit: 3}
   yass.internal:                {exit: 5}
   yass.io.missing:              {exit: 3}
   yass.io.not_a_spec_file:      {exit: 2}
@@ -226,10 +232,11 @@ content: |
   Record output is line-oriented so a consumer splits it, never needing a regex or a parser.
   This grammar is its text form, the default. `--format json` writes the same records in
   the JSON form JsonRecordFormat states, which keeps one record per line and takes its keys
-  and values from the fields below. Records are the output form of every command except three. `query` emits a YAML stream; `docs`
-  given a NAME emits that document as text; `overview` emits a fixed block. Each of those
-  answers is a document rather than a sequence of fields, and forcing it into records would
-  destroy the thing being served.
+  and values from the fields below. Records are the output form of every command except four.
+  `query` emits a YAML stream; `docs` given a NAME emits that document as text; `explain`
+  given an ID emits that rule's documentation as text; `overview` emits a fixed block. Each
+  of those answers is a document rather than a sequence of fields, and forcing it into
+  records would destroy the thing being served.
 
   Segmentation, completely:
   - One record per line. A record is terminated by exactly one LF `0x0A`, the last record
@@ -274,6 +281,9 @@ content: |
                 LINES       count of lines the document holds, so a reader can budget for it
                 WHEN        the task that earns the cost of reading it
                 TITLE       the document's own title
+
+    explain     1 field
+                ID          the full lint rule id, as `yass explain ID` takes it
 
     refs        3 fields
                 DIR         `out` for an edge the addressed document carries,
@@ -369,7 +379,7 @@ content: |
   no obligation of this project defines.
 
   Areas: `args`, `io`, `root`, `document`, `preamble`, `spec`, `design`, `slot`,
-  `obligation`, `ref`, `lint`, `docs`, `update`.
+  `obligation`, `ref`, `lint`, `docs`, `explain`, `update`.
 
   A message names what is wrong and never how to fix it. It carries no remedy, no
   alternative spelling, no quoted source, no restatement of the code, and no explanation of
@@ -390,22 +400,24 @@ content: |
     exception is the residual of a closed set: the diagnostic for an unrecognized subcommand
     names the recognized subcommands, because the set is short and the agent cannot
     otherwise recover.
-  - Two commands are exempt, and only these two, because for them the emitted lines are the
-    answer and not an ornament on one. `overview` writes a fixed orientation block; `docs`
-    writes a language document the reader named. Both stay bounded: the block's wording is
-    fixed by a design block and nothing is added to it per invocation, and `docs` writes the
-    corpus document byte-for-byte with nothing beside it but the length line the line budget
-    below requires of a document too long for it. Neither is written unless it was
-    asked for, and an invocation naming no subcommand is the asking.
+  - Three commands are exempt, and only these three, because for them the emitted lines are
+    the answer and not an ornament on one. `overview` writes a fixed orientation block;
+    `docs` writes a language document the reader named; `explain` writes the documentation
+    of the lint rule the reader named. All stay bounded: the block's wording is fixed by a
+    design block and nothing is added to it per invocation; `docs` writes the corpus
+    document byte-for-byte with nothing beside it but the length line the line budget
+    below requires of a document too long for it; `explain` writes the carried rule
+    documentation byte-for-byte within that budget. Each is written only when asked for,
+    and an invocation naming no subcommand is the asking for overview.
   - That exemption is about total context, not generosity with it. A reader who cannot tell
     what a project is, or what notation its files are written in, opens files until it can —
     which costs more of the context this policy exists to protect than the block does. The
     block earns its lines by replacing that reading, so it carries what a reader cannot get
     more cheaply elsewhere, and nothing that it can.
   - Every answer written as a document rather than as records — the orientation block, help,
-    and a carried document — fits in 200 lines. An agent commonly reads such an answer
-    through `head -200` and never learns what the cut dropped, so the line budget is what a
-    reader is sure to see. A carried document too long for it opens with one line stating
+    a carried document, and a lint rule explanation — fits in 200 lines. An agent commonly
+    reads such an answer through `head -200` and never learns what the cut dropped, so the
+    line budget is what a reader is sure to see. A carried document too long for it opens with one line stating
     its length, so a cut read is a known one.
   - Help is exactly the Synopsis design block and nothing else: a synopsis line, one entry
     per subcommand, one entry per option, the exit-code table, and one closing line pointing

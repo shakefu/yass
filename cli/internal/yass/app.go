@@ -23,6 +23,7 @@ const synopsis = `usage: yass [-C DIR] [--version] [--help] [SUBCOMMAND [ARGS...
   lint [--format FORMAT] [PATH...]
                                  report graph hygiene of the project
   docs [NAME]                    index the carried documents, or write one
+  explain [ID]                   index lint rule ids, or explain one
   update [--format FORMAT]       replace this binary with the newest release
 
   -C DIR                         start path resolution and root discovery at DIR
@@ -101,6 +102,8 @@ func (a *App) dispatch() int {
 		return a.run(a.cmdLint)
 	case "docs":
 		return a.run(a.cmdDocs)
+	case "explain":
+		return a.run(a.cmdExplain)
 	case "update":
 		return a.run(a.cmdUpdate)
 	}

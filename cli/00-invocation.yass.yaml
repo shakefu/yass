@@ -17,7 +17,7 @@ INPUT:
 - WHEN: no argument remains to be taken as the subcommand token, and neither help nor version was requested
   MUST: "yield the subcommand token `overview`, so an argument vector naming no subcommand is well formed and carries no operand"
   SEE: 11-overview@Overview
-- MUST: "recognize exactly the subcommand tokens `overview`, `root`, `query`, `list`, `find`, `refs`, `validate`, `lint`, `docs`, and `update`"
+- MUST: "recognize exactly the subcommand tokens `overview`, `root`, `query`, `list`, `find`, `refs`, `validate`, `lint`, `docs`, `explain`, and `update`"
 - MUST: parse every argument after the subcommand token as that subcommand's option or operand, against the option set the synopsis fixes for it
   USES: Synopsis
 - MUST: "treat an argument equal to `--` as end-of-options, so every argument after it is an operand even when it begins with `-`"
@@ -87,7 +87,7 @@ INVARIANT:
 - MUST-NOT: accept a clustered short option, since every short option this program recognizes stands alone
 - MUST-NOT: read an environment variable, a dotfile, or a configuration directory to supply an option value
 - MUST-NOT: reorder operands, so a subcommand sees them exactly as given
-- MUST-NOT: "accept `--format` for `overview`, `query`, or `docs`, since each of them answers with a document rather than with records"
+- MUST-NOT: "accept `--format` for `overview`, `query`, `docs`, or `explain`, since their document answers have no record format"
   SEE: root@RecordFormat
 ---
 design: Synopsis
@@ -110,6 +110,7 @@ content: |
     lint [--format FORMAT] [PATH...]
                                    report graph hygiene of the project
     docs [NAME]                    index the carried documents, or write one
+    explain [ID]                   index lint rule ids, or explain one
     update [--format FORMAT]       replace this binary with the newest release
 
     -C DIR                         start path resolution and root discovery at DIR

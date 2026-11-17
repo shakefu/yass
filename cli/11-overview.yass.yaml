@@ -123,6 +123,7 @@ content: |
       yass refs TARGET             what a document points at, and what points at it
       yass validate                check the files against the language definition
       yass lint                    report graph hygiene
+      yass explain ID              explain a lint rule and how to resolve a finding
 
   5 — the corpus:
 

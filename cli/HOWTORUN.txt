@@ -45,6 +45,7 @@ Run
     lint [--format FORMAT] [PATH...]
                                    report graph hygiene of the project
     docs [NAME]                    index the carried documents, or write one
+    explain [ID]                   index lint rule ids, or explain one
     update [--format FORMAT]       replace this binary with the newest release
 
   Global options are written before the subcommand token; a subcommand's own
@@ -88,6 +89,8 @@ Examples, run from this directory
   ./yass lint --format json
   ./yass docs
   ./yass docs authoring
+  ./yass explain
+  ./yass explain yass.lint.obligation_shape
 
   The repository holds two projects: this directory (the CLI) and the directory
   above it (the yass language definition). Each has its own root.yass.yaml, so
@@ -117,6 +120,20 @@ Carried documents
   The embedded copies are built from the checkout by `script/sync-docs`; run it
   after editing any of those files. `go test ./...` fails when a copy has
   drifted from its source.
+
+Lint rule documentation
+-----------------------
+
+  `yass explain` indexes the lint rule ids in a fixed order, one record per id.
+  `yass explain ID` writes what that rule detects, why it exists, how to resolve
+  a finding, and bad/good YAML examples. IDs match byte-for-byte; prefixes,
+  abbreviations, and other casing do not resolve. An unknown ID reports
+  yass.explain.unknown on standard error, leaves standard output empty, and
+  exits 3. Use the index to find an ID.
+
+  The explanations are built into the program. Neither form reads the file
+  tree or needs a project root; neither accepts --format. They cover lint
+  rules, not validation errors or request failures.
 
 Test
 ----

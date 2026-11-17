@@ -125,6 +125,10 @@ wherever it is installed, and are read in paths: eliciting, writing or changing,
 and implementing a spec, and changing the language itself, each have one, and
 `yass` lists them.
 
+`yass explain` indexes the lint rule ids; `yass explain ID` describes one rule
+with bad/good examples. This documentation is built into the binary and works
+without a project root.
+
 ## License
 
 [AGPL-3.0](./LICENSE)

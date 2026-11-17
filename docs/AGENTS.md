@@ -5,7 +5,7 @@
   `src/references.md`, `src/coverage.md`, `src/implementing.md`: `{{#include}}` stubs over the authoritative
   documents in `../context/` — edit the sources, never write copies here.
   `book.toml` redirects the retired `reference.html` and `guidance.html`.
-- `src/installation.md`, `src/quick-start.md`, `src/cli.md`: installation and
+- `src/installation.md`, `src/quick-start.md`, `src/cli.md`, `src/cli-checking.md`: installation and
   command guides; verify examples against the CLI specs and implementation.
 - `src/agent-workflows.md`: prompts and worked examples grounded in the
   authoritative guidance and brainstorming flow, including their approval gates.
