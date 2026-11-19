@@ -2,6 +2,14 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.14.0 - 2026-11-19
+#### Features
+- (**cli**) add yass explain for lint rule documentation - (86b9699) - Jacob Alheid
+#### Bug Fixes
+- (**cli**) tighten explain guidance and conformance checks - (9279b71) - Jacob Alheid
+
+- - -
+
 ## v0.13.3 - 2026-11-17
 #### Bug Fixes
 - (**cli**) end validate when the ascent from a file outside the root cannot be read - (eae66b8) - Jacob Alheid
