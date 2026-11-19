@@ -8,10 +8,10 @@ YAML specification language and a read-only Go CLI for serving specs to coding a
 - `yass.v1.schema.json`: derived editor-validation schema; keep consistent with the language.
 - `root.yass.yaml`: repository spec root; `cli/`: separate spec project and Go module with implementation and tests (see its index).
 - `docs/`: mdBook site published to GitHub Pages (see its index).
-- `install.sh`: curl-able release installer (README's Install section documents it); `Formula/yass.rb`: Homebrew formula, regenerated per release by `script/gen-formula` — never edit it by hand.
+- `install.sh`: curl-able release installer (README's Install section documents it); `setup/`: composite action consumed as `shakefu/yass/setup@<ref>` that installs a released yass on CI runners by wrapping install.sh; `.github/workflows/setup-action.yaml`: its platform-matrix test; `Formula/yass.rb`: Homebrew formula, regenerated per release by `script/gen-formula` — never edit it by hand.
 - `.pre-commit-hooks.yaml`: published `yass-validate`/`yass-lint` hooks; `script/pre-commit-hook` runs the installed CLI per nearest project root and never installs it.
 - `script/build [version]`: cross-platform release archives in `dist/`; `script/gen-formula [version]`: formula from `dist/checksums.txt` (both are cog pre-bump hooks).
-- `.github/workflows/`: CI, pre-commit, conventional-commit checks, releases, and the `docs.yaml` mdBook/Pages deploy; `.common-repo.yaml`: inherited release configuration; `cog.toml`: release build hook.
+- `.github/workflows/`: CI, pre-commit, conventional-commit checks, releases, and the `docs.yaml` mdBook/Pages deploy; `ci.yaml` is common-repo template-owned — no local edits; `.common-repo.yaml`: inherited release configuration; `cog.toml`: release build hook.
 
 ## Development
 

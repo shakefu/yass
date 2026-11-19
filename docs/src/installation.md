@@ -89,6 +89,34 @@ Put that line in your shell's startup configuration, such as `~/.zshrc` or
 `~/.bashrc`, to keep it for future sessions. Substitute your chosen directory
 when using `--bin-dir` or `YASS_BIN_DIR`.
 
+## GitHub Actions setup
+
+CI workflows get the same checksum-verified install through this repository's
+composite action:
+
+```yaml
+- uses: shakefu/yass/setup@v0
+  with:
+    version: v0.13.3
+- run: yass validate && yass lint
+```
+
+Inputs:
+
+| Input | Default | Effect |
+| --- | --- | --- |
+| `version` | `latest` | Release tag to install (`v0.13.3` and `0.13.3` name the same tag) or `latest`. |
+| `bin-dir` | `$HOME/.local/bin` | Installation directory. |
+
+The action fetches `install.sh` from the same ref the action was used at — so
+pinning the action to an exact release tag also pins the installer — then
+installs the binary and adds the directory to `PATH` for the job's later
+steps. The installed version is exposed as the step's `yass-version` output.
+
+`@v0` is the moving major tag the release process advances on every release;
+`@v0.13.3` pins one. Windows runners are unsupported — the installer covers
+macOS and Linux only.
+
 ## Manual release downloads
 
 Open the [releases page](https://github.com/shakefu/yass/releases) and choose a
