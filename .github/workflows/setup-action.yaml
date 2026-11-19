@@ -1,0 +1,57 @@
+name: Setup action
+
+on:
+  pull_request:
+    paths:
+      - 'setup/**'
+      - 'install.sh'
+      - '.github/workflows/setup-action.yaml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'setup/**'
+      - 'install.sh'
+      - '.github/workflows/setup-action.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    name: Install (${{ matrix.os }}, ${{ matrix.version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # darwin/amd64 has no hosted runner label left; install.sh covers it
+        # through the same platform-detection code the other cells exercise.
+        include:
+          - os: ubuntu-latest
+            version: latest
+          - os: ubuntu-24.04-arm
+            version: latest
+          - os: macos-latest
+            version: latest
+          - os: ubuntu-latest
+            version: v0.13.3
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Install yass
+        uses: ./setup
+        with:
+          version: ${{ matrix.version }}
+
+      - name: Check installation
+        env:
+          VERSION: ${{ matrix.version }}
+        run: |
+          set -euo pipefail
+          yass --version
+          [ "$(command -v yass)" = "$HOME/.local/bin/yass" ]
+          if [ "$VERSION" != latest ]; then
+            yass --version | grep -q " ${VERSION#v} "
+          fi
+          yass validate
+          yass lint

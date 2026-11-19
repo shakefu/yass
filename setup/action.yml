@@ -1,0 +1,57 @@
+name: Install yass
+description: >-
+  Install a released yass binary on a macOS or Linux runner through the
+  checksum-verified install.sh and put it on PATH for later steps.
+
+inputs:
+  version:
+    description: >-
+      Release tag to install (v0.13.3 or 0.13.3) or latest. Default latest.
+    default: latest
+  bin-dir:
+    description: >-
+      Directory to install into instead of $HOME/.local/bin.
+
+outputs:
+  yass-version:
+    description: The version string reported by the installed binary.
+    value: ${{ steps.install.outputs.yass-version }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install yass
+      id: install
+      shell: bash
+      env:
+        ACTION_REF: ${{ github.action_ref }}
+        VERSION: ${{ inputs.version }}
+        BIN_DIR: ${{ inputs.bin-dir }}
+      run: |
+        set -euo pipefail
+
+        # The installer is fetched from the ref this action was used at, so a
+        # pinned action ref runs the matching installer. refs/pull/*/merge —
+        # what a local `uses: ./setup` run sees — is not served by raw, so
+        # fall back to main there.
+        repo="https://raw.githubusercontent.com/shakefu/yass"
+        installer="$RUNNER_TEMP/install.sh"
+        curl -fsSL -o "$installer" "$repo/${ACTION_REF:-main}/install.sh" ||
+          curl -fsSL -o "$installer" "$repo/main/install.sh"
+
+        # A deterministic directory rather than install.sh's /usr/local/bin
+        # fallback keeps the PATH export below exact and needs no sudo.
+        bin_dir="${BIN_DIR:-$HOME/.local/bin}"
+
+        args=(--bin-dir "$bin_dir")
+        if [ "$VERSION" != "latest" ]; then
+          if ! [[ "$VERSION" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?(\+[0-9A-Za-z.]+)?$ ]]; then
+            echo "::error::version must be a release tag like v0.13.3 or 'latest', got '$VERSION'"
+            exit 1
+          fi
+          args+=(--version "$VERSION")
+        fi
+
+        sh "$installer" "${args[@]}"
+        echo "$bin_dir" >> "$GITHUB_PATH"
+        echo "yass-version=$("$bin_dir/yass" --version)" >> "$GITHUB_OUTPUT"
