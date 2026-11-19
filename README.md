@@ -44,6 +44,22 @@ curl -fsSL https://raw.githubusercontent.com/shakefu/yass/main/install.sh |
 
 On Windows, download the `windows_amd64` zip from the releases page instead.
 
+### GitHub Actions
+
+CI runners install yass through this repository's setup action, which wraps
+the same checksum-verified installer:
+
+```yaml
+- uses: shakefu/yass/setup@v0
+  with:
+    version: v0.13.3 # or latest, the default
+```
+
+The binary lands in `~/.local/bin` (override with `bin-dir`) and is on PATH
+for later steps. `@v0` is the major tag the release process advances on every
+release; pin an exact release tag to freeze the installer too. See
+[the installation guide](https://shakefu.github.io/yass/installation.html#github-actions-setup).
+
 ### Homebrew
 
 ```sh
