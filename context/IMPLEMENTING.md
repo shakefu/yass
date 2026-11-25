@@ -83,10 +83,10 @@ test, in whatever comment syntax your language uses:
 
 `yass citations` checks every citation in the project's test files and fails on one that
 no longer names its obligation, which a renamed spec, a reordered slot, or a reworded
-obligation produces. To refresh a citation it reports, give the old line to `yass cite`:
-an obligation that moved is found by its stamp, and one that was reworded is reported,
-so you read it again before citing it. `yass citations --missing` lists the obligations
-no test cites.
+obligation produces. To refresh a citation it reports, give the token of the old citation,
+the text after the marker, to `yass cite`: an obligation that moved is found by its stamp,
+and one that was reworded is reported, so you read it again before citing it.
+`yass citations --missing` lists the obligations no test cites.
 
 - **Start with `ERROR`.** Write the foreseeable failures first: each guarded `ERROR`
   obligation names an input and the outcome it must produce (a code, a message, an exit

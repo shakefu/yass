@@ -98,9 +98,11 @@ root@Greeting	3	2	0	0
 -	3	2	0	0
 ```
 
-A `MAY` is a permission: it can be cited but is never listed or counted. Both
-reports exit `0` and check nothing. A malformed, unresolved, or stale citation
-simply covers no obligation there.
+A `MAY` is a permission: it can be cited but is never listed or counted. A
+malformed, unresolved, or stale citation simply covers no obligation there. Both
+reports check nothing and exit `0`, unless a spec file fails to parse: that is
+reported on standard error and ends with `1`, since an obligation of that file
+can be neither resolved nor counted.
 
 ## Read authoring documents: `docs`
 
