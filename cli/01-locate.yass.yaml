@@ -16,6 +16,9 @@ INPUT:
 - WHEN: the starting path is not a plain argument after all
   MUST: report code yass.internal
 - MUST: "resolve the starting path to an absolute path, with symbolic links resolved and `.` and `..` removed, before ascending"
+- WHEN: the starting path is a PATH naming a file
+  MUST: "resolve that file as a loaded file is named, by its own name in the directory that physically holds it, so a symbolic link naming a regular file belongs to the project holding the link, as the project file set holds it"
+  SEE: FileSet::INVARIANT
 - WHEN: the starting path names a directory
   MUST: begin the search at that directory
 - WHEN: the starting path names a file

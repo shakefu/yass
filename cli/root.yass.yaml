@@ -78,7 +78,7 @@ ERROR:
 - WHEN: no project root governs the addressed path
   MUST: report code yass.root.not_found
   SEE: 01-locate@RootDiscovery::ERROR
-- WHEN: a PATH of a command that addresses paths names a path outside the project root discovered
+- WHEN: a PATH of a command that addresses paths names a path outside the project root discovered or under a nearer project root
   MUST: report code yass.root.outside
   SEE: 01-locate@RootDiscovery::RETURN
 - WHEN: an addressed path exists but cannot be read
@@ -168,7 +168,7 @@ content:
     meaning: "the request was understood and the thing it names is absent: a missing path, a target that resolves to no document, an unknown carried-document name, or an unknown lint rule id"
   4:
     label: no-root
-    meaning: "there is no project to understand the request against: no file named root.yass.yaml is at or above the path discovery anchors on, or a PATH names a path outside the project discovered"
+    meaning: "there is no project to understand the request against: no file named root.yass.yaml is at or above the path discovery anchors on, or a PATH names a path the project discovered does not govern"
   5:
     label: environment
     meaning: a path could not be read, an output stream could not be written, or a guarantee this program relied on internally did not hold
