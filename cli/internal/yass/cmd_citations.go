@@ -26,7 +26,7 @@ func (a *App) cmdCitations() (int, error) {
 		return 0, err
 	}
 
-	status := ExitOK
+	partial := false
 	var files []*File
 	for _, abs := range specs {
 		f, lerr := a.Loader.Load(abs)
@@ -36,7 +36,7 @@ func (a *App) cmdCitations() (int, error) {
 		if !f.Parsed {
 			// An obligation of that file can be neither resolved nor counted,
 			// so the reader must know the model was partial.
-			status = ExitFindings
+			partial = true
 			a.err.line(Diag{Severity: "error", Code: f.FailCode, Location: f.Ref,
 				Line: f.FailLine, Message: failMessage(f.FailCode)}.Record())
 			continue
@@ -48,6 +48,7 @@ func (a *App) cmdCitations() (int, error) {
 	// nothing; the default run checks every citation and counts nothing.
 	report := a.Inv.Missing || a.Inv.Coverage
 	covered := map[*Obligation]bool{}
+	var findings []Diag
 	for _, abs := range scope {
 		data, rerr := os.ReadFile(abs)
 		if rerr != nil {
@@ -73,18 +74,25 @@ func (a *App) cmdCitations() (int, error) {
 			}
 			switch code {
 			case citationSyntax:
-				status = ExitFindings
-				a.citationDiag("error", code, c, "citation is malformed")
+				findings = append(findings, citationFinding("error", code, c, "citation is malformed"))
 			case citationUnresolved:
-				status = ExitFindings
-				a.citationDiag("error", code, c, "citation "+c.token+" names no obligation")
+				findings = append(findings, citationFinding("error", code, c, "citation "+c.token+" names no obligation"))
 			case citationStale:
-				status = ExitFindings
-				a.citationDiag("warn", code, c, "citation "+c.token+" carries a stamp the obligation at that number does not")
+				findings = append(findings, citationFinding("warn", code, c, "citation "+c.token+" carries a stamp the obligation at that number does not"))
 			}
 		}
 	}
 
+	// Findings are held until the last file of the scope has been read, since a
+	// file that cannot be read ends the request, and a request that ends with a
+	// status from 2 through 5 leaves standard output empty.
+	status := ExitOK
+	if len(findings) > 0 || partial {
+		status = ExitFindings
+	}
+	for _, d := range findings {
+		a.out.line(a.diag(d))
+	}
 	if !report {
 		return status, nil
 	}
@@ -96,9 +104,9 @@ func (a *App) cmdCitations() (int, error) {
 	return status, nil
 }
 
-// citationDiag writes one citation finding to standard output.
-func (a *App) citationDiag(severity, code string, c citationFound, message string) {
-	a.out.line(a.diag(Diag{Severity: severity, Code: code, Location: c.file, Line: c.line, Message: message}))
+// citationFinding is the diagnostic of one citation that did not hold.
+func citationFinding(severity, code string, c citationFound, message string) Diag {
+	return Diag{Severity: severity, Code: code, Location: c.file, Line: c.line, Message: message}
 }
 
 // reportMissing lists every obligation of the project that no citation covers,

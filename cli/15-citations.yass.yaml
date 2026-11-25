@@ -66,6 +66,8 @@ RETURN:
   MUST: "emit one record per spec document that a ref target can address and that holds an obligation, counting its obligations and the covered among them in two pairs, and one last record, for a project that holds an obligation, whose REF is `-` and whose counts are those of the whole project"
   USES: root@RecordFormat
 - MUST-NOT: check any citation, or report a finding about one, under `--missing` or `--coverage`
+- MUST: hold every finding until the last file of the citation scope is read, because a file that cannot be read ends the request and a status from 2 through 5 leaves standard output empty
+  SEE: root@ExitPolicy
 ERROR:
 - WHEN: no project root governs the path discovery anchors on, which is the first PATH when one is given and the starting directory otherwise
   MUST: report code yass.root.not_found naming that path and read no file of the citation scope, because locating the project root precedes every check
