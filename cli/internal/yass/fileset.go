@@ -63,9 +63,9 @@ func (a *App) addressedFiles(paths []string, requireSpecBasename bool) ([]string
 // a directory when dir is true and a file otherwise: the path lies at or below
 // the root, and no directory from the root down to the one holding it holds a
 // root.yass.yaml of its own, because that nearer project root governs its
-// subtree and the project file set excludes it. A directory on the way down
-// that cannot be read leaves the question undecided. label names the operand
-// in a diagnostic.
+// subtree and the project file set excludes it. Every directory on the way down
+// must be one that can be read, whatever it holds, as the ascent requires of
+// every directory it climbs. label names the operand in a diagnostic.
 func (a *App) governed(abs string, dir bool, label string) error {
 	segs, ok := a.relUnder(abs)
 	if !ok {
@@ -78,7 +78,7 @@ func (a *App) governed(abs string, dir bool, label string) error {
 	for _, seg := range segs {
 		at = filepath.Join(at, seg)
 		held, readable := rootFileIn(at, a.names)
-		if !readable {
+		if !readable || a.names.listing(at) == nil {
 			return unreadable(relTo(a.Root, at))
 		}
 		if held {

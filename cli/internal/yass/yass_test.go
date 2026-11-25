@@ -586,6 +586,14 @@ func TestPathUnderNestedRootIsOutsideProject(t *testing.T) {
 	if !strings.Contains(got.stdout, "sub/b\tfile") || strings.Contains(got.stdout, "sub/nested") {
 		t.Fatalf("listing sub = %q, want the outer project's files alone", got.stdout)
 	}
+	// A later PATH there that is not a spec file is still outside the project,
+	// and that refusal outranks the one for its basename.
+	write(t, dir, "sub/nested/plain.txt", "hi\n")
+	got = run(dir, "list", "root.yass.yaml", "sub/nested/plain.txt")
+	wantStatus(t, got, ExitNoRoot)
+	if got.stdout != "" || !strings.Contains(got.stderr, "yass.root.outside\tsub/nested/plain.txt\t") {
+		t.Fatalf("stdout = %q, stderr = %q, want yass.root.outside naming the operand", got.stdout, got.stderr)
+	}
 }
 
 // A directory that cannot be read is named by the diagnostic, both when the
@@ -768,6 +776,9 @@ func TestTraversalUnreadableDirectory(t *testing.T) {
 		{"read-only directory below another", "open/locked", true, 0o444, []string{"list"}, false},
 		{"read-only directory as the PATH operand", "locked", true, 0o444, []string{"list", "locked"}, true},
 		{"search-only directory", "locked", true, 0o111, []string{"list"}, false},
+		// A later PATH below a search-only directory holding no root file: the
+		// walk down from the root passes nothing it cannot read.
+		{"search-only directory holding a later PATH operand", "locked", true, 0o111, []string{"list", "root.yass.yaml", "locked/x.yass.yaml"}, false},
 		{"search-only nested project root", nested, false, 0o111, []string{"list"}, false},
 		{"search-only nested project root, validate", nested, false, 0o111, []string{"validate"}, false},
 		{"read-only nested project root", nested, false, 0o444, []string{"list"}, false},
