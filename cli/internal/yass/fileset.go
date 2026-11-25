@@ -16,7 +16,10 @@ func (a *App) projectFileSet() ([]string, error) {
 // addressedFiles turns PATH operands into an ordered set of absolute file
 // paths, taking each file at most once even when two PATHs address it. With no
 // PATH the project file set is taken. requireSpecBasename selects whether a
-// PATH naming a file must itself end with the .yass.yaml suffix.
+// PATH naming a file must itself end with the .yass.yaml suffix. A PATH that
+// resolves outside the project root ends the request: one invocation answers
+// for one project, and a second tree's files would be read against the wrong
+// root's model.
 func (a *App) addressedFiles(paths []string, requireSpecBasename bool) ([]string, error) {
 	if len(paths) == 0 {
 		return a.projectFileSet()
@@ -43,6 +46,9 @@ func (a *App) addressedFiles(paths []string, requireSpecBasename bool) ([]string
 				}
 				return nil, missingPath(p)
 			}
+			if !a.atOrBelowRoot(real) {
+				return nil, outsideRoot(p)
+			}
 			files, err := collectSpecFiles(real, a.Root, a.names)
 			if err != nil {
 				return nil, err
@@ -54,7 +60,11 @@ func (a *App) addressedFiles(paths []string, requireSpecBasename bool) ([]string
 			}
 			// Canonical, as the Loader names it, so orderUnique takes one
 			// physical file once however the PATHs spell it.
-			all = append(all, canonicalPath(abs))
+			canonical := canonicalPath(abs)
+			if !a.atOrBelowRoot(canonical) {
+				return nil, outsideRoot(p)
+			}
+			all = append(all, canonical)
 		default:
 			return nil, notASpecFile(p)
 		}
