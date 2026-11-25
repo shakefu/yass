@@ -141,6 +141,10 @@ func TestCiteListsNoDocumentATargetCannotAddress(t *testing.T) {
 	// names the document a target can address and passes the other two by.
 	write(t, dir, "dup.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\nspec: Twin\nRETURN:\n- MUST: first twin\n---\nspec: Twin\nRETURN:\n- MUST: second twin\n---\nspec: Solo\nRETURN:\n- MUST: only child\n")
 	wantCite(t, dir, []string{citationMarker + " dup@Solo::RETURN[1]#24d75b8f\tMUST\tonly child"}, "dup")
+	// A name holding a slot token parses as a target naming another document
+	// and a slot, so no target names this one, and a citation would carry two.
+	write(t, dir, "odd.yass.yaml", modeline+"---\ndescription: o\nversion: v1\n---\nspec: Example::RETURN\nRETURN:\n- MUST: odd one out\n")
+	wantCite(t, dir, nil, "odd")
 }
 
 // yass: 14-cite@CitationTarget::RETURN[8]#c5feb4da
