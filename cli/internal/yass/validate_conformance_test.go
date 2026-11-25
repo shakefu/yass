@@ -113,11 +113,13 @@ func TestValidateOutsideFileUnreadableAscent(t *testing.T) {
 }
 
 // Root discovery anchors on a PATH operand, so the directory holding the file
-// is examined. One that cannot be listed ends the request with
-// yass.io.unreadable naming that directory, as `root` does for the same
-// operand. One that grants listing but no search stops the operand being
-// resolved at all, and it is the operand the diagnostic names. With no PATH the
-// ascent starts at the project root and examines neither directory; the
+// is examined, whether the file is named first or after another PATH. One that
+// cannot be listed ends the request with yass.io.unreadable naming that
+// directory: by its absolute path when the ascent from the operand finds it, as
+// `root` does for the same operand, and relative to the root when the walk down
+// from the root does. One that grants listing but no search stops the operand
+// being resolved at all, and it is the operand the diagnostic names. With no
+// PATH the ascent starts at the project root and examines neither directory; the
 // traversal that reaches the file reports it relative to the root
 // (01-locate@RootDiscovery::INPUT, RootDiscovery::ERROR,
 // 01-locate@ReadableDirectory, 01-locate@FileSet::ERROR).
@@ -135,6 +137,14 @@ func TestValidateFileOperandUnderUnlistableDirectory(t *testing.T) {
 	}
 	if loc := unreadableLocation(t, run(dir, "list", "locked/x.yass.yaml")); loc != want {
 		t.Fatalf("list location = %q, want %q", loc, want)
+	}
+	// Named after another PATH, the same file meets the same directory on the
+	// way down from the root. The walk reports it relative to the root, as the
+	// traversal does, and lets nothing through it whatever it holds.
+	for _, sub := range []string{"validate", "list"} {
+		if loc := unreadableLocation(t, run(dir, sub, "root.yass.yaml", "locked/x.yass.yaml")); loc != "locked" {
+			t.Fatalf("%s, named after another PATH: location = %q, want %q", sub, loc, "locked")
+		}
 	}
 	// With no PATH the ascent starts at the project root, and the traversal
 	// reports the directory relative to it.
