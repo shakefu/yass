@@ -180,7 +180,8 @@ Citations
   per spec the obligations that MUST and that SHOULD, with how many of each are
   covered, then the project's totals on a line whose REF is `-`. A MAY is a
   permission: it can be cited but is never listed or counted. Both reports
-  exit 0 and check nothing.
+  check nothing and exit 0, unless a spec file fails to parse: that is
+  reported on standard error and ends with 1.
 
 Test
 ----
