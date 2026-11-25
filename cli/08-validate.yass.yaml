@@ -199,12 +199,12 @@ ERROR:
 - WHEN: a PATH names a directory or file outside the project root discovery yielded, or one that a nearer project root below it governs
   MUST: report code yass.root.outside naming that PATH and check no file, because one request is answered against one project, whose file set excludes what a nearer root governs
   SEE: 01-locate@FileSet::RETURN
-- WHEN: a directory between the project root and an addressed path cannot be read, so whether a nearer project root governs that path cannot be decided
-  MUST: report code yass.io.unreadable naming that directory, rather than emit yass.root.outside or check the file
+- WHEN: a directory between the project root and an addressed path cannot be read
+  MUST: report code yass.io.unreadable naming that directory, whatever it holds, rather than emit yass.root.outside or check the file
   USES: 01-locate@ReadableDirectory
 - WHEN: a PATH does not exist
   MUST: report code yass.io.missing naming it
-- WHEN: "a PATH exists but is neither a directory nor a regular file"
+- WHEN: "a PATH exists in the project but is neither a directory nor a regular file"
   MUST: report code yass.io.not_a_spec_file naming it
 - WHEN: an addressed file cannot be read at all
   MUST: report code yass.io.unreadable naming it
