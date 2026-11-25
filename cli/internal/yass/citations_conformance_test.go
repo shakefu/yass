@@ -129,6 +129,28 @@ func TestCitationsListsNoDocumentATargetCannotAddress(t *testing.T) {
 	}, "--coverage")
 }
 
+// yass: 15-citations@Citations::RETURN[17]#efbbdcfc
+// yass: 15-citations@Citations::ERROR[6]#44c17eb0
+func TestCitationsHoldsFindingsUntilTheScopeIsRead(t *testing.T) {
+	if runtime.GOOS == "windows" || os.Geteuid() == 0 {
+		t.Skip("permission bits do not bind here")
+	}
+	dir := citedProject(t)
+	// A finding is waiting in one file, and a later file cannot be read: the
+	// request ends with the environment status and nothing on standard output.
+	write(t, dir, "pkg/m_test.go", citeComment("a@Alpha::RETURN[2]#00000000")+"\n")
+	shut := write(t, dir, "pkg/z_test.go", citeComment(startToken)+"\n")
+	if err := os.Chmod(shut, 0o000); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(shut, 0o755) })
+	got := run(dir, "citations")
+	wantStatus(t, got, ExitEnvironment)
+	if got.stdout != "" || !strings.Contains(got.stderr, "yass.io.unreadable\tpkg/z_test.go") {
+		t.Fatalf("stdout = %q, stderr = %q; want no record and yass.io.unreadable naming the file", got.stdout, got.stderr)
+	}
+}
+
 // yass: 15-citations@Citations::RETURN[4]#d7ba58b7
 // yass: 15-citations@Citations::RETURN[6]#4b1fa431
 // yass: 15-citations@Citations::RETURN[9]#f5ceec4e
