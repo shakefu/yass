@@ -15,8 +15,8 @@ yass lint root.yass.yaml
 YAML structure, preambles, names, slots, obligations, reference syntax, target
 existence, and relation/target kinds. It reports errors without repairing files.
 The first `PATH` anchors root discovery, so a project can be checked from any
-working directory; a `PATH` outside the project discovered exits `4` before any
-file is checked.
+working directory; a `PATH` in another project, a nested one included, exits `4`
+before any file is checked.
 
 `lint [--format FORMAT] [PATH...]` checks project hygiene: unreachable documents,
 unbound designs, missing schema modelines, a root file with no single named spec to
@@ -148,7 +148,7 @@ requested answers, so they go to standard output.
 | `1` | Findings: validation errors, lint advisories, or partial results due to parse failures |
 | `2` | Usage error, such as an unknown option or malformed target |
 | `3` | Unresolved path, document, slot, reference, docs name, or lint rule id; a target whose file does not parse; a reference whose relation does not fit its target's kind; or a malformed reference inside a served document |
-| `4` | No governing project root, or a `PATH` outside the project discovered |
+| `4` | No governing project root, or a `PATH` in another project, a nested one included |
 | `5` | Environment failure, such as unreadable files or a failed update |
 
 For scripts and CI, check the exit status as well as capturing output. `validate`
