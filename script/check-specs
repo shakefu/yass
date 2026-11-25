@@ -97,12 +97,13 @@ advisories=0
 
 # report LEVEL PROJECT SEVERITY CODE LOCATION LINE MESSAGE [SUFFIX] — print one
 # finding with the file it names, and annotate it under GitHub Actions. A
-# diagnostic's LOCATION is a spec file's REF, which takes the SUFFIX to name
-# the file; a citation finding names a test file as it stands, with an empty
-# SUFFIX.
+# diagnostic's LOCATION is a spec file's REF, which ends at `@` and takes the
+# SUFFIX to name the file; a citation finding names a test file as it stands,
+# with an empty SUFFIX, kept whole whatever its path holds.
 report() {
 	local level="$1" project="$2" code="$4" location="$5" line="$6" message="$7" suffix="${8-.yass.yaml}"
-	local file="${location%%@*}"
+	local file="$location"
+	[ -n "$suffix" ] && file="${location%%@*}"
 	case "$file" in
 	'' | -) file="$project" ;;
 	*) file="${project%/}/$file$suffix" ;;
