@@ -500,7 +500,7 @@ func TestCitationsTouchesNothing(t *testing.T) {
 	}
 }
 
-// yass: 15-citations@Citations::RETURN[5]#7f69eb01
+// yass: 15-citations@Citations::INPUT[5]#cf3ef670
 func TestTestFileNames(t *testing.T) {
 	for name, want := range map[string]bool{
 		"x_test.go": true, "test_x.py": true, "x.test.ts": true, "XTest.java": true,
