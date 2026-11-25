@@ -179,3 +179,40 @@ target selects outgoing references carried in that slot and incoming references
 that name that slot. File-only targets are not accepted. Incoming edges are
 searched within the project, and unresolved references are omitted; use
 `validate` to diagnose them. References are not followed transitively.
+
+## Cite an obligation: `cite`
+
+```sh
+yass cite root@Greeting
+yass cite root@Greeting::RETURN
+yass cite 'root@Greeting::RETURN[1]'
+```
+
+`cite [--format FORMAT] TARGET...` writes the citation line of each obligation the
+TARGETs address: a spec lists every obligation of its slots, a slot lists its own,
+and `[n]` the one obligation at that number. It is how a test is tied to the
+obligation it covers without counting obligations by hand. For the quick-start
+spec, the first command writes:
+
+```text
+yass: root@Greeting::INPUT[1]#eb5ecf72	MUST	accept a nonempty UTF-8 name string
+yass: root@Greeting::RETURN[1]#b5ef3e36	MUST	return Hello followed by one space, the supplied name, and an exclamation mark
+yass: root@Greeting::SIDE-EFFECT[1]#bff4f7f3	MUST-NOT	write to standard output or modify a file
+```
+
+The first field is the body of a citation comment: the marker `yass:`, the
+target, `[n]` counting the obligations of the slot that carry a keyword from 1,
+and a stamp of eight characters derived from the obligation's wording. A test
+carries it in a comment above the test, in whatever comment syntax its language
+uses, and [`citations`](cli-checking.md) checks it.
+
+Records contain `CITATION`, `WHAT`, and `TEXT`. Slots are listed in canonical
+order and obligations in authored order. A whole-file TARGET lists every spec the
+file holds, and a design yields nothing. Every TARGET resolves before any record
+is written, so one that fails exits with its status and writes nothing.
+
+A TARGET may also carry its stamp. `cite` then resolves the obligation the stamp
+names wherever it has moved in the slot, so a citation made stale by a reordered
+slot is refreshed to the obligation it was written for. A stamp no obligation
+carries, as after a rewording, reports `yass.ref.unresolved` and exits `3`
+rather than naming whatever now sits at that number.

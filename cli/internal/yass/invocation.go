@@ -7,7 +7,7 @@ import (
 )
 
 // Subcommands is the recognized set, in synopsis order.
-var Subcommands = []string{"overview", "root", "query", "list", "find", "refs", "validate", "lint", "cite", "docs", "explain", "update"}
+var Subcommands = []string{"overview", "root", "query", "list", "find", "refs", "validate", "lint", "cite", "citations", "docs", "explain", "update"}
 
 // DefaultSubcommand is what an argument vector naming no subcommand yields.
 // Such a vector is well formed rather than malformed: a reader who does not yet
@@ -24,13 +24,17 @@ type Invocation struct {
 	Subcommand string
 	Operands   []string
 
-	Raw     bool
-	Filters []string
-	SlotOpt string
-	HasSlot bool
-	In      bool
-	Out     bool
-	Format  string // "text" or "json"; "" means text
+	Raw      bool
+	Filters  []string
+	SlotOpt  string
+	HasSlot  bool
+	In       bool
+	Out      bool
+	Tests    string // the --tests glob; HasTests says whether one was given
+	HasTests bool
+	Missing  bool
+	Coverage bool
+	Format   string // "text" or "json"; "" means text
 
 	Help    bool
 	Version bool
@@ -42,18 +46,19 @@ type optionSpec struct {
 }
 
 var subcommandOptions = map[string]map[string]optionSpec{
-	"overview": {},
-	"root":     {"--format": {takesValue: true}},
-	"query":    {"--raw": {}},
-	"list":     {"--filter": {takesValue: true}, "--format": {takesValue: true}},
-	"find":     {"--slot": {takesValue: true}, "--format": {takesValue: true}},
-	"refs":     {"--in": {}, "--out": {}, "--format": {takesValue: true}},
-	"validate": {"--format": {takesValue: true}},
-	"lint":     {"--format": {takesValue: true}},
-	"cite":     {"--format": {takesValue: true}},
-	"docs":     {},
-	"explain":  {},
-	"update":   {"--format": {takesValue: true}},
+	"overview":  {},
+	"root":      {"--format": {takesValue: true}},
+	"query":     {"--raw": {}},
+	"list":      {"--filter": {takesValue: true}, "--format": {takesValue: true}},
+	"find":      {"--slot": {takesValue: true}, "--format": {takesValue: true}},
+	"refs":      {"--in": {}, "--out": {}, "--format": {takesValue: true}},
+	"validate":  {"--format": {takesValue: true}},
+	"lint":      {"--format": {takesValue: true}},
+	"cite":      {"--format": {takesValue: true}},
+	"citations": {"--missing": {}, "--coverage": {}, "--tests": {takesValue: true}, "--format": {takesValue: true}},
+	"docs":      {},
+	"explain":   {},
+	"update":    {"--format": {takesValue: true}},
 }
 
 // Formats is the set of record formats --format accepts.
@@ -67,18 +72,19 @@ const (
 // operandRange fixes how many operands each subcommand requires and accepts;
 // a max of -1 means unbounded.
 var operandRange = map[string][2]int{
-	"overview": {0, 0},
-	"root":     {0, 1},
-	"query":    {1, -1},
-	"list":     {0, -1},
-	"find":     {1, 1},
-	"refs":     {1, 1},
-	"validate": {0, -1},
-	"lint":     {0, -1},
-	"cite":     {1, -1},
-	"docs":     {0, 1},
-	"explain":  {0, 1},
-	"update":   {0, 0},
+	"overview":  {0, 0},
+	"root":      {0, 1},
+	"query":     {1, -1},
+	"list":      {0, -1},
+	"find":      {1, 1},
+	"refs":      {1, 1},
+	"validate":  {0, -1},
+	"lint":      {0, -1},
+	"cite":      {1, -1},
+	"citations": {0, -1},
+	"docs":      {0, 1},
+	"explain":   {0, 1},
+	"update":    {0, 0},
 }
 
 // pathOperandSubcommand is the set of subcommands whose operands are PATHs in
@@ -87,9 +93,10 @@ var operandRange = map[string][2]int{
 // are absent: their targets resolve against the root, so discovery cannot
 // anchor on them.
 var pathOperandSubcommand = map[string]bool{
-	"list":     true,
-	"validate": true,
-	"lint":     true,
+	"list":      true,
+	"validate":  true,
+	"lint":      true,
+	"citations": true,
 }
 
 func unknownOption(opt string) error {
@@ -233,6 +240,11 @@ func parseSubcommandArgs(inv *Invocation, args []string) error {
 					return fail(ExitUsage, "yass.args.unknown_format", "", 0, "unknown format "+strconv.Quote(value))
 				}
 				applyOption(inv, name, value)
+				// Two options the synopsis joins with `|` are at most one per
+				// invocation: the second is one the synopsis does not list.
+				if inv.Missing && inv.Coverage {
+					return unknownOption(name)
+				}
 				continue
 			}
 		}
@@ -254,6 +266,13 @@ func applyOption(inv *Invocation, name, value string) {
 		inv.In = true
 	case "--out":
 		inv.Out = true
+	case "--missing":
+		inv.Missing = true
+	case "--coverage":
+		inv.Coverage = true
+	case "--tests":
+		inv.Tests = value
+		inv.HasTests = true
 	case "--format":
 		inv.Format = value
 	}

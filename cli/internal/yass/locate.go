@@ -117,7 +117,14 @@ func isSpecBasename(name string) bool {
 
 // collectSpecFiles yields every regular file at or below dir whose basename
 // ends with .yass.yaml, ordered by byte-wise ascending path relative to the
-// project root. It never descends through a symbolic link naming a directory,
+// project root.
+func collectSpecFiles(dir string, root string, names *dirNames) ([]string, error) {
+	return collectFiles(dir, root, names, func(_, name string) bool { return isSpecBasename(name) })
+}
+
+// collectFiles yields every regular file at or below dir that keep selects,
+// judged on the file's project-root-relative path and basename, ordered by
+// byte-wise ascending path relative to the project root. It never descends through a symbolic link naming a directory,
 // and never descends into a subdirectory that holds its own root.yass.yaml —
 // including dir itself when dir is not the project root, so a directory
 // operand naming a nested project root yields nothing rather than the files
@@ -125,7 +132,7 @@ func isSpecBasename(name string) bool {
 // with a diagnostic naming that directory: the walk reports one it cannot
 // list, and the root-file probe reports one whose entries cannot be examined,
 // before any file inside it is taken and before it is skipped as a nested root.
-func collectSpecFiles(dir string, root string, names *dirNames) ([]string, error) {
+func collectFiles(dir string, root string, names *dirNames, keep func(rel, name string) bool) ([]string, error) {
 	var out []string
 	err := filepath.WalkDir(dir, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
@@ -142,7 +149,7 @@ func collectSpecFiles(dir string, root string, names *dirNames) ([]string, error
 			return nil
 		}
 		name := entry.Name()
-		if !isSpecBasename(name) {
+		if !keep(relTo(root, path), name) {
 			return nil
 		}
 		switch {

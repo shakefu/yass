@@ -46,6 +46,8 @@ Run
                                    report graph hygiene of the project
     cite [--format FORMAT] TARGET...
                                    write the citation line of each addressed obligation
+    citations [--missing | --coverage] [--tests GLOB] [--format FORMAT] [PATH...]
+                                   check test citations, or report what they leave uncovered
     docs [NAME]                    index the carried documents, or write one
     explain [ID]                   index lint rule ids, or explain one
     update [--format FORMAT]       replace this binary with the newest release
@@ -93,6 +95,9 @@ Examples, run from this directory
   ./yass lint --format json
   ./yass cite 04-query@Query
   ./yass cite 04-query@Resolution::RETURN
+  ./yass citations
+  ./yass citations --missing
+  ./yass citations --coverage
   ./yass docs
   ./yass docs authoring
   ./yass explain
@@ -142,6 +147,40 @@ Lint rule documentation
   The explanations are built into the program. Neither form reads the file
   tree or needs a project root; neither accepts --format. They cover lint
   rules, not validation errors or request failures.
+
+Citations
+---------
+
+  A citation is the comment a test carries naming the one obligation it covers:
+
+    // yass: path@Name::SLOT[n]#stamp
+
+  `n` counts the obligations of the slot that carry a keyword, from 1, and the
+  stamp is eight characters derived from the obligation's wording. The marker
+  is recognized wherever it stands on a line, in any comment syntax, and only
+  the token after it is read.
+
+  `yass cite TARGET` writes the citation line of each obligation a spec, a
+  slot, or a file holds, so one is pasted rather than counted. It also takes
+  TARGET as a citation's token with its stamp, and then resolves the obligation
+  the stamp names wherever it has moved in the slot; a stamp no obligation
+  carries, as after a rewording, exits 3.
+
+  `yass citations` reads every citation in the project's test files and writes
+  one diagnostic per citation that is malformed (yass.citation.syntax), names
+  no obligation (yass.citation.unresolved), or carries a stamp the obligation
+  at its number does not (yass.citation.stale, a warning), exiting 1. A file
+  is named as a test when its basename holds `test`, `tests`, `spec`, or
+  `specs` as a whole part: x_test.go, test_x.py, x.test.ts, XTest.java.
+  `--tests GLOB` replaces that rule, matching the whole root-relative path, and
+  a PATH narrows the files read, a file PATH being read whatever its name.
+
+  `yass citations --missing` lists, in the form `yass cite` writes, every MUST
+  and SHOULD obligation no citation covers. `yass citations --coverage` counts
+  per spec the obligations that MUST and that SHOULD, with how many of each are
+  covered, then the project's totals on a line whose REF is `-`. A MAY is a
+  permission: it can be cited but is never listed or counted. Both reports
+  exit 0 and check nothing.
 
 Test
 ----

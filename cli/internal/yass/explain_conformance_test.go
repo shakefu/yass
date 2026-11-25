@@ -8,7 +8,9 @@ import (
 	"testing"
 )
 
-// yass: 13-explain@Explain::RETURN
+// yass: 13-explain@Explain::RETURN[1]#45f02a92
+// yass: 13-explain@Explain::RETURN[3]#1cf0ce43
+// yass: 13-explain@Explain::RETURN[4]#f77f26bb
 func TestExplainIndex(t *testing.T) {
 	want := strings.Join(explanationRuleIDs(t), "\n") + "\n"
 	got := run(t.TempDir(), "explain")
@@ -18,8 +20,11 @@ func TestExplainIndex(t *testing.T) {
 	}
 }
 
-// yass: 13-explain@Explain::INPUT
-// yass: 13-explain@Explain::ERROR
+// yass: 13-explain@Explain::INPUT[3]#f58d8496
+// yass: 13-explain@Explain::INPUT[4]#137cf0cf
+// yass: 13-explain@Explain::ERROR[1]#4e8609d9
+// yass: 13-explain@Explain::ERROR[2]#8ad441b9
+// yass: 13-explain@Explain::ERROR[4]#f8d96021
 func TestExplainUnknownIDIsExactAndDoesNotEnumerate(t *testing.T) {
 	for _, id := range []string{"nope", "open_question", "yass.lint.open", "YASS.LINT.OPEN_QUESTION", "yass.lint.open_question ", "yass.docs.unknown", "yass.validate.invalid"} {
 		got := run(t.TempDir(), "explain", id)
@@ -31,7 +36,8 @@ func TestExplainUnknownIDIsExactAndDoesNotEnumerate(t *testing.T) {
 	}
 }
 
-// yass: 13-explain@Explain::INPUT
+// yass: 13-explain@Explain::INPUT[1]#bfc966e8
+// yass: 13-explain@Explain::INPUT[2]#8dc0c7ed
 func TestExplainInvocation(t *testing.T) {
 	for _, tc := range []struct {
 		args []string
@@ -50,8 +56,9 @@ func TestExplainInvocation(t *testing.T) {
 	}
 }
 
-// yass: 13-explain@Explain::SIDE-EFFECT
-// yass: 13-explain@Explain::INVARIANT
+// yass: 13-explain@Explain::INPUT[5]#86e65ff2
+// yass: 13-explain@Explain::SIDE-EFFECT[1]#224e162b
+// yass: 13-explain@Explain::INVARIANT[8]#f9384cd1
 func TestExplainReadsNoTree(t *testing.T) {
 	dir := t.TempDir()
 	write(t, dir, "root.yass.yaml", "not: [valid yaml")
@@ -71,7 +78,11 @@ func TestExplainReadsNoTree(t *testing.T) {
 	}
 }
 
-// yass: 13-explain@Explain::RETURN
+// yass: 13-explain@Explain::RETURN[2]#ad8c7a62
+// yass: 13-explain@Explain::RETURN[3]#1cf0ce43
+// yass: 13-explain@Explain::RETURN[4]#f77f26bb
+// yass: 13-explain@Explain::INVARIANT[3]#fb39bd03
+// yass: 13-explain@Explain::INVARIANT[7]#a52c184a
 func TestExplainServesEveryEntryWithinBudget(t *testing.T) {
 	for _, rule := range lintExplanations {
 		for name, value := range map[string]string{"Detects": rule.Detects, "Why": rule.Why, "Resolve": rule.Remedy} {
@@ -95,7 +106,9 @@ func TestExplainServesEveryEntryWithinBudget(t *testing.T) {
 	}
 }
 
-// yass: root@ExitPolicy
+// A write to standard output that fails ends in the environment status. That
+// is the rule of root@OutputPolicy and of status 5 in root@ExitPolicy, both
+// designs, which no citation addresses.
 func TestExplainOutputFailure(t *testing.T) {
 	for _, args := range [][]string{{"explain"}, {"explain", "yass.lint.open_question"}} {
 		var stderr bytes.Buffer

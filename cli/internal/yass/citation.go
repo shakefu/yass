@@ -1,6 +1,7 @@
 package yass
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"hash"
@@ -222,4 +223,188 @@ func obligationProse(o *Obligation) string {
 		return o.Prose
 	}
 	return ""
+}
+
+// marker is the bytes that open a citation.
+var marker = []byte(citationMarker)
+
+// citationTokenTail is the index and stamp that end a citation read from a
+// file, where the stamp is required.
+var citationTokenTail = regexp.MustCompile(`^\[([1-9][0-9]*)\]#([0-9a-f]{8})$`)
+
+// parseCitationToken reads one citation token as CitationSyntax states it: a
+// ref target in its full form, an index, and a stamp, all required. The
+// grammar of the ref target's own tokens is left to target resolution.
+func parseCitationToken(token string) (citationTarget, bool) {
+	ct := citationTarget{Raw: token}
+	i := strings.LastIndex(token, "[")
+	if i < 0 {
+		return ct, false
+	}
+	m := citationTokenTail.FindStringSubmatch(token[i:])
+	if m == nil {
+		return ct, false
+	}
+	ct.Base = token[:i]
+	if !strings.Contains(ct.Base, "@") || !strings.Contains(ct.Base, "::") {
+		return ct, false
+	}
+	n, err := strconv.Atoi(m[1])
+	if err != nil {
+		// A number too large to hold is well formed, and names no entry.
+		n = math.MaxInt
+	}
+	ct.Index, ct.Stamp = n, m[2]
+	return ct, true
+}
+
+// citationFound is one citation recognized in a file of the citation scope.
+type citationFound struct {
+	file  string // project-root-relative, `/` separators
+	line  int    // 1-based
+	token string // the bytes after the marker, empty when nothing follows
+}
+
+// scanCitations recognizes every citation in data, the bytes of one file, as
+// CitationSyntax states: the marker as a whole word, and the token from the
+// marker's whitespace to the next space, tab, or carriage return. Nothing is
+// parsed and no encoding is checked, so the bytes of any file are read alike.
+func scanCitations(data []byte, file string) []citationFound {
+	var out []citationFound
+	for line := 1; len(data) > 0; line++ {
+		var l []byte
+		if i := bytes.IndexByte(data, '\n'); i >= 0 {
+			l, data = data[:i], data[i+1:]
+		} else {
+			l, data = data, nil
+		}
+		out = append(out, lineCitations(l, file, line)...)
+	}
+	return out
+}
+
+// lineCitations recognizes every citation of one line, left to right.
+func lineCitations(l []byte, file string, line int) []citationFound {
+	var out []citationFound
+	for i := 0; ; {
+		j := bytes.Index(l[i:], marker)
+		if j < 0 {
+			return out
+		}
+		j += i
+		i = j + len(marker)
+		if j > 0 && isWordByte(l[j-1]) {
+			// A longer name merely ends with the marker: not a whole word.
+			continue
+		}
+		for i < len(l) && (l[i] == ' ' || l[i] == '\t') {
+			i++
+		}
+		end := i
+		for end < len(l) && l[end] != ' ' && l[end] != '\t' && l[end] != '\r' {
+			end++
+		}
+		out = append(out, citationFound{file, line, string(l[i:end])})
+		i = end
+	}
+}
+
+func isWordByte(c byte) bool {
+	return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_'
+}
+
+// isTestFileName reports whether a basename is named as a test
+// (15-citations@TestFileNames).
+func isTestFileName(name string) bool {
+	for _, part := range testNameParts(name) {
+		switch {
+		case strings.EqualFold(part, "test"), strings.EqualFold(part, "tests"),
+			strings.EqualFold(part, "spec"), strings.EqualFold(part, "specs"):
+			return true
+		}
+	}
+	return false
+}
+
+// testNameParts splits a basename at every `.`, `_`, and `-` and before each
+// capital letter that opens a word: one that follows a lower-case letter or a
+// digit, or that a lower-case letter follows. A run of capitals such as SPEC
+// or HTTP stays one part.
+func testNameParts(name string) []string {
+	var parts []string
+	start := 0
+	for i := 0; i < len(name); i++ {
+		c := name[i]
+		switch {
+		case c == '.' || c == '_' || c == '-':
+			parts = append(parts, name[start:i])
+			start = i + 1
+		case c >= 'A' && c <= 'Z' && i > start && (isLower(name[i-1]) || i+1 < len(name) && isLower(name[i+1])):
+			parts = append(parts, name[start:i])
+			start = i
+		}
+	}
+	return append(parts, name[start:])
+}
+
+// isLower reports whether c is a lower-case ASCII letter or a digit.
+func isLower(c byte) bool {
+	return c >= 'a' && c <= 'z' || c >= '0' && c <= '9'
+}
+
+// citationSelect yields the predicate that selects the files of the citation
+// scope: the files whose whole project-root-relative path matches the --tests
+// glob when one is given, and the files named as tests otherwise.
+func (a *App) citationSelect() func(rel, name string) bool {
+	if a.Inv.HasTests {
+		return func(rel, _ string) bool { return globMatch(a.Inv.Tests, rel) }
+	}
+	return func(_, name string) bool { return isTestFileName(name) }
+}
+
+// The codes of a citation finding.
+const (
+	citationSyntax     = "yass.citation.syntax"
+	citationUnresolved = "yass.citation.unresolved"
+	citationStale      = "yass.citation.stale"
+)
+
+// checkCitation resolves one citation read from a file against the loaded
+// model. Its ref target resolves from the project root. The result is the
+// obligation the citation covers, or nil together with the code naming what is
+// wrong with the citation. An error is a failure to serve the request, such as
+// a cited file that cannot be read.
+func (a *App) checkCitation(ct citationTarget) (*Obligation, string, error) {
+	b, err := a.resolveTargetFrom(ct.Base, a.Root)
+	if err != nil {
+		if e, ok := err.(*cliError); ok {
+			// A target the grammar or the slot vocabulary rejects is a
+			// malformed citation; one that addresses nothing is unresolved.
+			switch e.Status {
+			case ExitUsage:
+				return nil, citationSyntax, nil
+			case ExitUnresolved:
+				return nil, citationUnresolved, nil
+			}
+		}
+		return nil, "", err
+	}
+	var slot *Slot
+	for _, s := range b.Doc.Slots {
+		if s.Name == b.Slot {
+			slot = s
+		}
+	}
+	if slot == nil {
+		return nil, "", internal("resolved slot is not declared")
+	}
+	entries := numbered(slot)
+	if ct.Index > len(entries) {
+		return nil, citationUnresolved, nil
+	}
+	o := entries[ct.Index-1]
+	if obligationStamp(o) != ct.Stamp {
+		return nil, citationStale, nil
+	}
+	return o, "", nil
 }

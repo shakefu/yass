@@ -18,7 +18,8 @@ YAML specification language and a read-only Go CLI for serving specs to coding a
 - `prek install` once per clone: installs the pre-commit and commit-msg (conventional commit) hooks.
 - PRs are rebase-merged, so every commit lands on `main` and feeds cog's changelog: each must be a conventional commit.
 - `./script/test`: installer tests, then gofmt check, vet, Go tests, build, script tests, and the authored-spec gate. Without Go the Go parts skip locally but fail in CI. `./script/test-install`: install.sh and gen-formula tests alone.
-- `./script/check-specs [PROJECT...]`: validate and lint `.` and `cli/` with the CLI built from this checkout; every validation error fails, and its lint policy table dispositions each lint code as failing or advisory (an undispositioned code fails). Add a disposition when a lint code is added. `./script/test-check-specs`: its tests. `./script/test-pre-commit-hook`: tests for the hook wrapper.
+- `./script/check-specs [PROJECT...]`: validate, lint, and check citations of `.` and `cli/` with the CLI built from this checkout; every validation error fails, and the lint and citation policy tables disposition each code as failing or advisory (an undispositioned code fails). Add a disposition when a lint or citation code is added. `./script/test-check-specs`: its tests. `./script/test-pre-commit-hook`: tests for the hook wrapper.
+- Tests cite the obligation each covers in a `yass cite` line above the test; an edit that moves or rewords a cited obligation fails the citations gate until the citing test's line is taken again from `yass cite`.
 - `prek run --all-files`: repository hooks.
 - CLI build/run instructions: `cli/HOWTORUN.txt`.
 

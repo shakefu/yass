@@ -2,11 +2,14 @@
 #
 # script/test-check-specs — behavior tests for script/check-specs.
 #
-# The lint policy is exercised with a stub yass that replays canned output, so
-# each disposition is tested without authoring a spec that provokes it. The
-# end-to-end cases copy the repository's own spec projects into a scratch tree,
-# break one file, and run the real CLI over the copy. YASS names that CLI; when
-# unset it is built from cli/.
+# The lint and citation policies are exercised with a stub yass that replays
+# canned output, so each disposition is tested without authoring a spec or a
+# test that provokes it. The end-to-end cases copy the repository's own spec
+# projects into a scratch tree, break one file, and run the real CLI over the
+# copy. YASS names that CLI; when unset it is built from cli/.
+#
+# This script's own name matches the test-file rule, so a citation marker is
+# never spelled whole in it: assembled, it is not a citation of this project.
 
 set -euo pipefail
 
@@ -39,6 +42,23 @@ stub() {
 		#!/bin/sh
 		case "\$3" in
 		lint) cat "$bin.out"; cat "$bin.err" >&2; exit $2 ;;
+		*) exit 0 ;;
+		esac
+	EOF
+	chmod 0755 "$bin"
+	echo "$bin"
+}
+
+# cstub NAME STATUS STDOUT [STDERR] — the same stand-in answering citations in
+# place of lint, so every other subcommand is clean.
+cstub() {
+	local bin="$work/cstub-$1"
+	printf '%s' "$3" >"$bin.out"
+	printf '%s' "${4:-}" >"$bin.err"
+	cat >"$bin" <<-EOF
+		#!/bin/sh
+		case "\$3" in
+		citations) cat "$bin.out"; cat "$bin.err" >&2; exit $2 ;;
 		*) exit 0 ;;
 		esac
 	EOF
@@ -88,6 +108,22 @@ check "silent nonzero lint fails" 1 "yass lint exited 5 with no diagnostic" \
 
 check "missing project fails" 1 "not a directory" "$YASS" "$work/nowhere"
 
+# A citation finding names a test file, whose name the report keeps as it is.
+check "stale citation fails" 1 "^error .*/proj/x_test.go:3 yass.citation.stale" \
+	"$(cstub stale 1 "warn${tab}yass.citation.stale${tab}x_test.go${tab}3${tab}citation a@B::INPUT[1]#00000000 carries a stamp the obligation at that number does not
+")" "$proj"
+
+check "undispositioned citation code fails" 1 "citation code yass.citation.novel has no disposition" \
+	"$(cstub novel 1 "error${tab}yass.citation.novel${tab}x_test.go${tab}1${tab}something new
+")" "$proj"
+
+check "citation diagnostic on stderr fails" 1 "^error .*/proj/root.yass.yaml:1 yass.document.not_yaml" \
+	"$(cstub cstderr 1 "" "error${tab}yass.document.not_yaml${tab}root${tab}1${tab}stream is not well-formed yaml
+")" "$proj"
+
+check "silent nonzero citations fails" 1 "yass citations exited 5 with no diagnostic" \
+	"$(cstub csilent 5 "")" "$proj"
+
 # A scratch copy of both projects, laid out as the repository is, so the CLI
 # project's references into the language project still resolve.
 repo="$work/repo"
@@ -97,6 +133,16 @@ cp "$REPO_ROOT"/cli/*.yass.yaml "$repo/cli"/
 
 check "language project copy passes" 0 "0 failing" "$YASS" "$repo"
 check "cli project copy passes" 0 "0 failing" "$YASS" "$repo/cli"
+
+# A citation the CLI writes passes the gate, and the same citation with a stamp
+# that matches nothing fails at the test file and line carrying it.
+marker='yas''s:'
+"$YASS" -C "$repo/cli" cite '09-lint@Lint::INPUT[1]' | sed "s/^${marker} //" >"$work/token"
+printf '// %s %s\n' "$marker" "$(cat "$work/token")" >"$repo/cli/cited_test.go"
+check "valid citation passes" 0 "0 failing" "$YASS" "$repo/cli"
+printf '// %s %s\n' "$marker" '09-lint@Lint::INPUT[1]#00000000' >"$repo/cli/cited_test.go"
+check "stale citation in the project fails" 1 "^error .*/repo/cli/cited_test.go:1 yass\.citation\.stale" "$YASS" "$repo/cli"
+rm "$repo/cli/cited_test.go"
 
 sed -i.bak 's/^  CONFORMS: 01-locate@FileSet::RETURN$/  CONFORMS: 01-locate@NoSuchSpec::RETURN/' "$repo/cli/09-lint.yass.yaml"
 rm -f "$repo/cli/09-lint.yass.yaml.bak"

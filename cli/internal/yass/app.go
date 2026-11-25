@@ -24,6 +24,8 @@ const synopsis = `usage: yass [-C DIR] [--version] [--help] [SUBCOMMAND [ARGS...
                                  report graph hygiene of the project
   cite [--format FORMAT] TARGET...
                                  write the citation line of each addressed obligation
+  citations [--missing | --coverage] [--tests GLOB] [--format FORMAT] [PATH...]
+                                 check test citations, or report what they leave uncovered
   docs [NAME]                    index the carried documents, or write one
   explain [ID]                   index lint rule ids, or explain one
   update [--format FORMAT]       replace this binary with the newest release
@@ -38,6 +40,10 @@ const synopsis = `usage: yass [-C DIR] [--version] [--help] [SUBCOMMAND [ARGS...
   --slot SLOT                    restrict matches to obligations of that slot
   --in                           report incoming edges only
   --out                          report outgoing edges only
+  --missing                      list the obligations no citation covers
+  --coverage                     count each spec's obligations, and how many are cited
+  --tests GLOB                   scan the files whose whole path matches GLOB, rather
+                                 than the files named as tests
   --format FORMAT                write records as text (default) or json
 
   0 ok   1 findings   2 usage   3 unresolved   4 no-root   5 environment
@@ -104,6 +110,8 @@ func (a *App) dispatch() int {
 		return a.run(a.cmdLint)
 	case "cite":
 		return a.run(a.cmdCite)
+	case "citations":
+		return a.run(a.cmdCitations)
 	case "docs":
 		return a.run(a.cmdDocs)
 	case "explain":
