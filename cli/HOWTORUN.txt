@@ -94,7 +94,9 @@ Examples, run from this directory
 
   The repository holds two projects: this directory (the CLI) and the directory
   above it (the yass language definition). Each has its own root.yass.yaml, so
-  `yass` run from either sees only that project's files.
+  `yass` run from either sees only that project's files. A PATH operand anchors
+  root discovery, so `./yass validate <path>` checks the tree that path names
+  from any directory; a PATH outside the project discovered exits 4.
 
 Carried documents
 -----------------
