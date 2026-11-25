@@ -22,6 +22,8 @@ const synopsis = `usage: yass [-C DIR] [--version] [--help] [SUBCOMMAND [ARGS...
                                  check files against the yass language definition
   lint [--format FORMAT] [PATH...]
                                  report graph hygiene of the project
+  cite [--format FORMAT] TARGET...
+                                 write the citation line of each addressed obligation
   docs [NAME]                    index the carried documents, or write one
   explain [ID]                   index lint rule ids, or explain one
   update [--format FORMAT]       replace this binary with the newest release
@@ -100,6 +102,8 @@ func (a *App) dispatch() int {
 		return a.run(a.cmdValidate)
 	case "lint":
 		return a.run(a.cmdLint)
+	case "cite":
+		return a.run(a.cmdCite)
 	case "docs":
 		return a.run(a.cmdDocs)
 	case "explain":

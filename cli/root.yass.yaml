@@ -8,8 +8,8 @@ description: >
   arrives with no context, reports where a project root is, emits one addressed document with its references
   resolved, indexes what a spec set holds, searches obligation prose, reports the reference
   edges of a document, checks files against the language definition, reports graph hygiene,
-  serves the language documents it carries inside itself, explains lint rules, and replaces
-  its own installed binary with the newest published release. It never writes a spec file
+  serves the language documents it carries inside itself, explains lint rules, writes the citation
+  line of an obligation, and replaces its own installed binary with the newest published release. It never writes a spec file
   and never judges what an obligation says. Every command answers with the smallest output that
   carries the answer, because the reader's context is the scarce resource.
 version: v1
@@ -54,6 +54,9 @@ INPUT:
 - WHEN: "the subcommand is `lint`"
   MUST: dispatch to the command that reports graph hygiene
   SEE: 09-lint@Lint
+- WHEN: "the subcommand is `cite`"
+  MUST: dispatch to the command that writes the citation line of an obligation
+  SEE: 14-cite@Cite
 - WHEN: "the subcommand is `docs`"
   MUST: dispatch to the command that indexes the carried documents and writes one
   SEE: 10-docs@Docs
@@ -295,6 +298,12 @@ content: |
                 RELATION    CONFORMS, USES, or SEE
                 REF         the other end of the edge, `path@Name` with any `::SLOT` kept
 
+    cite        3 fields
+                CITATION    `yass:`, one ASCII space, and the citation token of the
+                            obligation, the whole body of the comment a test carries
+                WHAT        the obligation's normativity keyword
+                TEXT        the value of that keyword
+
     update      3 fields
                 ACTION      `updated` for a binary replaced with the newest release,
                             `current` for an installed version already the newest,
@@ -320,7 +329,7 @@ type: schema
 format: json-lines
 content: |
   The JSON form of record output, selected by `--format json` on `root`, `list`, `find`,
-  `refs`, `validate`, `lint`, and `update`. It carries exactly the records the text form
+  `refs`, `validate`, `lint`, `cite`, and `update`. It carries exactly the records the text form
   carries, in the same order, one per line, line-buffered the same way.
 
   Segmentation, completely:
@@ -336,6 +345,7 @@ content: |
     list        {"ref", "kind", "detail", "description"}
     find        {"ref", "what", "text"}
     refs        {"dir", "relation", "ref"}
+    cite        {"citation", "what", "text"}
     update      {"action", "from", "to"}
     diagnostic  {"severity", "code", "location", "line", "message"}
 

@@ -1,0 +1,151 @@
+# yaml-language-server: $schema=https://shakefu.github.io/yass/v1.schema.json
+---
+description: >
+  The `yass cite` subcommand, and the resolution every citation goes through. A citation is
+  the comment a test carries naming the one obligation the test covers. `yass cite` writes
+  the citation line of one obligation, or of every obligation a slot, a spec, or a file
+  holds, so an implementer pastes a citation instead of counting obligations by hand, and
+  `yass citations` checks the citations a project carries. CitationTarget resolves a target
+  to obligations, numbering and stamping them; CitationSyntax is the grammar of a citation;
+  ObligationStamp is the stamp that tells one obligation from its neighbours.
+version: v1
+---
+spec: Cite
+INPUT:
+- MUST: "be invoked as `yass cite [--format FORMAT] TARGET...`"
+  SEE: root@YassCli::RETURN
+- MUST: take each TARGET as citation target resolution binds it
+  CONFORMS: CitationTarget::RETURN
+- MUST: "accept a TARGET that is the citation token without `#stamp`, and one that is its ref target alone"
+  USES: CitationSyntax
+- MUST: take the project root discovery yields for the starting directory, since a target resolves against the root and cannot anchor discovery
+  CONFORMS: 01-locate@RootDiscovery::INPUT
+RETURN:
+- MUST: resolve every TARGET before writing any record
+- MUST: emit one record per obligation the TARGETs resolve to, in the order the TARGETs were given
+  USES: root@RecordFormat
+- MUST: "give every record exactly three fields, in the order CITATION, WHAT, TEXT"
+- MUST: "set CITATION to `yass:`, one ASCII space, and the citation token of the obligation, which is the whole body of the citation comment an implementer writes"
+- MUST: set WHAT to the obligation's normativity keyword
+- MUST: set TEXT to the value of that keyword
+- WHEN: TARGET addresses a whole file
+  MUST: emit the obligations of every spec document of the file that a ref target can address, the slots of each in canonical order
+- WHEN: "TARGET addresses a spec and names no slot"
+  MUST: emit the obligations of every slot the spec declares, in canonical order
+- WHEN: a TARGET resolves to no obligation
+  MUST: emit no record for it
+- MUST: "preserve the authored order of obligations within a slot"
+- MUST: write the records to standard output
+  USES: root@OutputPolicy
+- MUST: exit with the ok status once every record is written
+ERROR:
+- WHEN: "a TARGET carries an index or a stamp that does not fit CitationSyntax"
+  MUST: report code yass.args.target_syntax naming the TARGET
+  USES: CitationSyntax
+- WHEN: a TARGET fails to resolve
+  MUST: "emit the diagnostic citation target resolution emits, and write no record for any TARGET"
+  SEE: CitationTarget::ERROR
+- MUST: report code yass.internal for any failure not matched by a guarded obligation in this slot
+- MUST: exit with the status the request-failure catalogue gives each code this spec reports to end a request
+  USES: root@RequestFailures
+SIDE-EFFECT:
+- MUST: write every diagnostic in this slot to standard error, since a record is the only thing this subcommand puts on standard output
+  USES: root@OutputPolicy
+- MUST-NOT: "create, modify, delete, or rename any file or directory"
+INVARIANT:
+- MUST: write every citation token in the one form CitationSyntax states, so a record of this command is a well-formed citation
+  USES: CitationSyntax
+- MUST-NOT: emit a record for an entry that holds no number
+  SEE: CitationTarget::RETURN
+---
+spec: CitationTarget
+INPUT:
+- MUST: take one citation target, a ref target followed by an optional index and an optional stamp, a stamp never standing without an index
+  USES: CitationSyntax
+- MUST: rely on the caller having checked the target against CitationSyntax, and re-check no part of its grammar
+- MUST: resolve the ref target as a command-line operand resolves it
+  CONFORMS: 02-load@TargetResolution::RETURN
+- MUST: number the entries of a slot in authored order, giving the next number to each entry that carries a normativity keyword and none to any other, so an entry holding only references takes no number
+  SEE: ../yass@Obligation
+RETURN:
+- MUST: yield the number, the stamp, the normativity keyword, and the prose of each entry a target resolves to
+- MUST: "write a citation token as the normalized target, `[n]`, `#`, and the stamp"
+  USES: root@RecordFormat
+- MUST: stamp an entry by ObligationStamp over its normativity keyword, the value of that keyword when it is a string, the value of its guard when it carries one whose value is a string, and each reference it carries
+  USES: ObligationStamp
+- WHEN: the target carries no index
+  MUST: yield every numbered entry of the addressed slot, of every slot of the addressed spec, or of every spec document of the addressed file
+- WHEN: "the target carries an index and no stamp"
+  MUST: yield the entry holding that number
+- WHEN: "the target carries an index and a stamp"
+  MUST: yield the entry holding that number when one does and its stamp equals the given stamp
+- WHEN: "the target carries an index and a stamp, no entry holding that number carries the given stamp, and exactly one entry of the slot carries it"
+  MUST: yield that entry, because an obligation that moved takes its stamp with it
+- WHEN: the target addresses a design
+  MUST: yield no entry and report nothing
+- MUST-NOT: "let the stamp of an entry vary with its number, its line, its slot, its spec, or its file"
+ERROR:
+- WHEN: the ref target does not resolve
+  MUST: "report the code target resolution emits for it, naming the target as it was given"
+  SEE: 02-load@TargetResolution::ERROR
+- WHEN: "the target carries an index and no stamp, and no entry of the slot holds that number"
+  MUST: report code yass.ref.unresolved naming the target
+- WHEN: "the target carries an index and a stamp, no entry holding that number carries the given stamp, and either no entry of the slot carries it or more than one does"
+  MUST: report code yass.ref.unresolved naming the target, because an obligation that was reworded cannot be found by the wording it had
+- MUST: exit with the status the request-failure catalogue gives each code this spec reports to end a request
+  USES: root@RequestFailures
+SIDE-EFFECT:
+- MUST: write every diagnostic in this slot to standard error
+  USES: root@OutputPolicy
+INVARIANT:
+- MUST-NOT: number or stamp an entry that resolution inserted from another spec, since a citation names an obligation where it is authored
+  SEE: 04-query@Resolution::RETURN
+- MUST-NOT: let a stamp depend on anything but the keys and values of its own entry, so quoting, layout, and the entries around it change no stamp
+  USES: ObligationStamp
+---
+design: CitationSyntax
+type: schema
+format: citation
+content: |
+  A citation is a comment a test carries naming the one obligation the test covers. Its
+  body is the marker `yass:`, one or more ASCII spaces or tabs, and one citation token.
+  The token ends at the next space or tab, so a comment leader before the marker and any
+  text after the token are not part of the citation.
+
+    yass: path@Name::SLOT[n]#stamp
+
+  - `path@Name::SLOT` is a ref target in its full form: the path token, the name token,
+    and one of the five slot tokens, none of them omitted.
+  - `n` is a decimal number with no leading zero. It counts the entries of the slot, in
+    authored order, that carry a normativity keyword, from 1.
+  - `stamp` is exactly eight lower-case hexadecimal digits, the ObligationStamp of the
+    entry at that number.
+  - The marker stands as a whole word: the byte before it, when there is one, is not an
+    ASCII letter, a digit, or an underscore.
+
+  Every part is required. A test covering several obligations carries one citation for
+  each, and a slot or a spec is never cited as a whole, because a citation that covers
+  everything it names says nothing about what a test leaves uncovered.
+
+  `yass cite` also takes its target as the token without `#stamp` and as the ref target
+  alone, and writes each entry it resolves to in the full form.
+---
+design: ObligationStamp
+type: algorithm
+content: |
+  stamp(keyword, prose, guard, references):
+    h := a new sha256 digest
+    field(h, keyword)
+    field(h, prose)
+    field(h, guard)
+    for each reference in references, ordered by its relation as CONFORMS, USES, SEE, and
+    by authored order within a relation
+      field(h, relation of reference)
+      field(h, target of reference)
+    return the first four bytes of h, each as two lower-case hexadecimal digits
+
+  field(h, text):
+    write to h the number of bytes of text in decimal, a colon, and the bytes of text
+
+  guard is the empty text when the entry carries none. A value that is not a string is
+  the empty text. Text is taken as it was loaded, with no normalization.
