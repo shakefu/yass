@@ -556,6 +556,38 @@ func TestListAndLintRefuseOperandOutsideProject(t *testing.T) {
 	}
 }
 
+// A later PATH that a nearer project root governs is outside the project the
+// first PATH named, and ends the request like one in another tree: its files
+// are neither checked against the outer root nor skipped without a word, where
+// lint under its own root reports what the file holds. The directory holding
+// the nested root still addresses the outer project's part of it
+// (01-locate@FileSet::RETURN, 08-validate@Validate::ERROR,
+// 05-list@List::ERROR, 09-lint@Lint::ERROR).
+func TestPathUnderNestedRootIsOutsideProject(t *testing.T) {
+	dir := project(t)
+	write(t, dir, "sub/nested/deep/d.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\nspec: D\nINPUT:\n- MUST: x\n")
+	for _, p := range []string{"sub/nested/x.yass.yaml", "sub/nested", "sub/nested/deep"} {
+		for _, sub := range []string{"validate", "list", "lint"} {
+			got := run(dir, sub, "root.yass.yaml", p)
+			wantStatus(t, got, ExitNoRoot)
+			if got.stdout != "" || !strings.Contains(got.stderr, "yass.root.outside\t"+p+"\t") {
+				t.Fatalf("%s %s: stdout = %q, stderr = %q, want yass.root.outside naming the operand", sub, p, got.stdout, got.stderr)
+			}
+		}
+	}
+	// Under its own root the same file is answered for, not passed over.
+	own := run(filepath.Join(dir, "sub", "nested"), "lint", "x.yass.yaml")
+	wantStatus(t, own, ExitFindings)
+	if !strings.Contains(own.stdout, "yass.lint.unreachable\tx@X") {
+		t.Fatalf("lint under the nested root = %q, want x@X unreachable", own.stdout)
+	}
+	got := run(dir, "list", "root.yass.yaml", "sub")
+	wantStatus(t, got, ExitOK)
+	if !strings.Contains(got.stdout, "sub/b\tfile") || strings.Contains(got.stdout, "sub/nested") {
+		t.Fatalf("listing sub = %q, want the outer project's files alone", got.stdout)
+	}
+}
+
 // A directory that cannot be read is named by the diagnostic, both when the
 // traversal meets it and when the ascent does.
 func TestUnreadableDirectory(t *testing.T) {
@@ -739,6 +771,9 @@ func TestTraversalUnreadableDirectory(t *testing.T) {
 		{"search-only nested project root", nested, false, 0o111, []string{"list"}, false},
 		{"search-only nested project root, validate", nested, false, 0o111, []string{"validate"}, false},
 		{"read-only nested project root", nested, false, 0o444, []string{"list"}, false},
+		// A later PATH below a nearer root that cannot be confirmed: the
+		// question whether that root governs the path is undecided.
+		{"search-only nested project root, named below it after another PATH", nested, false, 0o111, []string{"list", "root.yass.yaml", nested + "/x.yass.yaml"}, false},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -2227,6 +2262,95 @@ func TestSymlinkPolicy(t *testing.T) {
 	for _, l := range lines(got.stdout) {
 		if strings.HasPrefix(l, "loop/") {
 			t.Fatalf("the traversal descended through a directory symlink: %s", l)
+		}
+	}
+}
+
+// A PATH naming a symbolic link to a regular file addresses the link by its
+// own name in the project holding it, as the project file set holds it: the
+// target may lie in another project or in none, whichever directory the process
+// runs in, and `root` names for the same operand the project the other
+// commands use (01-locate@RootDiscovery::INPUT, 01-locate@FileSet::INVARIANT).
+func TestFileLinkOperandBelongsToHoldingProject(t *testing.T) {
+	base := realDir(t, "base")
+	other := filepath.Join(base, "other")
+	write(t, other, "root.yass.yaml", conformanceRoot)
+	target := write(t, other, "item.yass.yaml", modeline+"---\ndescription: i\nversion: v1\n---\nspec: Item\nINPUT:\n- MUST: x\n")
+	loose := write(t, base, "ext/x.yass.yaml", modeline+"---\ndescription: x\nversion: v1\n---\nspec: X\nINPUT:\n- MUST: x\n")
+	proj := filepath.Join(base, "proj")
+	write(t, proj, "root.yass.yaml", conformanceRoot)
+	links := map[string]string{"alias.yass.yaml": target, "link.yass.yaml": loose}
+	for name, link := range links {
+		if err := os.Symlink(link, filepath.Join(proj, name)); err != nil {
+			t.Skipf("symbolic links are unavailable: %v", err)
+		}
+	}
+
+	// Each link is a member of the project holding it, and naming it alone
+	// yields the records the whole project gives that member.
+	whole := run(proj, "list")
+	wantStatus(t, whole, ExitOK)
+	for _, name := range []string{"alias.yass.yaml", "link.yass.yaml"} {
+		ref := strings.TrimSuffix(name, SpecSuffix)
+		var member []string
+		for _, l := range lines(whole.stdout) {
+			if strings.HasPrefix(l, ref+"\t") || strings.HasPrefix(l, ref+"@") {
+				member = append(member, l)
+			}
+		}
+		got := run(proj, "list", name)
+		wantStatus(t, got, ExitOK)
+		if len(member) < 2 || strings.Join(lines(got.stdout), "|") != strings.Join(member, "|") {
+			t.Fatalf("list %s = %q, want its member records %q", name, got.stdout, member)
+		}
+		if got := run(proj, "validate", name); got.status != ExitOK || got.stdout != "" || got.stderr != "" {
+			t.Fatalf("validate %s: status %d\nstdout:\n%s\nstderr:\n%s", name, got.status, got.stdout, got.stderr)
+		}
+		if got := run(proj, "root", name); strings.TrimSuffix(got.stdout, "\n") != proj || got.stderr != "" {
+			t.Fatalf("root %s = %q %q, want %q", name, got.stdout, got.stderr, proj)
+		}
+	}
+
+	// From a directory inside no project the same operand addresses the same
+	// project, and no other.
+	t.Chdir(base)
+	abs := filepath.Join(proj, "alias.yass.yaml")
+	if got := mainIn("list", abs); !strings.Contains(got.stdout, "alias@Item\tspec") || strings.Contains(got.stdout, "../") {
+		t.Fatalf("list from no project = %q, want the link's own records", got.stdout)
+	}
+	if got := mainIn("root", abs); strings.TrimSuffix(got.stdout, "\n") != proj || got.stderr != "" {
+		t.Fatalf("root from no project = %q %q, want %q", got.stdout, got.stderr, proj)
+	}
+}
+
+// No relative path leads from one Windows volume to another, so a PATH there
+// is outside the project however it is spelled. filepath.Rel refuses a
+// relative root and an absolute path the same way on every platform, so that
+// branch is exercised here rather than on Windows alone.
+func TestRelUnder(t *testing.T) {
+	root := filepath.Join(string(filepath.Separator), "work", "project")
+	a := &App{Root: root}
+	join := func(segs ...string) string { return filepath.Join(append([]string{root}, segs...)...) }
+	for _, c := range []struct {
+		abs  string
+		want []string
+	}{
+		{root, nil},
+		{join("a.yass.yaml"), []string{"a.yass.yaml"}},
+		{join("sub", "nested", "x.yass.yaml"), []string{"sub", "nested", "x.yass.yaml"}},
+	} {
+		if segs, ok := a.relUnder(c.abs); !ok || strings.Join(segs, "/") != strings.Join(c.want, "/") {
+			t.Errorf("relUnder(%q) = %q, %v; want %q", c.abs, segs, ok, c.want)
+		}
+	}
+	// Beside the root, above it, and on a volume no relative path reaches.
+	for _, abs := range []string{
+		join("..", "elsewhere", "x.yass.yaml"),
+		join("..", "x.yass.yaml"),
+		filepath.Join("elsewhere", "x.yass.yaml"),
+	} {
+		if _, ok := a.relUnder(abs); ok {
+			t.Errorf("relUnder(%q) reports a path inside the project", abs)
 		}
 	}
 }

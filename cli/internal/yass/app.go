@@ -122,8 +122,8 @@ func (a *App) run(cmd func() (int, error)) int {
 // invocation uses, and hands the same value to every spec that needs it. A
 // starting path that names a file begins at the directory holding it. A
 // subcommand that addresses paths anchors root discovery on its first PATH
-// operand when one is given, so the tree the caller named governs the request
-// (01-locate@RootDiscovery::INPUT).
+// operand when one is given, resolved as every PATH is, so the tree the caller
+// named governs the request (01-locate@RootDiscovery::INPUT).
 func (a *App) prepare() error {
 	start, err := resolveStart(a.Inv.StartDir, a.Inv.StartDir)
 	if err != nil {
@@ -133,10 +133,11 @@ func (a *App) prepare() error {
 	anchor, label := a.StartDir, a.Inv.StartDir
 	if pathOperandSubcommand[a.Inv.Subcommand] && len(a.Inv.Operands) > 0 {
 		label = a.Inv.Operands[0]
-		anchor, err = resolveStart(a.absPath(label), label)
-		if err != nil {
-			return err
+		resolved, _, perr := resolvePath(a.absPath(label), label)
+		if perr != nil {
+			return perr
 		}
+		anchor = resolved
 	}
 	root, err := discoverRoot(anchor, label, a.names)
 	if err != nil {
