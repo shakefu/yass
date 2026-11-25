@@ -108,9 +108,10 @@ check "silent nonzero lint fails" 1 "yass lint exited 5 with no diagnostic" \
 
 check "missing project fails" 1 "not a directory" "$YASS" "$work/nowhere"
 
-# A citation finding names a test file, whose name the report keeps as it is.
-check "stale citation fails" 1 "^error .*/proj/x_test.go:3 yass.citation.stale" \
-	"$(cstub stale 1 "warn${tab}yass.citation.stale${tab}x_test.go${tab}3${tab}citation a@B::INPUT[1]#00000000 carries a stamp the obligation at that number does not
+# A citation finding names a test file, whose path the report keeps whole,
+# even one holding an `@` that would end a spec file's REF.
+check "stale citation fails" 1 "^error .*/proj/pkg/@scope/x.test.ts:3 yass.citation.stale" \
+	"$(cstub stale 1 "warn${tab}yass.citation.stale${tab}pkg/@scope/x.test.ts${tab}3${tab}citation a@B::INPUT[1]#00000000 carries a stamp the obligation at that number does not
 ")" "$proj"
 
 check "undispositioned citation code fails" 1 "citation code yass.citation.novel has no disposition" \
