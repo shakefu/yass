@@ -10,7 +10,7 @@ version: v1
 ---
 spec: RootDiscovery
 INPUT:
-- MUST: take one starting path, which is the starting directory invocation yielded when a command supplies none
+- MUST: take one starting path, which is the first PATH operand the command was given when it addresses paths and names one, and the starting directory invocation yielded otherwise, so the tree the caller named governs the request
   CONFORMS: 00-invocation@Invocation::RETURN
 - MUST: rely on the starting path being a plain argument invocation already parsed, and re-examine it for an option not at all
 - WHEN: the starting path is not a plain argument after all

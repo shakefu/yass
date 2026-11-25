@@ -14,6 +14,9 @@ spec: Validate
 INPUT:
 - MUST: "be invoked as `yass validate [--format FORMAT] [PATH...]`"
   SEE: root@YassCli::RETURN
+- WHEN: a PATH is given
+  MUST: take the project root discovery yields for the first PATH, so the tree the caller named governs the request
+  CONFORMS: 01-locate@RootDiscovery::INPUT
 - WHEN: no PATH is given
   MUST: take the project file set
   CONFORMS: 01-locate@FileSet::RETURN
@@ -85,9 +88,6 @@ RETURN:
   CONFORMS: ../yass@Preamble
 - WHEN: "a file named exactly `root.yass.yaml` carries no spec document, or more than one"
   MUST: emit code yass.root.spec_count
-  CONFORMS: ../yass@Root
-- WHEN: a project root governs the starting directory, and no file named `root.yass.yaml` is at or above an addressed file outside that root
-  MUST: emit code yass.root.not_found for that file
   CONFORMS: ../yass@Root
 - WHEN: "a document carries a `spec` key whose value is absent, empty, or not a string"
   MUST: emit code yass.spec.unnamed
@@ -193,18 +193,18 @@ RETURN:
 ERROR:
 - WHEN: at least one diagnostic was emitted
   MUST: exit with the findings status after writing all of them
-- WHEN: no project root governs the starting directory
-  MUST: report code yass.root.not_found naming the starting path and check no file, whatever PATHs are given, because locating the project root precedes every check
+- WHEN: no project root governs the path discovery anchors on, which is the first PATH when one is given and the starting directory otherwise
+  MUST: report code yass.root.not_found naming that path and check no file, because locating the project root precedes every check
   SEE: 01-locate@RootDiscovery::ERROR
+- WHEN: a PATH names a directory or file outside the project root discovery yielded
+  MUST: report code yass.root.outside naming that PATH and check no file, because one request is answered against one project
+  SEE: 01-locate@RootDiscovery::RETURN
 - WHEN: a PATH does not exist
   MUST: report code yass.io.missing naming it
 - WHEN: "a PATH exists but is neither a directory nor a regular file"
   MUST: report code yass.io.not_a_spec_file naming it
 - WHEN: an addressed file cannot be read at all
   MUST: report code yass.io.unreadable naming it
-- WHEN: a directory at or above an addressed file outside the governing project root cannot be read, so whether a root file is at or above that file cannot be decided
-  MUST: report code yass.io.unreadable naming that directory, rather than emit yass.root.not_found or pass the file
-  USES: 01-locate@ReadableDirectory
 - WHEN: a file a reference target names exists but cannot be read, so whether the target resolves cannot be decided
   MUST: report code yass.io.unreadable naming that file, rather than emit yass.ref.unresolved, because the file exists
 - MUST: report code yass.internal for any failure not matched by a guarded obligation in this slot

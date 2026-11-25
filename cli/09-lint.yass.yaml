@@ -17,6 +17,9 @@ spec: Lint
 INPUT:
 - MUST: "be invoked as `yass lint [--format FORMAT] [PATH...]`"
   SEE: root@YassCli::RETURN
+- WHEN: a PATH is given
+  MUST: take the project root discovery yields for the first PATH, and build the graph from that project's whole file set, so the project the caller named governs the request
+  CONFORMS: 01-locate@RootDiscovery::INPUT
 - MUST: take the project file set, whatever PATH selects, because reachability and reference counting are properties of the whole graph
   CONFORMS: 01-locate@FileSet::RETURN
 - MUST: take the loaded model of every file in that set
@@ -153,6 +156,9 @@ ERROR:
   MUST: report code yass.io.missing naming it
 - WHEN: "a PATH exists but is neither a directory nor a regular file"
   MUST: report code yass.io.not_a_spec_file naming it
+- WHEN: a PATH names a directory or file outside the project root discovery yielded
+  MUST: report code yass.root.outside naming that PATH, before any advisory is written
+  SEE: 01-locate@RootDiscovery::RETURN
 - WHEN: a file of the project file set cannot be read at all
   MUST: report code yass.io.unreadable naming it
 - MUST: report code yass.internal for any failure not matched by a guarded obligation in this slot
