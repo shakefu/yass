@@ -102,11 +102,12 @@ func (a *App) citationDiag(severity, code string, c citationFound, message strin
 }
 
 // reportMissing lists every obligation of the project that no citation covers,
-// one record in the form `yass cite` writes.
+// one record in the form `yass cite` writes. Only a document a ref target can
+// address is listed, since a citation written for any other would not resolve.
 func (a *App) reportMissing(files []*File, covered map[*Obligation]bool) {
 	for _, f := range files {
 		for _, d := range f.Docs {
-			if d.Kind != KindSpec || !d.Addressable() {
+			if !addressableByTarget(d) {
 				continue
 			}
 			for _, s := range canonicalSlots(d) {
@@ -121,13 +122,14 @@ func (a *App) reportMissing(files []*File, covered map[*Obligation]bool) {
 	}
 }
 
-// reportCoverage counts, per spec document, the obligations that MUST, SHOULD,
-// and their negatives carry and how many are covered, then the whole project.
+// reportCoverage counts, per spec document a ref target can address, the
+// obligations that MUST, SHOULD, and their negatives carry and how many are
+// covered, then the whole project.
 func (a *App) reportCoverage(files []*File, covered map[*Obligation]bool) {
 	var total [4]int
 	for _, f := range files {
 		for _, d := range f.Docs {
-			if d.Kind != KindSpec || !d.Addressable() {
+			if !addressableByTarget(d) {
 				continue
 			}
 			var row [4]int

@@ -129,7 +129,7 @@ func (a *App) resolveCitation(ct citationTarget) ([]cited, error) {
 	switch {
 	case b.WholeFile:
 		for _, d := range b.File.Docs {
-			if d.Kind == KindSpec && d.Addressable() {
+			if addressableByTarget(d) {
 				slots = append(slots, canonicalSlots(d)...)
 			}
 		}
@@ -181,6 +181,27 @@ func (a *App) resolveCitation(ct citationTarget) ([]cited, error) {
 	}
 	return nil, fail(ExitUnresolved, "yass.ref.unresolved", ct.Raw, 0,
 		"citation stamp names no obligation of that slot")
+}
+
+// addressableByTarget reports whether a command-line ref target can name a
+// spec document: it is addressable, its `path@Name` fits the ref-target
+// grammar, and no other document of its file carries its name. A citation is
+// written only for an obligation of such a document, since one written for any
+// other would not resolve once it is pasted into a test.
+func addressableByTarget(d *Doc) bool {
+	if d.Kind != KindSpec || !d.Addressable() {
+		return false
+	}
+	if _, ok := parseTarget(d.File.Ref+"@"+d.Name, true); !ok {
+		return false
+	}
+	same := 0
+	for _, o := range d.File.Docs {
+		if o.Addressable() && o.Name == d.Name {
+			same++
+		}
+	}
+	return same == 1
 }
 
 // asGiven lets a diagnostic target resolution emits name the citation target

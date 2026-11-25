@@ -106,6 +106,29 @@ func TestCitationsReportsAMalformedCitation(t *testing.T) {
 	}
 }
 
+// yass: 14-cite@CitationTarget::RETURN[10]#52cd00aa
+// yass: 15-citations@Citations::RETURN[14]#564f5823
+// yass: 15-citations@Citations::RETURN[15]#42c1d377
+func TestCitationsListsNoDocumentATargetCannotAddress(t *testing.T) {
+	dir := citedProject(t)
+	// A spec under a path holding a space, and one of two documents sharing a
+	// name, can be cited by no target. A citation written for their
+	// obligations would not resolve once pasted, so neither report names them.
+	write(t, dir, "user flows/signup.yass.yaml", modeline+"---\ndescription: s\nversion: v1\n---\nspec: Signup\nRETURN:\n- MUST: sign up\n")
+	write(t, dir, "dup.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\nspec: Twin\nRETURN:\n- MUST: first twin\n---\nspec: Twin\nRETURN:\n- MUST: second twin\n")
+	wantCitations(t, dir, ExitOK, []string{
+		citedGoods2, citedWrapped, citedSpaced,
+		citationMarker + " root@R::INPUT[1]#4ce36fb4\tMUST\tx",
+	}, "--missing")
+	wantCitations(t, dir, ExitOK, []string{
+		"a@Alpha\t3\t3\t0\t0",
+		"a@Beta\t2\t1\t1\t0",
+		"a@Format\t1\t0\t0\t0",
+		"root@R\t1\t0\t0\t0",
+		"-\t7\t4\t1\t0",
+	}, "--coverage")
+}
+
 // yass: 15-citations@Citations::RETURN[4]#d7ba58b7
 // yass: 15-citations@Citations::RETURN[6]#4b1fa431
 // yass: 15-citations@Citations::RETURN[9]#f5ceec4e
@@ -232,7 +255,7 @@ func TestCitationsMissingListsUncoveredObligations(t *testing.T) {
 	}
 }
 
-// yass: 15-citations@Citations::RETURN[15]#112421be
+// yass: 15-citations@Citations::RETURN[15]#42c1d377
 // yass: 15-citations@Citations::RETURN[13]#473f5d16
 func TestCitationsCoverageCountsObligations(t *testing.T) {
 	wantCitations(t, citedProject(t), ExitOK, []string{
@@ -416,7 +439,7 @@ func TestCitationsInvocation(t *testing.T) {
 
 // yass: 15-citations@Citations::RETURN[10]#73489f04
 // yass: 15-citations@Citations::RETURN[14]#564f5823
-// yass: 15-citations@Citations::RETURN[15]#112421be
+// yass: 15-citations@Citations::RETURN[15]#42c1d377
 func TestCitationsRecordForms(t *testing.T) {
 	dir := citedProject(t)
 	write(t, dir, "pkg/m_test.go", citeComment("a@Alpha::RETURN[2]#00000000")+"\n")

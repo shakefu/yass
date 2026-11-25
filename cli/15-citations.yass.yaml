@@ -63,7 +63,7 @@ RETURN:
   MUST: "emit one record, in the form `yass cite` writes, for each obligation of every spec document a ref target can address that no citation in scope covers, in the order the file set lists their files"
   SEE: 14-cite@Cite::RETURN
 - WHEN: "`--coverage` is given"
-  MUST: "emit one record per spec document holding an obligation, counting its obligations and the covered among them in two pairs, and one last record, for a project that holds an obligation, whose REF is `-` and whose counts are those of the whole project"
+  MUST: "emit one record per spec document that a ref target can address and that holds an obligation, counting its obligations and the covered among them in two pairs, and one last record, for a project that holds an obligation, whose REF is `-` and whose counts are those of the whole project"
   USES: root@RecordFormat
 - MUST-NOT: check any citation, or report a finding about one, under `--missing` or `--coverage`
 ERROR:

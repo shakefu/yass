@@ -74,7 +74,7 @@ RETURN:
 - MUST: stamp an entry by ObligationStamp over its normativity keyword, the value of that keyword when it is a string, the value of its guard when it carries one whose value is a string, and each reference it carries
   USES: ObligationStamp
 - WHEN: the target carries no index
-  MUST: yield every numbered entry of the addressed slot, of every slot of the addressed spec, or of every spec document of the addressed file
+  MUST: yield every numbered entry of the addressed slot, of every slot of the addressed spec, or of every spec document of the addressed file that a ref target can address
 - WHEN: "the target carries an index and no stamp"
   MUST: yield the entry holding that number
 - WHEN: "the target carries an index and a stamp"
@@ -84,6 +84,8 @@ RETURN:
 - WHEN: the target addresses a design
   MUST: yield no entry and report nothing
 - MUST-NOT: "let the stamp of an entry vary with its number, its line, its slot, its spec, or its file"
+- MUST: "take a spec document as one a ref target can address when its `path@Name` fits the ref-target grammar and no other document of its file carries its name, because a citation written for any other would not resolve once it is pasted into a test"
+  CONFORMS: 02-load@TargetResolution::RETURN
 ERROR:
 - WHEN: the ref target does not resolve
   MUST: "report the code target resolution emits for it, naming the target as it was given"
