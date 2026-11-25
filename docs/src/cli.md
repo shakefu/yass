@@ -31,9 +31,9 @@ first `PATH` operand a command names — defines the project, so a tree can be
 checked from any directory. A nested root defines a separate project: ordinary
 project traversal does not include that subtree, a `PATH` naming the nested root
 addresses that project, and a later `PATH` under it, like any `PATH` in another
-project, is refused with status `4`. Records and diagnostics are relative to the
-project that answered, so pass that project with `-C` when a later `query` or
-`find` runs from elsewhere. Project traversal collects `.yass.yaml` files
+project, is refused with status `4`. Records are relative to the project that
+answered, so pass that project with `-C` when a later `query` or `find` runs
+from elsewhere. Project traversal collects `.yass.yaml` files
 regardless of version-control ignore rules. It does not descend through directory
 symlinks.
 
