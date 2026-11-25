@@ -2243,6 +2243,7 @@ func TestRecordFieldCounts(t *testing.T) {
 		{[]string{"list"}, 4},
 		{[]string{"find", "a"}, 3},
 		{[]string{"refs", "root@Policy"}, 3},
+		{[]string{"cite", "a@Alpha"}, 3},
 	}
 	for _, c := range checks {
 		got := run(dir, c.args...)

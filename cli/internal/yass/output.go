@@ -40,6 +40,7 @@ var (
 	listFields   = []string{"ref", "kind", "detail", "description"}
 	findFields   = []string{"ref", "what", "text"}
 	refsFields   = []string{"dir", "relation", "ref"}
+	citeFields   = []string{"citation", "what", "text"}
 	updateFields = []string{"action", "from", "to"}
 	diagFields   = []string{"severity", "code", "location", "line", "message"}
 )

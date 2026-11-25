@@ -44,13 +44,17 @@ Run
                                    check files against the yass language definition
     lint [--format FORMAT] [PATH...]
                                    report graph hygiene of the project
+    cite [--format FORMAT] TARGET...
+                                   write the citation line of each addressed obligation
     docs [NAME]                    index the carried documents, or write one
     explain [ID]                   index lint rule ids, or explain one
     update [--format FORMAT]       replace this binary with the newest release
 
   Global options are written before the subcommand token; a subcommand's own
   options are written after it. A TARGET is `path@Name::SLOT`, in which `path@`
-  and `::SLOT` are each optional.
+  and `::SLOT` are each optional. `yass cite` also takes a TARGET ending in
+  `[n]`, the 1-based number of an obligation in its slot, with an optional
+  `#stamp` after it.
 
   `--format json` makes a record-writing subcommand write each record as one
   compact JSON object per line instead of TAB-separated text; `--format text`
@@ -87,6 +91,8 @@ Examples, run from this directory
   ./yass validate
   ./yass lint
   ./yass lint --format json
+  ./yass cite 04-query@Query
+  ./yass cite 04-query@Resolution::RETURN
   ./yass docs
   ./yass docs authoring
   ./yass explain
