@@ -132,14 +132,13 @@ func (a *App) reportMissing(files []*File, covered map[*Obligation]bool) {
 
 // reportCoverage counts, per spec document a ref target can address, the
 // obligations that MUST, SHOULD, and their negatives carry and how many are
-// covered, then the whole project.
+// covered, then the whole project. The total is the project's own: an
+// obligation of a document no target can address takes no row, since a
+// citation written for it would not resolve, and is counted all the same.
 func (a *App) reportCoverage(files []*File, covered map[*Obligation]bool) {
 	var total [4]int
 	for _, f := range files {
-		for _, d := range f.Docs {
-			if !addressableByTarget(d) {
-				continue
-			}
+		for _, d := range f.specDocs() {
 			var row [4]int
 			for _, s := range canonicalSlots(d) {
 				for _, o := range numbered(s) {
@@ -157,13 +156,13 @@ func (a *App) reportCoverage(files []*File, covered map[*Obligation]bool) {
 					}
 				}
 			}
-			if row[0]+row[2] == 0 {
-				continue
-			}
-			a.coverageRow(d.Target(), row)
 			for i := range total {
 				total[i] += row[i]
 			}
+			if row[0]+row[2] == 0 || !addressableByTarget(d) {
+				continue
+			}
+			a.coverageRow(d.Target(), row)
 		}
 	}
 	if total[0]+total[2] == 0 {

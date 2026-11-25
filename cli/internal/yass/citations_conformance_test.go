@@ -111,11 +111,14 @@ func TestCitationsReportsAMalformedCitation(t *testing.T) {
 // yass: 15-citations@Citations::RETURN[15]#42c1d377
 func TestCitationsListsNoDocumentATargetCannotAddress(t *testing.T) {
 	dir := citedProject(t)
-	// A spec under a path holding a space, and one of two documents sharing a
-	// name, can be cited by no target. A citation written for their
-	// obligations would not resolve once pasted, so neither report names them.
+	// A spec under a path holding a space, one of two documents sharing a
+	// name, and one whose name holds a slot token, can be cited by no target.
+	// A citation written for their obligations would not resolve once pasted,
+	// so neither report names them. Their obligations are the project's all
+	// the same: the coverage total counts four that no row shows.
 	write(t, dir, "user flows/signup.yass.yaml", modeline+"---\ndescription: s\nversion: v1\n---\nspec: Signup\nRETURN:\n- MUST: sign up\n")
 	write(t, dir, "dup.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\nspec: Twin\nRETURN:\n- MUST: first twin\n---\nspec: Twin\nRETURN:\n- MUST: second twin\n")
+	write(t, dir, "odd.yass.yaml", modeline+"---\ndescription: o\nversion: v1\n---\nspec: Example::RETURN\nRETURN:\n- MUST: odd one out\n")
 	wantCitations(t, dir, ExitOK, []string{
 		citedGoods2, citedWrapped, citedSpaced,
 		citationMarker + " root@R::INPUT[1]#4ce36fb4\tMUST\tx",
@@ -125,8 +128,16 @@ func TestCitationsListsNoDocumentATargetCannotAddress(t *testing.T) {
 		"a@Beta\t2\t1\t1\t0",
 		"a@Format\t1\t0\t0\t0",
 		"root@R\t1\t0\t0\t0",
-		"-\t7\t4\t1\t0",
+		"-\t11\t4\t1\t0",
 	}, "--coverage")
+
+	// A project whose every obligation sits in such a document still has a
+	// total to report, and nothing else.
+	solo := t.TempDir()
+	write(t, solo, "root.yass.yaml", modeline+"---\ndescription: r\nversion: v1\n---\nspec: R\n")
+	write(t, solo, "user flows/signup.yass.yaml", modeline+"---\ndescription: s\nversion: v1\n---\nspec: Signup\nRETURN:\n- MUST: sign up\n")
+	wantCitations(t, solo, ExitOK, nil, "--missing")
+	wantCitations(t, solo, ExitOK, []string{"-\t1\t0\t0\t0"}, "--coverage")
 }
 
 // yass: 15-citations@Citations::RETURN[17]#efbbdcfc

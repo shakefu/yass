@@ -184,15 +184,17 @@ func (a *App) resolveCitation(ct citationTarget) ([]cited, error) {
 }
 
 // addressableByTarget reports whether a command-line ref target can name a
-// spec document: it is addressable, its `path@Name` fits the ref-target
-// grammar, and no other document of its file carries its name. A citation is
-// written only for an obligation of such a document, since one written for any
-// other would not resolve once it is pasted into a test.
+// spec document: it is addressable, `path@Name` parses as a target naming
+// exactly that document and no slot, and no other document of its file carries
+// its name. A citation is written only for an obligation of such a document,
+// since one written for any other would not resolve once it is pasted into a
+// test.
 func addressableByTarget(d *Doc) bool {
 	if d.Kind != KindSpec || !d.Addressable() {
 		return false
 	}
-	if _, ok := parseTarget(d.File.Ref+"@"+d.Name, true); !ok {
+	t, ok := parseTarget(d.File.Ref+"@"+d.Name, true)
+	if !ok || t.Name != d.Name || t.HasSlot {
 		return false
 	}
 	same := 0
