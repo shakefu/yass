@@ -9,7 +9,8 @@ description: >
   resolved, indexes what a spec set holds, searches obligation prose, reports the reference
   edges of a document, checks files against the language definition, reports graph hygiene,
   serves the language documents it carries inside itself, explains lint rules, writes the citation
-  line of an obligation, and replaces its own installed binary with the newest published release. It never writes a spec file
+  line of an obligation, checks the citations a project's tests carry, and replaces its own
+  installed binary with the newest published release. It never writes a spec file
   and never judges what an obligation says. Every command answers with the smallest output that
   carries the answer, because the reader's context is the scarce resource.
 version: v1
@@ -57,6 +58,9 @@ INPUT:
 - WHEN: "the subcommand is `cite`"
   MUST: dispatch to the command that writes the citation line of an obligation
   SEE: 14-cite@Cite
+- WHEN: "the subcommand is `citations`"
+  MUST: dispatch to the command that checks the citations a project's tests carry
+  SEE: 15-citations@Citations
 - WHEN: "the subcommand is `docs`"
   MUST: dispatch to the command that indexes the carried documents and writes one
   SEE: 10-docs@Docs
@@ -94,7 +98,8 @@ SIDE-EFFECT:
   SEE: 12-update@Update::SIDE-EFFECT
 - MUST-NOT: "open a network connection, including to resolve a preamble `related` entry, save that `update` connects to the release host and nowhere else"
   CONFORMS: ../yass@Preamble::INVARIANT
-- MUST-NOT: "read a file other than a `root.yass.yaml` met on the ascent, a path named on the command line, or a file whose basename ends with `.yass.yaml` under the governing project root"
+- MUST-NOT: "read a file other than a `root.yass.yaml` met on the ascent, a path named on the command line, a file whose basename ends with `.yass.yaml` under the governing project root, or a file the citation scope selects"
+  SEE: 15-citations@Citations
 - MUST-NOT: read a language document from the file tree in order to serve it, since the corpus is carried inside the program and a reader of it holds no checkout
   SEE: 10-docs@Corpus
 - MUST-NOT: read standard input under any subcommand, so every input is named on the command line
@@ -162,7 +167,7 @@ content:
     meaning: the command completed and reported no finding
   1:
     label: findings
-    meaning: "the command served its request and reported at least one finding about the spec set: a validation diagnostic, a lint advisory, or a file it could not parse"
+    meaning: "the command served its request and reported at least one finding about the spec set: a validation diagnostic, a lint advisory, a malformed, unresolved, or stale citation, or a file it could not parse"
   2:
     label: usage
     meaning: "the request could not be understood, because the argument vector is malformed: an unknown subcommand, an unknown option, an unknown record format, a missing option value, a missing or excess operand, an empty operand, or a target that fails the ref-target grammar or names an unrecognized slot"
@@ -304,6 +309,15 @@ content: |
                 WHAT        the obligation's normativity keyword
                 TEXT        the value of that keyword
 
+    citations   5 fields, under --coverage
+                REF         `path@Name` of a spec document, or `-` on the last record, which
+                            holds the counts of the whole project
+                MUST        count of the document's obligations carrying MUST or MUST-NOT
+                MUST_CITED  count of those a citation covers
+                SHOULD      count carrying SHOULD or SHOULD-NOT
+                SHOULD_CITED count of those a citation covers
+                3 fields, under --missing: the fields of cite
+
     update      3 fields
                 ACTION      `updated` for a binary replaced with the newest release,
                             `current` for an installed version already the newest,
@@ -329,7 +343,7 @@ type: schema
 format: json-lines
 content: |
   The JSON form of record output, selected by `--format json` on `root`, `list`, `find`,
-  `refs`, `validate`, `lint`, `cite`, and `update`. It carries exactly the records the text form
+  `refs`, `validate`, `lint`, `cite`, `citations`, and `update`. It carries exactly the records the text form
   carries, in the same order, one per line, line-buffered the same way.
 
   Segmentation, completely:
@@ -346,6 +360,7 @@ content: |
     find        {"ref", "what", "text"}
     refs        {"dir", "relation", "ref"}
     cite        {"citation", "what", "text"}
+    citations   {"ref", "must", "must_cited", "should", "should_cited"}
     update      {"action", "from", "to"}
     diagnostic  {"severity", "code", "location", "line", "message"}
 
@@ -375,12 +390,14 @@ content: |
   fields, in this order, under the same segmentation rules every other record obeys.
 
     SEVERITY  `error` for a validation diagnostic or a request failure, `warn` for a lint
-              advisory
+              advisory or a stale citation
     CODE      `yass.<area>.<name>`, or the bare token `yass.internal`
     LOCATION  the most precise ref target known — `path`, `path@Name`, or `path@Name::SLOT`
               — root-relative with the `.yass.yaml` suffix removed, so the field can be
               passed back to `yass query` unchanged for a file under the project root; a
-              file outside the root is spelled root-relative as RecordFormat spells it
+              file outside the root is spelled root-relative as RecordFormat spells it; a
+              citation finding names the file carrying the citation as the citation scope
+              names it, its own name kept
     LINE      the 1-based line the offending construct starts on, for an editor to jump to,
               or `-` when no line is known. A line is never a ref anchor: a ref target
               addresses nothing finer than a slot.
@@ -393,7 +410,7 @@ content: |
   no obligation of this project defines.
 
   Areas: `args`, `io`, `root`, `document`, `preamble`, `spec`, `design`, `slot`,
-  `obligation`, `ref`, `lint`, `docs`, `explain`, `update`.
+  `obligation`, `ref`, `lint`, `citation`, `docs`, `explain`, `update`.
 
   A message names what is wrong and never how to fix it. It carries no remedy, no
   alternative spelling, no quoted source, no restatement of the code, and no explanation of

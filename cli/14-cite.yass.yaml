@@ -108,9 +108,10 @@ type: schema
 format: citation
 content: |
   A citation is a comment a test carries naming the one obligation the test covers. Its
-  body is the marker `yass:`, one or more ASCII spaces or tabs, and one citation token.
-  The token ends at the next space or tab, so a comment leader before the marker and any
-  text after the token are not part of the citation.
+  body is the marker `yass:` and the citation token that follows it on the line, after any
+  spaces or tabs. The token ends at the next space, tab, or carriage return or at the end of
+  the line, so a comment leader before the marker and any text after the token are not part
+  of the citation.
 
     yass: path@Name::SLOT[n]#stamp
 

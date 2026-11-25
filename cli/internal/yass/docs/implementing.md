@@ -74,6 +74,20 @@ covers (the spec, slot, and a few words of the prose). One test may cover severa
 obligations when one input exercises them all; one obligation may need several tests
 when its guard has several cases.
 
+Cite each obligation a test covers, so a tool can check the link. Run `yass cite path@Name`
+for the spec: it prints one line per obligation, carrying the slot, the obligation's number
+in it, and a stamp of its wording. Paste the lines a test covers into a comment above the
+test, in whatever comment syntax your language uses:
+
+    // yass: path@Name::SLOT[n]#stamp
+
+`yass citations` checks every citation in the project's test files and fails on one that
+no longer names its obligation, which a renamed spec, a reordered slot, or a reworded
+obligation produces. To refresh a citation it reports, give the old line to `yass cite`:
+an obligation that moved is found by its stamp, and one that was reworded is reported,
+so you read it again before citing it. `yass citations --missing` lists the obligations
+no test cites.
+
 - **Start with `ERROR`.** Write the foreseeable failures first: each guarded `ERROR`
   obligation names an input and the outcome it must produce (a code, a message, an exit
   status). These are the cases an implementation most often skips.

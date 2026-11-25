@@ -17,7 +17,7 @@ INPUT:
 - WHEN: no argument remains to be taken as the subcommand token, and neither help nor version was requested
   MUST: "yield the subcommand token `overview`, so an argument vector naming no subcommand is well formed and carries no operand"
   SEE: 11-overview@Overview
-- MUST: "recognize exactly the subcommand tokens `overview`, `root`, `query`, `list`, `find`, `refs`, `validate`, `lint`, `cite`, `docs`, `explain`, and `update`"
+- MUST: "recognize exactly the subcommand tokens `overview`, `root`, `query`, `list`, `find`, `refs`, `validate`, `lint`, `cite`, `citations`, `docs`, `explain`, and `update`"
 - MUST: parse every argument after the subcommand token as that subcommand's option or operand, against the option set the synopsis fixes for it
   USES: Synopsis
 - MUST: "treat an argument equal to `--` as end-of-options, so every argument after it is an operand even when it begins with `-`"
@@ -56,6 +56,8 @@ ERROR:
   MUST: report code yass.args.unknown_option naming the option
 - WHEN: an option is given after the subcommand token that the synopsis does not list for that subcommand
   MUST: report code yass.args.unknown_option naming the option
+- WHEN: both options of a pair the synopsis joins with `|` are given
+  MUST: report code yass.args.unknown_option naming the second, since the synopsis lists at most one of a pair for an invocation
 - WHEN: "the value of `--format` is neither `text` nor `json`"
   MUST: report code yass.args.unknown_format naming the value
 - WHEN: an option requiring a value is the last argument, so it has no following value
@@ -111,6 +113,8 @@ content: |
                                    report graph hygiene of the project
     cite [--format FORMAT] TARGET...
                                    write the citation line of each addressed obligation
+    citations [--missing | --coverage] [--tests GLOB] [--format FORMAT] [PATH...]
+                                   check test citations, or report what they leave uncovered
     docs [NAME]                    index the carried documents, or write one
     explain [ID]                   index lint rule ids, or explain one
     update [--format FORMAT]       replace this binary with the newest release
@@ -125,6 +129,10 @@ content: |
     --slot SLOT                    restrict matches to obligations of that slot
     --in                           report incoming edges only
     --out                          report outgoing edges only
+    --missing                      list the obligations no citation covers
+    --coverage                     count each spec's obligations, and how many are cited
+    --tests GLOB                   scan the files whose whole path matches GLOB, rather
+                                   than the files named as tests
     --format FORMAT                write records as text (default) or json
 
     0 ok   1 findings   2 usage   3 unresolved   4 no-root   5 environment

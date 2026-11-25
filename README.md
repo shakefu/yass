@@ -145,6 +145,11 @@ and implementing a spec, and changing the language itself, each have one, and
 with bad/good examples. This documentation is built into the binary and works
 without a project root.
 
+`yass cite` writes the citation line of an obligation, for a test to carry in a
+comment. `yass citations` checks that every citation still names the obligation
+it was written against, after a spec is renamed, reordered, or reworded, and
+lists the obligations no test covers.
+
 ## License
 
 [AGPL-3.0](./LICENSE)

@@ -4,10 +4,10 @@
 #
 # Usage: script/check-specs [PROJECT...]
 #
-# Runs `yass validate` and `yass lint` over each PROJECT directory (default: the
-# language project `.` and the CLI project `cli`), using the CLI built from this
-# checkout so the gate tracks the current language rather than a release. Set
-# YASS to a binary to skip the build.
+# Runs `yass validate`, `yass lint`, and `yass citations` over each PROJECT
+# directory (default: the language project `.` and the CLI project `cli`), using
+# the CLI built from this checkout so the gate tracks the current language rather
+# than a release. Set YASS to a binary to skip the build.
 #
 # Policy:
 #   validate  every diagnostic fails: a validation error is a language violation.
@@ -15,6 +15,10 @@
 #             no disposition fails, so a new lint check is dispositioned here
 #             before it can pass silently. Any lint diagnostic on standard
 #             error (the project could not be examined) fails.
+#   citations each finding code has an explicit disposition below, on the same
+#             terms. The repository's own tests cite the obligations they cover,
+#             so a spec edit that moves or rewords a cited obligation fails here
+#             until the citing test's citation is refreshed.
 #
 # Each finding is printed with its file and line; under GitHub Actions it is
 # also emitted as an annotation.
@@ -59,6 +63,20 @@ lint_disposition() {
 	esac
 }
 
+# citation_disposition CODE — fail or advise.
+citation_disposition() {
+	case "$1" in
+	# A citation that fits no grammar was never checked, so it binds no test.
+	yass.citation.syntax) echo fail ;;
+	# A citation naming no obligation is a pointer into thin air.
+	yass.citation.unresolved) echo fail ;;
+	# The obligation moved or was reworded under its test: the test is
+	# re-read against it before the citation is taken again.
+	yass.citation.stale) echo fail ;;
+	*) echo unknown ;;
+	esac
+}
+
 if [ -z "${YASS:-}" ]; then
 	if ! command -v go >/dev/null 2>&1; then
 		echo "script/check-specs: go toolchain not found and YASS unset" >&2
@@ -77,14 +95,17 @@ fi
 failures=0
 advisories=0
 
-# report LEVEL PROJECT SEVERITY CODE LOCATION LINE MESSAGE — print one finding
-# with the spec file it names, and annotate it under GitHub Actions.
+# report LEVEL PROJECT SEVERITY CODE LOCATION LINE MESSAGE [SUFFIX] — print one
+# finding with the file it names, and annotate it under GitHub Actions. A
+# diagnostic's LOCATION is a spec file's REF, which takes the SUFFIX to name
+# the file; a citation finding names a test file as it stands, with an empty
+# SUFFIX.
 report() {
-	local level="$1" project="$2" code="$4" location="$5" line="$6" message="$7"
+	local level="$1" project="$2" code="$4" location="$5" line="$6" message="$7" suffix="${8-.yass.yaml}"
 	local file="${location%%@*}"
 	case "$file" in
 	'' | -) file="$project" ;;
-	*) file="${project%/}/$file.yass.yaml" ;;
+	*) file="${project%/}/$file$suffix" ;;
 	esac
 	file="${file#./}"
 	echo "$level $file:$line $code $location: $message"
@@ -99,8 +120,8 @@ report() {
 	fi
 }
 
-# record LEVEL PROJECT LINE — report one tab-separated diagnostic line, or the
-# raw line when it is not in the diagnostic format.
+# record LEVEL PROJECT LINE [SUFFIX] — report one tab-separated diagnostic line,
+# or the raw line when it is not in the diagnostic format.
 record() {
 	local level="$1" project="$2" severity code location line message
 	IFS=$'\t' read -r severity code location line message <<<"$3"
@@ -108,7 +129,7 @@ record() {
 		echo "$level $project: $3"
 		return
 	fi
-	report "$level" "$project" "$severity" "$code" "$location" "$line" "$message"
+	report "$level" "$project" "$severity" "$code" "$location" "$line" "$message" "${4-.yass.yaml}"
 }
 
 for project in "$@"; do
@@ -166,6 +187,43 @@ for project in "$@"; do
 	fi
 	if [ "$status" -ne 0 ] && [ -z "$out$err" ]; then
 		echo "error $project: yass lint exited $status with no diagnostic"
+		failures=$((failures + 1))
+	fi
+
+	echo "==> citations $project"
+	errfile=$(mktemp)
+	status=0
+	out=$("$YASS" -C "$project" citations 2>"$errfile") || status=$?
+	err=$(<"$errfile")
+	rm -f "$errfile"
+	if [ -n "$out" ]; then
+		while IFS= read -r diag; do
+			code=$(cut -f2 <<<"$diag")
+			case "$(citation_disposition "$code")" in
+			fail)
+				record error "$project" "$diag" ""
+				failures=$((failures + 1))
+				;;
+			advise)
+				record warn "$project" "$diag" ""
+				advisories=$((advisories + 1))
+				;;
+			*)
+				record error "$project" "$diag" ""
+				echo "error $project: citation code $code has no disposition in script/check-specs"
+				failures=$((failures + 1))
+				;;
+			esac
+		done <<<"$out"
+	fi
+	if [ -n "$err" ]; then
+		while IFS= read -r diag; do
+			record error "$project" "$diag"
+			failures=$((failures + 1))
+		done <<<"$err"
+	fi
+	if [ "$status" -ne 0 ] && [ -z "$out$err" ]; then
+		echo "error $project: yass citations exited $status with no diagnostic"
 		failures=$((failures + 1))
 	fi
 done

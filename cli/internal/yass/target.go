@@ -163,6 +163,14 @@ func (a *App) refFile(carrier *File, t parsedTarget) (f *File, unresolved bool, 
 // status; a well-formed target that addresses nothing exits with the
 // unresolved status.
 func (a *App) ResolveTarget(raw string) (*Bound, error) {
+	return a.resolveTargetFrom(raw, a.StartDir)
+}
+
+// resolveTargetFrom binds one target as ResolveTarget does, resolving a path
+// token that begins with `./` or `../` against base: the starting directory
+// for a command-line operand, and the project root for a citation, which has
+// no command line and no referencing file to resolve against.
+func (a *App) resolveTargetFrom(raw, base string) (*Bound, error) {
 	t, ok := parseTarget(raw, true)
 	if !ok {
 		return nil, fail(ExitUsage, "yass.args.target_syntax", raw, 0, "reference target is malformed")
@@ -171,8 +179,8 @@ func (a *App) ResolveTarget(raw string) (*Bound, error) {
 		return nil, fail(ExitUsage, "yass.ref.slot_unknown", raw, 0, "slot token is not a recognized slot")
 	}
 
-	abs := filePathFor(a.Root, a.StartDir, t.Path)
-	st, err := a.statRef(abs, a.StartDir, t.Path)
+	abs := filePathFor(a.Root, base, t.Path)
+	st, err := a.statRef(abs, base, t.Path)
 	if err != nil || !st.Mode().IsRegular() {
 		if err != nil && os.IsPermission(err) {
 			return nil, unreadable(a.rel(abs))

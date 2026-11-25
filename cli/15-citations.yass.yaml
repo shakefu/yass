@@ -1,0 +1,114 @@
+# yaml-language-server: $schema=https://shakefu.github.io/yass/v1.schema.json
+---
+description: >
+  The `yass citations` subcommand. It reads the citations a project's tests carry and checks
+  each against the spec set: that it is well formed, that it names an obligation, and that
+  the obligation still carries the stamp it was written with, so a renamed spec, a reordered
+  slot, or a reworded obligation is reported where it lands instead of silently retargeting
+  a test. Two reports answer what the citations leave uncovered: the obligations no citation
+  covers, and the cited share of each spec. One Spec, and one design naming the files a
+  project's tests are recognized by.
+version: v1
+---
+spec: Citations
+INPUT:
+- MUST: "be invoked as `yass citations [--missing | --coverage] [--tests GLOB] [--format FORMAT] [PATH...]`"
+  SEE: root@YassCli::RETURN
+- MUST: "take the project root discovery yields for the first PATH, and the one discovery yields for the starting directory when no PATH is given"
+  CONFORMS: 01-locate@RootDiscovery::INPUT
+- MUST: take the loaded model of every file of the project file set, since a citation resolves against the whole spec set whatever PATH selects
+  CONFORMS: 01-locate@FileSet::RETURN
+- MUST-NOT: rely on any well-formedness guarantee of that model beyond the fact that a file parsed
+  SEE: 08-validate@Validate
+- MUST: take as the citation scope every regular file at or below the project root that TestFileNames selects, under the same exclusions the project file set applies
+  USES: TestFileNames
+- WHEN: "`--tests` is given"
+  MUST: take as the citation scope, in place of the files TestFileNames selects, every regular file at or below the project root whose project-root-relative path matches GLOB
+  SEE: root@RecordFormat
+- WHEN: a PATH is given
+  MUST: "take as the citation scope only the files at or below it, a PATH naming a file selecting that file whatever its name"
+  SEE: 08-validate@Validate
+- MUST: take each file of the citation scope at most once, even when two PATHs address it
+- MUST: recognize a citation in a line exactly as CitationSyntax states, wherever on the line it stands
+  USES: 14-cite@CitationSyntax
+- MUST: "resolve the ref target of a citation as a command-line operand resolves it, save that every path token resolves from the project root, since a citation has no command line and no referencing file"
+  CONFORMS: 14-cite@CitationTarget::INPUT
+RETURN:
+- WHEN: neither `--missing` nor `--coverage` is given
+  MUST: check every citation of the citation scope
+- MUST: "emit one diagnostic per citation that is malformed, names no obligation, or carries a stamp the obligation at its number does not"
+  USES: root@DiagnosticFormat
+- WHEN: a citation token does not fit CitationSyntax
+  MUST: emit code yass.citation.syntax at the line the citation stands on
+  USES: 14-cite@CitationSyntax
+- WHEN: "a citation is well formed, but its ref target does not resolve or no entry of its slot holds its number"
+  MUST: emit code yass.citation.unresolved naming the citation
+- WHEN: "a citation names an entry of the slot whose stamp differs from the citation's"
+  MUST: emit code yass.citation.stale naming the citation, because the obligation was moved or reworded after the citation was written
+  SEE: 14-cite@ObligationStamp
+- MUST: "set the SEVERITY of a malformed or unresolved citation to `error`, and of a stale one to `warn`"
+- MUST: order the diagnostics by byte-wise ascending project-root-relative file path, then by ascending line
+- MUST: "name in the LOCATION of a citation's diagnostic the file carrying it, written project-root-relative as a file of the citation scope is named, and in LINE the line the citation stands on"
+  USES: root@DiagnosticFormat
+- MUST: name the citation token in the MESSAGE of an unresolved or stale citation, since one line can carry several and the token is what `yass cite` takes to refresh it
+- MUST: write the diagnostics to standard output
+  USES: root@OutputPolicy
+- WHEN: at least one diagnostic was emitted, on either stream
+  MUST: exit with the findings status after writing all of them
+- WHEN: no diagnostic was emitted
+  MUST: exit with the ok status
+- MUST: "take as an obligation an entry carrying `MUST`, `MUST-NOT`, `SHOULD`, or `SHOULD-NOT`, and take it as covered when a citation in scope names it with a stamp equal to its own, leaving `MAY` out of both since it is a permission that no test is written for"
+  SEE: 14-cite@CitationTarget::RETURN
+- WHEN: "`--missing` is given"
+  MUST: "emit one record, in the form `yass cite` writes, for each obligation of every spec document a ref target can address that no citation in scope covers, in the order the file set lists their files"
+  SEE: 14-cite@Cite::RETURN
+- WHEN: "`--coverage` is given"
+  MUST: "emit one record per spec document holding an obligation, counting its obligations and the covered among them in two pairs, and one last record, for a project that holds an obligation, whose REF is `-` and whose counts are those of the whole project"
+  USES: root@RecordFormat
+- MUST-NOT: check any citation, or report a finding about one, under `--missing` or `--coverage`
+ERROR:
+- WHEN: no project root governs the path discovery anchors on, which is the first PATH when one is given and the starting directory otherwise
+  MUST: report code yass.root.not_found naming that path and read no file of the citation scope, because locating the project root precedes every check
+  SEE: 01-locate@RootDiscovery::ERROR
+- WHEN: a PATH names a directory or file outside the project root discovery yielded, or one that a nearer project root below it governs
+  MUST: report code yass.root.outside naming that PATH, before anything is written, because one request is answered against one project, whose file set excludes what a nearer root governs
+  SEE: 01-locate@FileSet::RETURN
+- WHEN: a directory between the project root and an addressed path cannot be read
+  MUST: report code yass.io.unreadable naming that directory, whatever it holds, rather than emit yass.root.outside or read a file
+  USES: 01-locate@ReadableDirectory
+- WHEN: a PATH does not exist
+  MUST: report code yass.io.missing naming it
+- WHEN: "a PATH exists in the project but is neither a directory nor a regular file"
+  MUST: report code yass.io.not_a_spec_file naming it
+- WHEN: a file of the citation scope cannot be read at all
+  MUST: report code yass.io.unreadable naming it
+- WHEN: a file of the project file set yielded a parse failure
+  MUST: "report its code on standard error, naming the file and the line its failure carries, and go on, since an obligation of that file can be neither resolved nor counted"
+  SEE: 02-load@Load::RETURN
+- MUST: report code yass.internal for any failure not matched by a guarded obligation in this slot
+- MUST: exit with the status the request-failure catalogue gives each code this spec reports to end a request
+  USES: root@RequestFailures
+SIDE-EFFECT:
+- MUST: write every diagnostic of the RETURN slot to standard output, since a citation finding is this command's product
+  USES: root@OutputPolicy
+- MUST: write to standard error every diagnostic this command reports other than a citation finding, because each names a failure to examine the project rather than a result of examining it
+- MUST-NOT: "create, modify, delete, or rename any file or directory, so a stale citation is refreshed by its author and never rewritten here"
+INVARIANT:
+- MUST-NOT: judge whether a citing test tests the obligation it cites, since resolution and coverage are bookkeeping and a test's adequacy stays with review
+- MUST-NOT: require a file of the citation scope to parse as any language, since a citation is recognized from the bytes of its line alone
+---
+design: TestFileNames
+type: constraint
+content: |
+  A file is named as a test when its basename, split at every `.`, `_`, and `-` and before
+  a capital letter that follows a lower-case letter or a digit or precedes one, holds
+  `test`, `tests`, `spec`, or `specs` as a whole part, in any casing. A run of capitals
+  such as SPEC or HTTP is one part.
+
+  So `x_test.go`, `test_x.py`, `x.test.ts`, `XTest.java`, `x_spec.rb`, and `tests.bats`
+  are named as tests, and `latest.go`, `contest.tsx`, and `testament.py` are not. A
+  directory's name counts for nothing: `tests/integration.rs` is not named as a test, and
+  `--tests` selects it.
+
+  The rule leans toward including. A file it takes by mistake matters only when someone put
+  a citation in it, while a test file it misses is never checked and never counted.

@@ -57,6 +57,51 @@ standard output, and exits `3`. It does not list known ids; use `yass explain` t
 find one. Both forms use documentation built into the binary, read no file tree,
 and work without a project root. Neither accepts `--format`.
 
+## Check test citations: `citations`
+
+```sh
+yass citations
+yass citations --missing
+yass citations --coverage
+```
+
+`citations [--missing | --coverage] [--tests GLOB] [--format FORMAT] [PATH...]` reads
+the citations the project's tests carry, each a `yass cite` line as the
+[CLI guide](cli.md) describes, and checks every one:
+
+- `yass.citation.syntax`: the citation does not fit the form.
+- `yass.citation.unresolved`: its spec, slot, or obligation number does not exist.
+- `yass.citation.stale`: the obligation at that number carries another stamp, so
+  it was moved or reworded after the citation was written.
+
+A finding names the test file and line. An unresolved or stale one also names the
+citation, so it can be passed back to `yass cite`. Findings go to standard output
+and exit `1`. This is how a change to a spec reaches the tests written against
+it: rather than silently pointing a test at a different obligation, the citation
+fails until the test is read again and its line taken again from `yass cite`.
+
+A file is named as a test when its basename holds `test`, `tests`, `spec`, or
+`specs` as a whole part: `x_test.go`, `test_x.py`, `x.test.ts`, `XTest.java`.
+`--tests GLOB` replaces that rule, matching the whole root-relative path. A
+`PATH` narrows the files read, and a file `PATH` is read whatever its name. The
+marker is recognized wherever it stands on a line, in any comment syntax, and
+only the token after it is read.
+
+`--missing` lists, in the form `yass cite` writes, every `MUST` and `SHOULD`
+obligation no citation covers. `--coverage` counts, per spec, the obligations
+that `MUST` and that `SHOULD` with how many of each are covered, then the
+project's totals on a line whose `REF` is `-`. With two of the quick-start spec's
+three obligations cited:
+
+```text
+root@Greeting	3	2	0	0
+-	3	2	0	0
+```
+
+A `MAY` is a permission: it can be cited but is never listed or counted. Both
+reports exit `0` and check nothing. A malformed, unresolved, or stale citation
+simply covers no obligation there.
+
 ## Read authoring documents: `docs`
 
 ```sh
@@ -109,7 +154,8 @@ lint rule explanations are plain text. Diagnostics have five fields: `SEVERITY`,
 
 ### JSON records
 
-`root`, `list`, `find`, `refs`, `validate`, `lint`, and `update` accept
+`root`, `list`, `find`, `refs`, `cite`, `validate`, `lint`, `citations`, and
+`update` accept
 `--format FORMAT` after the subcommand: `text` (the default, described above) or
 `json`. With `json`, each record becomes one compact JSON object on its own line
 (JSON Lines), in the same order, and an empty result still prints nothing:
@@ -125,8 +171,10 @@ yass find --format=json 'supplied name'
 {"ref":"root@Greeting::RETURN","what":"MUST","text":"return Hello followed by one space, the supplied name, and an exclamation mark"}
 ```
 
-A diagnostic from `validate` or `lint` has the keys `severity`, `code`,
-`location`, `line`, and `message`.
+A diagnostic from `validate`, `lint`, or `citations` has the keys `severity`,
+`code`, `location`, `line`, and `message`. A `cite` record has `citation`, `what`,
+and `text`; a coverage record has `ref`, `must`, `must_cited`, `should`, and
+`should_cited`.
 
 Keys are the lowercase field names, in field order. Each value is the string the
 text form would print, with these exceptions. An absent or empty field, which
@@ -139,15 +187,15 @@ error, `yass.args.unknown_format`. `overview`, `query`, `docs`, and `explain` do
 not accept `--format`.
 
 Requested answers go to standard output. Failures to serve a request go to
-standard error. Validation findings and lint advisories are their commands'
-requested answers, so they go to standard output.
+standard error. Validation findings, lint advisories, and citation findings are
+their commands' requested answers, so they go to standard output.
 
 | Status | Meaning |
 | --- | --- |
 | `0` | Success, including empty search/edge results and clean checks |
-| `1` | Findings: validation errors, lint advisories, or partial results due to parse failures |
+| `1` | Findings: validation errors, lint advisories, malformed, unresolved, or stale citations, or partial results due to parse failures |
 | `2` | Usage error, such as an unknown option or malformed target |
-| `3` | Unresolved path, document, slot, reference, docs name, or lint rule id; a target whose file does not parse; a reference whose relation does not fit its target's kind; or a malformed reference inside a served document |
+| `3` | Unresolved path, document, slot, reference, docs name, or lint rule id; a target whose file does not parse; a reference whose relation does not fit its target's kind; a malformed reference inside a served document; or a `cite` stamp that names no obligation of its slot |
 | `4` | No governing project root, or a `PATH` in another project, a nested one included |
 | `5` | Environment failure, such as a file or directory that cannot be read, or a failed update |
 

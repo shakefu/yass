@@ -20,8 +20,17 @@ func (a *App) projectFileSet() ([]string, error) {
 // project root, ends the request, since a second tree's files would be read
 // against the wrong root's model or skipped without a word.
 func (a *App) addressedFiles(paths []string, requireSpecBasename bool) ([]string, error) {
+	return a.selectedFiles(paths, func(_, name string) bool { return isSpecBasename(name) }, requireSpecBasename)
+}
+
+// selectedFiles is addressedFiles with the file selection stated by keep,
+// judged on the file's project-root-relative path and basename: a directory
+// PATH yields the files below it that keep selects, and with no PATH the whole
+// project root is walked. A PATH naming a file is taken whatever keep says,
+// and whatever its basename unless requireSpecBasename holds.
+func (a *App) selectedFiles(paths []string, keep func(rel, name string) bool, requireSpecBasename bool) ([]string, error) {
 	if len(paths) == 0 {
-		return a.projectFileSet()
+		return collectFiles(a.Root, a.Root, a.names, keep)
 	}
 	var all []string
 	for _, p := range paths {
@@ -37,7 +46,7 @@ func (a *App) addressedFiles(paths []string, requireSpecBasename bool) ([]string
 			// The operand names a directory, through a symbolic link when it
 			// uses one; the walk begins at the directory it names, which
 			// walking the link itself would not enter.
-			files, err := collectSpecFiles(resolved, a.Root, a.names)
+			files, err := collectFiles(resolved, a.Root, a.names, keep)
 			if err != nil {
 				return nil, err
 			}
