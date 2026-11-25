@@ -120,14 +120,25 @@ func (a *App) run(cmd func() (int, error)) int {
 
 // prepare computes the starting directory and the one project root this
 // invocation uses, and hands the same value to every spec that needs it. A
-// starting path that names a file begins at the directory holding it.
+// starting path that names a file begins at the directory holding it. A
+// subcommand that addresses paths anchors root discovery on its first PATH
+// operand when one is given, so the tree the caller named governs the request
+// (01-locate@RootDiscovery::INPUT).
 func (a *App) prepare() error {
 	start, err := resolveStart(a.Inv.StartDir, a.Inv.StartDir)
 	if err != nil {
 		return err
 	}
 	a.StartDir = startDirectory(start)
-	root, err := discoverRoot(a.StartDir, a.Inv.StartDir, a.names)
+	anchor, label := a.StartDir, a.Inv.StartDir
+	if pathOperandSubcommand[a.Inv.Subcommand] && len(a.Inv.Operands) > 0 {
+		label = a.Inv.Operands[0]
+		anchor, err = resolveStart(a.absPath(label), label)
+		if err != nil {
+			return err
+		}
+	}
+	root, err := discoverRoot(anchor, label, a.names)
 	if err != nil {
 		return err
 	}

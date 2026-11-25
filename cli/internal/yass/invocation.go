@@ -79,6 +79,17 @@ var operandRange = map[string][2]int{
 	"update":   {0, 0},
 }
 
+// pathOperandSubcommand is the set of subcommands whose operands are PATHs in
+// filesystem terms, so the first one anchors root discovery when given
+// (01-locate@RootDiscovery::INPUT). The commands that take ref-grammar TARGETs
+// are absent: their targets resolve against the root, so discovery cannot
+// anchor on them.
+var pathOperandSubcommand = map[string]bool{
+	"list":     true,
+	"validate": true,
+	"lint":     true,
+}
+
 func unknownOption(opt string) error {
 	return fail(ExitUsage, "yass.args.unknown_option", "", 0, "unknown option "+opt)
 }

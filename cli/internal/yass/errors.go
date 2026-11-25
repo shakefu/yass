@@ -36,6 +36,10 @@ func noRoot(location string) error {
 	return fail(ExitNoRoot, "yass.root.not_found", location, 0, "no "+RootBasename+" at or above path")
 }
 
+func outsideRoot(location string) error {
+	return fail(ExitNoRoot, "yass.root.outside", location, 0, "path lies outside the project root")
+}
+
 // asCLIError narrows an error to its diagnostic, falling back to the internal
 // residual for anything a guarded obligation did not match.
 func asCLIError(err error) *cliError {

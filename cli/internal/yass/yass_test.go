@@ -499,28 +499,60 @@ func TestListSymlinkedDirectoryOperand(t *testing.T) {
 	}
 }
 
-// A directory PATH that is itself a nested project root yields nothing, under
-// the same nearer-root exclusion the project file set applies; naming the
-// project root itself still lists the project, and from inside the nested
-// root that tree is the project.
-func TestListNestedRootOperandYieldsNothing(t *testing.T) {
+// A directory PATH that is itself a nested project root anchors discovery on
+// itself, so the nested tree is the project the caller named and its own file
+// set is listed; the nearer-root exclusion never applies to the root
+// discovery yielded. Naming the project root still lists the project, and
+// from inside the nested root that tree is the project
+// (01-locate@RootDiscovery::INPUT, RootDiscovery::RETURN).
+func TestListNestedRootOperandIsItsOwnProject(t *testing.T) {
 	dir := project(t)
+	nested := run(filepath.Join(dir, "sub", "nested"), "list")
+	wantStatus(t, nested, ExitOK)
 	got := run(dir, "list", "sub/nested")
 	wantStatus(t, got, ExitOK)
-	if got.stdout != "" {
-		t.Fatalf("a nested project root operand must yield nothing:\n%s", got.stdout)
+	if got.stdout != nested.stdout {
+		t.Fatalf("listing the nested root operand =\n%s\nwant the nested project's own listing:\n%s", got.stdout, nested.stdout)
 	}
 	self := run(dir, "list", ".")
 	bare := run(dir, "list")
 	if self.status != bare.status || self.stdout != bare.stdout {
 		t.Fatalf("`list .` differs from `list`:\n%s\n%s", self.stdout, bare.stdout)
 	}
-	nested := run(filepath.Join(dir, "sub", "nested"), "list")
-	wantStatus(t, nested, ExitOK)
 	want := "root\tfile\t1\tnested|root@Nested\tspec\tINVARIANT\t-|" +
 		"x\tfile\t1\tnested x|x@X\tspec\tINPUT\t-"
 	if joined := strings.Join(lines(nested.stdout), "|"); joined != want {
 		t.Fatalf("nested listing = %q, want %q", joined, want)
+	}
+}
+
+// A PATH naming another project's file ends list and lint the same way:
+// yass.root.outside before any record or advisory is written, whatever the
+// anchored tree itself holds. Anchored on the operand, lint from a working
+// directory inside no project still serves the project the caller named
+// (01-locate@RootDiscovery::INPUT, 05-list@List::ERROR, 09-lint@Lint::ERROR).
+func TestListAndLintRefuseOperandOutsideProject(t *testing.T) {
+	base := realDir(t, "refuse")
+	a := filepath.Join(base, "a")
+	write(t, a, "root.yass.yaml", bareRoot)
+	write(t, a, "x.yass.yaml", modeline+"---\ndescription: x\nversion: v2\n")
+	b := filepath.Join(base, "b")
+	write(t, b, "root.yass.yaml", bareRoot)
+	outside := filepath.Join(b, "root.yass.yaml")
+	for _, args := range [][]string{
+		{"list", "root.yass.yaml", outside},
+		{"lint", "root.yass.yaml", outside},
+	} {
+		got := run(a, args...)
+		wantStatus(t, got, ExitNoRoot)
+		if got.stdout != "" || !strings.Contains(got.stderr, "yass.root.outside\t"+outside) {
+			t.Fatalf("%v: stdout = %q, stderr = %q, want yass.root.outside naming the operand", args, got.stdout, got.stderr)
+		}
+	}
+	// The operand anchors discovery, so the working directory plays no part:
+	// lint serves the project the caller named from wherever it runs.
+	if got := mainIn("lint", outside); got.status != ExitOK || got.stdout != "" || got.stderr != "" {
+		t.Fatalf("lint from a foreign working directory: status %d\nstdout:\n%s\nstderr:\n%s", got.status, got.stdout, got.stderr)
 	}
 }
 
@@ -697,15 +729,16 @@ func TestTraversalUnreadableDirectory(t *testing.T) {
 		file bool   // whether to write a spec file into it
 		mode os.FileMode
 		args []string
+		abs  bool // whether the operand anchors discovery, so the ascent names the directory absolutely
 	}{
-		{"read-only empty directory", "locked", false, 0o444, []string{"list"}},
-		{"read-only directory holding a spec file", "locked", true, 0o444, []string{"list"}},
-		{"read-only directory below another", "open/locked", true, 0o444, []string{"list"}},
-		{"read-only directory as the PATH operand", "locked", true, 0o444, []string{"list", "locked"}},
-		{"search-only directory", "locked", true, 0o111, []string{"list"}},
-		{"search-only nested project root", nested, false, 0o111, []string{"list"}},
-		{"search-only nested project root, validate", nested, false, 0o111, []string{"validate"}},
-		{"read-only nested project root", nested, false, 0o444, []string{"list"}},
+		{"read-only empty directory", "locked", false, 0o444, []string{"list"}, false},
+		{"read-only directory holding a spec file", "locked", true, 0o444, []string{"list"}, false},
+		{"read-only directory below another", "open/locked", true, 0o444, []string{"list"}, false},
+		{"read-only directory as the PATH operand", "locked", true, 0o444, []string{"list", "locked"}, true},
+		{"search-only directory", "locked", true, 0o111, []string{"list"}, false},
+		{"search-only nested project root", nested, false, 0o111, []string{"list"}, false},
+		{"search-only nested project root, validate", nested, false, 0o111, []string{"validate"}, false},
+		{"read-only nested project root", nested, false, 0o444, []string{"list"}, false},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -723,8 +756,14 @@ func TestTraversalUnreadableDirectory(t *testing.T) {
 				write(t, dir, c.rel+"/x.yass.yaml", lockedSpec)
 			}
 			denyDir(t, denied, c.mode)
-			if loc := unreadableLocation(t, run(dir, c.args...)); loc != c.rel {
-				t.Fatalf("location = %q, want %q", loc, c.rel)
+			want := c.rel
+			if c.abs {
+				// The operand anchors discovery, so the ascent names the
+				// directory it cannot read absolutely.
+				want = realpath(t, denied)
+			}
+			if loc := unreadableLocation(t, run(dir, c.args...)); loc != want {
+				t.Fatalf("location = %q, want %q", loc, want)
 			}
 		})
 	}
@@ -2694,11 +2733,13 @@ func TestHelpIsTheSynopsisDesignBlock(t *testing.T) {
 
 // A REF is written root-relative so it can be passed back to `yass query`
 // unchanged. That holds for a file under the project root from any starting
-// directory. A file outside the root is still spelled root-relative, with
-// `../` segments, but a later invocation resolves a leading `./` or `../` token
-// from its own starting directory — so the spelling re-addresses the same
-// document only when the starting directory is the project root, and a
-// misleading path inside the root is taken instead when one exists.
+// directory. A record for a file outside the root is spelled root-relative,
+// with `../` segments, but a later invocation resolves a leading `./` or
+// `../` target token from its own starting directory — so the spelling
+// re-addresses the same document only when the starting directory is the
+// project root, and a misleading path inside the root is taken instead when
+// one exists. A PATH operand no longer addresses a file outside the project
+// at all: discovery anchors on it, and its ascent finds no root.
 func TestEmittedRefRoundTripOutsideRoot(t *testing.T) {
 	base := t.TempDir()
 	write(t, base, "other.yass.yaml", modeline+"---\ndescription: the outside file\nversion: v1\n---\nspec: Doc\nINPUT:\n- MUST: x\n")
@@ -2707,12 +2748,13 @@ func TestEmittedRefRoundTripOutsideRoot(t *testing.T) {
 	root := filepath.Join(base, "project")
 	sub := filepath.Join(root, "sub")
 
-	// The emitted REF is the project-root-relative spelling.
+	// A PATH operand outside every project names no project to answer for:
+	// the request ends before any record is written.
 	outside := filepath.Join("..", "..", "other.yass.yaml")
 	got := run(sub, "list", outside)
-	wantStatus(t, got, ExitOK)
-	if !strings.Contains(got.stdout, "../other@Doc") {
-		t.Fatalf("list did not emit a root-relative REF for the outside file: %q", got.stdout)
+	wantStatus(t, got, ExitNoRoot)
+	if got.stdout != "" || !strings.Contains(got.stderr, "yass.root.not_found\t"+outside) {
+		t.Fatalf("stdout = %q, stderr = %q, want yass.root.not_found naming the operand", got.stdout, got.stderr)
 	}
 
 	// From the project root the spelling round-trips.
