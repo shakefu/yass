@@ -11,6 +11,9 @@ spec: List
 INPUT:
 - MUST: "be invoked as `yass list [--filter GLOB] [--format FORMAT] [PATH...]`"
   SEE: root@YassCli::RETURN
+- WHEN: a PATH is given
+  MUST: take the project root discovery yields for the first PATH, so the tree the caller named governs the request
+  CONFORMS: 01-locate@RootDiscovery::INPUT
 - WHEN: no PATH is given
   MUST: take the project file set
   CONFORMS: 01-locate@FileSet::RETURN
@@ -71,6 +74,9 @@ ERROR:
   MUST: report code yass.io.missing naming it
 - WHEN: "a PATH exists but is neither a directory nor a file whose basename ends with `.yass.yaml`"
   MUST: report code yass.io.not_a_spec_file naming it
+- WHEN: a PATH names a directory or file outside the project root discovery yielded
+  MUST: report code yass.root.outside naming that PATH, before any record is written
+  SEE: 01-locate@RootDiscovery::RETURN
 - WHEN: an addressed file yielded a parse failure
   MUST: "emit its file record with `-` for DETAIL and for DESCRIPTION, emit no document record for it, continue with the remaining files, and exit with the findings status"
   SEE: 02-load@Load::RETURN
