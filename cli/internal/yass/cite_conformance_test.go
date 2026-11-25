@@ -108,7 +108,7 @@ func TestCiteListsASpecInCanonicalSlotOrder(t *testing.T) {
 	wantCite(t, citeProject(t), []string{citedStart, citedThing, citedCopy}, "a@Alpha")
 }
 
-// yass: 14-cite@CitationTarget::RETURN[4]#322324d7
+// yass: 14-cite@CitationTarget::RETURN[4]#f027e62f
 func TestCiteListsOneSlot(t *testing.T) {
 	wantCite(t, citeProject(t), []string{citedThing, citedCopy}, "a@Alpha::RETURN")
 }
@@ -130,6 +130,17 @@ func TestCiteListsAWholeFile(t *testing.T) {
 	// canonical order, and the spec with no numbered entry yields nothing.
 	wantCite(t, citeProject(t),
 		[]string{citedStart, citedThing, citedCopy, citedGoods, citedGoods2, citedWrapped, citedSpaced}, "a")
+}
+
+// yass: 14-cite@CitationTarget::RETURN[10]#52cd00aa
+// yass: 14-cite@Cite::RETURN[7]#b572dd89
+func TestCiteListsNoDocumentATargetCannotAddress(t *testing.T) {
+	dir := citeProject(t)
+	// Two documents of one file carry a name, so no target resolves to either,
+	// and a citation written for one would not resolve. The whole-file listing
+	// names the document a target can address and passes the other two by.
+	write(t, dir, "dup.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\nspec: Twin\nRETURN:\n- MUST: first twin\n---\nspec: Twin\nRETURN:\n- MUST: second twin\n---\nspec: Solo\nRETURN:\n- MUST: only child\n")
+	wantCite(t, dir, []string{citationMarker + " dup@Solo::RETURN[1]#24d75b8f\tMUST\tonly child"}, "dup")
 }
 
 // yass: 14-cite@CitationTarget::RETURN[8]#c5feb4da
