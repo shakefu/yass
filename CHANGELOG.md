@@ -2,6 +2,22 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.14.1 - 2026-11-25
+#### Bug Fixes
+- (**cli**) require every directory on the way to a PATH to be readable - (e2780d8) - Jacob Alheid
+- (**cli**) refuse a PATH a nearer project root governs, and resolve a file link by its own name - (cf5c7cd) - Jacob Alheid
+- (**cli**) anchor root discovery on the first PATH operand - (bdfe998) - Jacob Alheid
+- (**spec**) require every directory on the way to a PATH to be readable, and make the PATH refusals disjoint - (3aa3ce4) - Jacob Alheid
+- (**spec**) refuse a PATH a nearer project root governs, and resolve a file link by its own name - (1865f48) - Jacob Alheid
+- (**spec**) anchor root discovery on the first PATH operand - (e54e7d5) - Jacob Alheid
+#### Documentation
+- (**cli**) state that an unreadable directory on the way to a PATH outranks the project refusal - (8b1b67a) - Jacob Alheid
+- (**cli**) say records, not diagnostics, are relative to the project that answered - (27f3d27) - Jacob Alheid
+- (**cli**) state the nested-root refusal and how later commands find the same project - (081c14d) - Jacob Alheid
+- (**cli**) PATH operands anchor root discovery for the checking commands - (91bcf81) - Jacob Alheid
+
+- - -
+
 ## v0.14.0 - 2026-11-19
 #### Features
 - (**cli**) add yass explain for lint rule documentation - (86b9699) - Jacob Alheid
