@@ -112,18 +112,21 @@ func TestValidateOutsideFileUnreadableAscent(t *testing.T) {
 	}
 }
 
-// Root discovery anchors on a PATH operand, so a file under a directory that
-// grants read but no search has an ascent that cannot decide whether a root
-// file lies at or above it: the request ends with yass.io.unreadable naming
-// that directory, as it does for `root` taking the same operand. With no PATH
-// the ascent starts at the project root and never examines the directory; the
+// Root discovery anchors on a PATH operand, so the directory holding the file
+// is examined. One that cannot be listed ends the request with
+// yass.io.unreadable naming that directory, as `root` does for the same
+// operand. One that grants listing but no search stops the operand being
+// resolved at all, and it is the operand the diagnostic names. With no PATH the
+// ascent starts at the project root and examines neither directory; the
 // traversal that reaches the file reports it relative to the root
 // (01-locate@RootDiscovery::INPUT, RootDiscovery::ERROR,
 // 01-locate@ReadableDirectory, 01-locate@FileSet::ERROR).
 func TestValidateFileOperandUnderUnlistableDirectory(t *testing.T) {
 	dir := t.TempDir()
 	write(t, dir, "root.yass.yaml", conformanceRoot)
-	write(t, dir, "locked/x.yass.yaml", modeline+"---\ndescription: x\nversion: v1\n---\nspec: X\nINPUT:\n- MUST: x\n  SEE: nowhere@Gone\n")
+	const spec = modeline + "---\ndescription: x\nversion: v1\n---\nspec: X\nINPUT:\n- MUST: x\n  SEE: nowhere@Gone\n"
+	write(t, dir, "locked/x.yass.yaml", spec)
+	write(t, dir, "sealed/x.yass.yaml", spec)
 	locked := filepath.Join(dir, "locked")
 	denyDir(t, locked, 0o111)
 	want := realpath(t, locked)
@@ -137,6 +140,13 @@ func TestValidateFileOperandUnderUnlistableDirectory(t *testing.T) {
 	// reports the directory relative to it.
 	if loc := unreadableLocation(t, run(dir, "validate")); loc != "locked" {
 		t.Fatalf("location = %q, want %q", loc, "locked")
+	}
+
+	denyDir(t, filepath.Join(dir, "sealed"), 0o444)
+	for _, sub := range []string{"validate", "list"} {
+		if loc := unreadableLocation(t, run(dir, sub, "sealed/x.yass.yaml")); loc != "sealed/x.yass.yaml" {
+			t.Fatalf("%s location = %q, want the operand", sub, loc)
+		}
 	}
 }
 

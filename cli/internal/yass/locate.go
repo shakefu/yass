@@ -26,6 +26,38 @@ func resolveStart(path, label string) (string, error) {
 	return real, nil
 }
 
+// resolvePath turns a PATH operand into the path root discovery anchors on and
+// membership in the project is judged by: a directory through every symbolic
+// link, and a file by its own name in the directory that physically holds it,
+// which is how a loaded file is named, so a symbolic link naming a regular
+// file belongs to the project holding the link as the project file set holds
+// it. The entry's own info is returned with it. label is how the path is
+// named in a diagnostic.
+func resolvePath(path, label string) (string, fs.FileInfo, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		if os.IsPermission(err) {
+			return "", nil, unreadable(label)
+		}
+		return "", nil, missingPath(label)
+	}
+	resolved, err := path, error(nil)
+	if info.IsDir() {
+		resolved, err = filepath.EvalSymlinks(path)
+	} else if dir, derr := filepath.EvalSymlinks(filepath.Dir(path)); derr != nil {
+		resolved, err = "", derr
+	} else {
+		resolved = filepath.Join(dir, filepath.Base(path))
+	}
+	if err != nil {
+		if os.IsPermission(err) {
+			return "", nil, unreadable(label)
+		}
+		return "", nil, missingPath(label)
+	}
+	return resolved, info, nil
+}
+
 // discoverRoot yields the nearest directory at or above an already-resolved
 // absolute starting path that holds a file named exactly root.yass.yaml. A
 // project root is located by that name and by nothing else; the ascent never

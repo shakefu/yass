@@ -210,14 +210,23 @@ func (a *App) findRootFile(files []*File) *File {
 
 // underRoot reports whether a file lies at or below the project root, so
 // reachability never crosses a project root boundary.
-func (a *App) underRoot(f *File) bool { return a.atOrBelowRoot(f.Abs) }
+func (a *App) underRoot(f *File) bool {
+	_, ok := a.relUnder(f.Abs)
+	return ok
+}
 
-// atOrBelowRoot reports whether an absolute path lies at or below the project
-// root.
-func (a *App) atOrBelowRoot(abs string) bool {
-	rel := a.rel(abs)
-	return rel != "" && rel != ".." && !strings.HasPrefix(rel, "/") &&
-		!strings.HasPrefix(rel, "../")
+// relUnder yields the path segments between the project root and an absolute
+// path at or below it, and reports false for a path that lies beside or above
+// the root, or on a volume no relative path reaches from it.
+func (a *App) relUnder(abs string) ([]string, bool) {
+	rel, err := filepath.Rel(a.Root, abs)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return nil, false
+	}
+	if rel == "." {
+		return nil, true
+	}
+	return strings.Split(rel, string(filepath.Separator)), true
 }
 
 // dedupeDiags drops every advisory identical to an earlier one in code,
