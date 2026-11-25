@@ -149,7 +149,7 @@ requested answers, so they go to standard output.
 | `2` | Usage error, such as an unknown option or malformed target |
 | `3` | Unresolved path, document, slot, reference, docs name, or lint rule id; a target whose file does not parse; a reference whose relation does not fit its target's kind; or a malformed reference inside a served document |
 | `4` | No governing project root, or a `PATH` in another project, a nested one included |
-| `5` | Environment failure, such as unreadable files or a failed update |
+| `5` | Environment failure, such as a file or directory that cannot be read, or a failed update |
 
 For scripts and CI, check the exit status as well as capturing output. `validate`
 and `lint` complement each other, so run both when checking a spec change.
