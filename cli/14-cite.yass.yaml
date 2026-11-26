@@ -135,6 +135,14 @@ content: |
   each, and a slot or a spec is never cited as a whole, because a citation that covers
   everything it names says nothing about what a test leaves uncovered.
 
+  A token holding neither `@` nor `::` is not a citation, and nothing is reported for it.
+  A citation always names a document, and a ref target carries `@`, so a marker followed
+  by any other text, as a key of a configuration file is, binds nothing. A token that
+  names a document and fits no rule above is a malformed citation.
+
+  A citation names an obligation of its own project: a ref target whose file is not one of
+  the project file set resolves to nothing.
+
   `yass cite` also takes its target as the token without `#stamp` and as the ref target
   alone, and writes each entry it resolves to in the full form.
 ---

@@ -94,7 +94,7 @@ func TestCitationsReportsAMalformedCitation(t *testing.T) {
 		"a@Alpha::RETURN", "a@Alpha::RETURN[1]", "a@Alpha::RETURN[0]", "a@Alpha::RETURN[01]",
 		"a@Alpha::RETURN[2]#309207A", "a@Alpha::RETURN[2]#309207", "a@Alpha::RETURN[2]#309207aa0",
 		"a@Alpha[2]#309207aa", "Alpha::RETURN[2]#309207aa", "a@Alpha::INPUTT[1]#309207aa",
-		"a@Alpha::RETURN[x]#309207aa", "query",
+		"a@Alpha::RETURN[x]#309207aa",
 	}
 	got := broken(t, tokens...)
 	if len(got) != len(tokens) {
@@ -106,10 +106,27 @@ func TestCitationsReportsAMalformedCitation(t *testing.T) {
 			t.Errorf("%q: got %q, want %q", token, got[i], want)
 		}
 	}
-	// A marker with nothing after it is malformed too.
-	if got := broken(t, ""); len(got) != 1 || got[0] != "error\tyass.citation.syntax\tpkg/z_test.go\t3\tcitation is malformed" {
-		t.Fatalf("empty token: got %v", got)
+	// Text that names a document and nothing else is a malformed citation.
+	if got := broken(t, "path@Name", "Name::SLOT"); len(got) != 2 ||
+		got[0] != "error\tyass.citation.syntax\tpkg/z_test.go\t3\tcitation is malformed" ||
+		got[1] != "error\tyass.citation.syntax\tpkg/z_test.go\t4\tcitation is malformed" {
+		t.Fatalf("got %v, want two malformed citations", got)
 	}
+}
+
+// yass: 15-citations@Citations::INPUT[9]#5b389dee
+func TestCitationsIgnoresAMarkerThatNamesNoDocument(t *testing.T) {
+	dir := citedProject(t)
+	// A citation always names a document. A marker followed by text that
+	// holds no `@` and no `::` is no citation, so a configuration key spelled
+	// like the marker, in prose or in a fixture, is reported by nothing.
+	write(t, dir, "pkg/z_test.go", "package pkg\n\n"+
+		citeComment("v1")+"\n"+
+		citeComment("enabled")+"\n"+
+		citeComment("query")+"\n"+
+		"// "+citationMarker+"\n"+
+		"const cfg = \""+citationMarker+" v1\\n\"\n")
+	wantCitations(t, dir, ExitOK, nil, filepath.Join("pkg", "z_test.go"))
 }
 
 // yass: 14-cite@CitationTarget::RETURN[10]#52cd00aa
