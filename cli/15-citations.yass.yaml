@@ -33,6 +33,8 @@ INPUT:
   USES: 14-cite@CitationSyntax
 - MUST: "resolve the ref target of a citation as a command-line operand resolves it, save that every path token resolves from the project root, since a citation has no command line and no referencing file"
   CONFORMS: 14-cite@CitationTarget::INPUT
+- MUST: "resolve a citation only against the files of the project file set, reporting one naming any other file as unresolved, since no other spec file may be read and no obligation outside the set is counted"
+  CONFORMS: 14-cite@CitationTarget::INPUT
 RETURN:
 - WHEN: neither `--missing` nor `--coverage` is given
   MUST: check every citation of the citation scope

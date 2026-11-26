@@ -15,6 +15,14 @@ import (
 func citeProject(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
+	citeProjectAt(t, dir)
+	return dir
+}
+
+// citeProjectAt writes citeProject's files into dir, so a test can place the
+// project where it chooses, with the files of other projects beside or in it.
+func citeProjectAt(t *testing.T, dir string) {
+	t.Helper()
 	write(t, dir, "root.yass.yaml", modeline+`---
 description: r
 version: v1
@@ -56,7 +64,6 @@ RETURN:
 spec: Empty
 INVARIANT: []
 `)
-	return dir
 }
 
 // Stamps below were computed from 14-cite@ObligationStamp's definition outside
@@ -145,6 +152,28 @@ func TestCiteListsNoDocumentATargetCannotAddress(t *testing.T) {
 	// and a slot, so no target names this one, and a citation would carry two.
 	write(t, dir, "odd.yass.yaml", modeline+"---\ndescription: o\nversion: v1\n---\nspec: Example::RETURN\nRETURN:\n- MUST: odd one out\n")
 	wantCite(t, dir, nil, "odd")
+}
+
+// yass: 14-cite@CitationTarget::INPUT[5]#9d94c3df
+// yass: 14-cite@CitationTarget::ERROR[5]#954d0b67
+// yass: 14-cite@Cite::RETURN[9]#3e4bdce5
+func TestCiteNamesNothingOutsideTheProjectFileSet(t *testing.T) {
+	// A file above the project root and a file of a nested project are read
+	// when the command line names them, and hold no obligation of this
+	// project. No citation is written for their entries, and a number into
+	// them names none.
+	dir := realDir(t, "proj")
+	citeProjectAt(t, dir)
+	write(t, filepath.Dir(dir), "outside.yass.yaml", modeline+"---\ndescription: o\nversion: v1\n---\nspec: Out\nRETURN:\n- MUST: live outside\n")
+	write(t, dir, "sub/root.yass.yaml", conformanceRoot)
+	wantCite(t, dir, nil, "../outside@Out", "../outside@Out::RETURN", "sub/root@R")
+	for _, target := range []string{"../outside@Out::RETURN[1]", "sub/root@R::INPUT[1]"} {
+		got := run(dir, "cite", target)
+		wantStatus(t, got, ExitUnresolved)
+		if got.stdout != "" || !strings.Contains(got.stderr, "yass.ref.unresolved\t"+target+"\t") {
+			t.Errorf("%q: status = %d, stdout = %q, stderr = %q; want yass.ref.unresolved naming the target", target, got.status, got.stdout, got.stderr)
+		}
+	}
 }
 
 // yass: 14-cite@CitationTarget::RETURN[8]#c5feb4da

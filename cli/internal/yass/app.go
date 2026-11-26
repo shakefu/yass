@@ -53,13 +53,14 @@ const synopsis = `usage: yass [-C DIR] [--version] [--help] [SUBCOMMAND [ARGS...
 // App carries the one project root computed per invocation and the streams
 // every command writes through.
 type App struct {
-	Inv      *Invocation
-	StartDir string // absolute starting directory
-	Root     string // absolute project root
-	Loader   *Loader
-	out      *stream
-	err      *stream
-	names    *dirNames // directory listings for the exact-spelling checks
+	Inv        *Invocation
+	StartDir   string // absolute starting directory
+	Root       string // absolute project root
+	Loader     *Loader
+	out        *stream
+	err        *stream
+	names      *dirNames       // directory listings for the exact-spelling checks
+	citedFiles map[string]bool // the project file set by cleaned absolute path, walked on first use
 }
 
 // Main runs one invocation and returns the single exit status it selects.

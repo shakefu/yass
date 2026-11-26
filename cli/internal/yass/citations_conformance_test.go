@@ -23,12 +23,18 @@ func citeComment(token string) string {
 func citedProject(t *testing.T) string {
 	t.Helper()
 	dir := citeProject(t)
+	citedTestsAt(t, dir)
+	return dir
+}
+
+// citedTestsAt writes citedProject's test files into dir.
+func citedTestsAt(t *testing.T, dir string) {
+	t.Helper()
 	write(t, dir, "pkg/a_test.go", "package pkg\n\n"+citeComment(startToken)+"\nfunc TestStart(t *testing.T) {}\n")
 	write(t, dir, "pkg/b_test.py", "def test_thing():\n    # "+citationMarker+" "+thingToken+"\n    pass\n")
 	write(t, dir, "pkg/inner/x.spec.ts", citeComment(copyToken)+"\n"+citeComment(goodsToken)+"\n")
 	write(t, dir, "pkg/notes.md", "See "+citationMarker+" nowhere@Spec::INPUT[1]#00000000 in the prose.\n")
 	write(t, dir, "pkg/latest.go", "package pkg\n\n"+citeComment("nowhere@Spec::INPUT[1]#00000000")+"\n")
-	return dir
 }
 
 // wantCitations fails unless `yass citations args...` run in dir yields the
@@ -159,6 +165,37 @@ func TestCitationsHoldsFindingsUntilTheScopeIsRead(t *testing.T) {
 	wantStatus(t, got, ExitEnvironment)
 	if got.stdout != "" || !strings.Contains(got.stderr, "yass.io.unreadable\tpkg/z_test.go") {
 		t.Fatalf("stdout = %q, stderr = %q; want no record and yass.io.unreadable naming the file", got.stdout, got.stderr)
+	}
+}
+
+// yass: 14-cite@CitationTarget::INPUT[5]#9d94c3df
+// yass: 15-citations@Citations::INPUT[11]#fa16bd8d
+// yass: 15-citations@Citations::RETURN[4]#d7ba58b7
+func TestCitationsReportsACitationOutsideTheProjectFileSet(t *testing.T) {
+	dir := realDir(t, "proj")
+	citeProjectAt(t, dir)
+	citedTestsAt(t, dir)
+	outside := write(t, filepath.Dir(dir), "outside.yass.yaml", modeline+"---\ndescription: o\nversion: v1\n---\nspec: Out\nRETURN:\n- MUST: live outside\n")
+	write(t, dir, "sub/root.yass.yaml", conformanceRoot)
+	// Each citation names an obligation by its true stamp, and neither
+	// obligation is this project's: a file above the root and a file of a
+	// nested project are outside the project file set.
+	outsideToken := "../outside@Out::RETURN[1]#" + obligationStamp(&Obligation{Keyword: "MUST", Prose: "live outside", HasProse: true})
+	nestedToken := "sub/root@R::INPUT[1]#" + obligationStamp(&Obligation{Keyword: "MUST", Prose: "x", HasProse: true})
+	write(t, dir, "pkg/z_test.go", citeComment(outsideToken)+"\n"+citeComment(nestedToken)+"\n")
+	want := []string{
+		"error\tyass.citation.unresolved\tpkg/z_test.go\t1\tcitation " + outsideToken + " names no obligation",
+		"error\tyass.citation.unresolved\tpkg/z_test.go\t2\tcitation " + nestedToken + " names no obligation",
+	}
+	wantCitations(t, dir, ExitFindings, want)
+	// The file above the root cannot be read at all here, and the answer does
+	// not change: the checker never opens a spec file outside the project.
+	if runtime.GOOS != "windows" && os.Geteuid() != 0 {
+		if err := os.Chmod(outside, 0o000); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = os.Chmod(outside, 0o644) })
+		wantCitations(t, dir, ExitFindings, want)
 	}
 }
 

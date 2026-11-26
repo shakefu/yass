@@ -67,6 +67,8 @@ INPUT:
   CONFORMS: 02-load@TargetResolution::RETURN
 - MUST: number the entries of a slot in authored order, giving the next number to each entry that carries a normativity keyword and none to any other, so an entry holding only references takes no number
   SEE: ../yass@Obligation
+- MUST: "resolve a target only to a document of a file of the project file set, taking a target naming any other file as addressing no entry, because a citation names an obligation of this project and no other spec file may be read to check one"
+  SEE: root@YassCli::SIDE-EFFECT
 RETURN:
 - MUST: yield the number, the stamp, the normativity keyword, and the prose of each entry a target resolves to
 - MUST: "write a citation token as the normalized target, `[n]`, `#`, and the stamp"
@@ -96,6 +98,8 @@ ERROR:
   MUST: report code yass.ref.unresolved naming the target, because an obligation that was reworded cannot be found by the wording it had
 - MUST: exit with the status the request-failure catalogue gives each code this spec reports to end a request
   USES: root@RequestFailures
+- WHEN: "a target carries an index and addresses no entry, because its file is not one of the project file set"
+  MUST: report code yass.ref.unresolved naming the target
 SIDE-EFFECT:
 - MUST: write every diagnostic in this slot to standard error
   USES: root@OutputPolicy
