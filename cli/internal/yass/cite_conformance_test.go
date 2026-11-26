@@ -344,7 +344,6 @@ SIDE-EFFECT:
 
 // yass: 14-cite@CitationTarget::RETURN[1]#4dc3dc15
 // yass: 14-cite@CitationTarget::RETURN[3]#1d72b5b1
-// yass: 14-cite@CitationTarget::RETURN[9]#acde0c8c
 func TestStampChangesWithEveryValueOfTheEntry(t *testing.T) {
 	dir := t.TempDir()
 	write(t, dir, "root.yass.yaml", modeline+"---\ndescription: r\nversion: v1\n---\nspec: R\nINPUT:\n- MUST: x\n---\ndesign: Policy\ntype: constraint\ncontent: |\n  one\n---\ndesign: Other\ntype: constraint\ncontent: |\n  one\n")

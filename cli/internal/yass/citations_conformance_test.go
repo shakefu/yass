@@ -43,7 +43,11 @@ func wantCitations(t *testing.T, dir string, status int, want []string, args ...
 	t.Helper()
 	got := run(dir, append([]string{"citations"}, args...)...)
 	wantStatus(t, got, status)
-	if got.stdout != strings.Join(want, "\n")+"\n" && (len(want) > 0 || got.stdout != "") {
+	wantText := ""
+	if len(want) > 0 {
+		wantText = strings.Join(want, "\n") + "\n"
+	}
+	if got.stdout != wantText {
 		t.Fatalf("citations %v:\nstdout:\n%s\nstderr:\n%s\nwant:\n%s", args, got.stdout, got.stderr, strings.Join(want, "\n"))
 	}
 	if got.stderr != "" {
@@ -501,11 +505,19 @@ func TestCitationsReportsABadPathBeforeAnythingIsWritten(t *testing.T) {
 			t.Errorf("%q: status = %d, stdout = %q, stderr = %q; want %s and no record", tc.path, got.status, got.stdout, got.stderr, tc.code)
 		}
 	}
+	// A named pipe is neither a directory nor a regular file, so it is taken
+	// as no file at all.
+	makeFIFO(t, filepath.Join(dir, "pkg", "pipe"))
+	got := run(dir, "citations", filepath.Join("pkg", "pipe"))
+	wantStatus(t, got, ExitUsage)
+	if got.stdout != "" || !strings.Contains(got.stderr, "yass.io.not_a_spec_file\t"+filepath.Join("pkg", "pipe")+"\t") {
+		t.Errorf("pipe: status = %d, stdout = %q, stderr = %q; want yass.io.not_a_spec_file and no record", got.status, got.stdout, got.stderr)
+	}
 	// A directory a nearer project root governs is outside the project, and
 	// the first PATH is what anchors discovery.
 	write(t, dir, "pkg/nested/root.yass.yaml", conformanceRoot)
 	write(t, dir, "pkg/nested/n_test.go", citeComment("nowhere@Spec::INPUT[1]#00000000")+"\n")
-	got := run(dir, "citations", filepath.Join("pkg", "a_test.go"), filepath.Join("pkg", "nested"))
+	got = run(dir, "citations", filepath.Join("pkg", "a_test.go"), filepath.Join("pkg", "nested"))
 	wantStatus(t, got, ExitNoRoot)
 	if got.stdout != "" || !strings.Contains(got.stderr, "yass.root.outside") {
 		t.Fatalf("stdout = %q, stderr = %q; want yass.root.outside and no record", got.stdout, got.stderr)
