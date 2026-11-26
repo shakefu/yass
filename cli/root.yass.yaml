@@ -112,7 +112,7 @@ INVARIANT:
   USES: OutputPolicy
 - MUST-NOT: return a status the exit policy does not catalogue
   USES: ExitPolicy
-- WHEN: validate or lint reports a catalogued code as a diagnostic and continues with the next file
+- WHEN: validate, lint, or citations reports a catalogued code as a diagnostic and continues with the next file
   MUST: let that diagnostic contribute the findings status alone, since the catalogue gives the status only of a request a code ends
   USES: RequestFailures
   SEE: 08-validate@Validate
@@ -173,7 +173,7 @@ content:
     meaning: "the request could not be understood, because the argument vector is malformed: an unknown subcommand, an unknown option, an unknown record format, a missing option value, a missing or excess operand, an empty operand, or a target that fails the ref-target grammar or names an unrecognized slot"
   3:
     label: unresolved
-    meaning: "the request was understood and the thing it names is absent: a missing path, a target that resolves to no document, an unknown carried-document name, or an unknown lint rule id"
+    meaning: "the request was understood and the thing it names is absent: a missing path, a target that resolves to no document, a citation number or stamp that names no obligation, an unknown carried-document name, or an unknown lint rule id"
   4:
     label: no-root
     meaning: "there is no project to understand the request against: no file named root.yass.yaml is at or above the path discovery anchors on, or a PATH names a path the project discovered does not govern"
@@ -360,7 +360,8 @@ content: |
     find        {"ref", "what", "text"}
     refs        {"dir", "relation", "ref"}
     cite        {"citation", "what", "text"}
-    citations   {"ref", "must", "must_cited", "should", "should_cited"}
+    citations   {"ref", "must", "must_cited", "should", "should_cited"} under --coverage,
+                the keys of cite under --missing, and the diagnostic keys otherwise
     update      {"action", "from", "to"}
     diagnostic  {"severity", "code", "location", "line", "message"}
 
@@ -386,11 +387,12 @@ design: DiagnosticFormat
 type: schema
 format: line-grammar
 content: |
-  A diagnostic is the record form shared by `yass validate` and `yass lint`. It carries five
-  fields, in this order, under the same segmentation rules every other record obeys.
+  A diagnostic is the record form shared by `yass validate`, `yass lint`, and the citation
+  findings of `yass citations`. It carries five fields, in this order, under the same
+  segmentation rules every other record obeys.
 
-    SEVERITY  `error` for a validation diagnostic or a request failure, `warn` for a lint
-              advisory or a stale citation
+    SEVERITY  `error` for a validation diagnostic, a malformed or unresolved citation, or a
+              request failure, `warn` for a lint advisory or a stale citation
     CODE      `yass.<area>.<name>`, or the bare token `yass.internal`
     LOCATION  the most precise ref target known — `path`, `path@Name`, or `path@Name::SLOT`
               — root-relative with the `.yass.yaml` suffix removed, so the field can be

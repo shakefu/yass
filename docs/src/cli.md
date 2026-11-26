@@ -207,9 +207,12 @@ carries it in a comment above the test, in whatever comment syntax its language
 uses, and [`citations`](cli-checking.md) checks it.
 
 Records contain `CITATION`, `WHAT`, and `TEXT`. Slots are listed in canonical
-order and obligations in authored order. A whole-file TARGET lists every spec the
-file holds, and a design yields nothing. Every TARGET resolves before any record
-is written, so one that fails exits with its status and writes nothing.
+order and obligations in authored order. A whole-file TARGET lists every spec in
+the file that a ref target can address, and a design yields nothing. Nothing is
+written for a slot a spec declares twice or for a document outside the project's
+spec files, since a citation for either would not resolve. Every TARGET resolves
+before any record is written, so one that fails exits with its status and writes
+nothing.
 
 A TARGET may also carry its stamp. `cite` then resolves the obligation the stamp
 names wherever it has moved in the slot, so a citation made stale by a reordered
