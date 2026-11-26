@@ -406,8 +406,12 @@ func isWordByte(c byte) bool {
 }
 
 // isTestFileName reports whether a basename is named as a test
-// (15-citations@TestFileNames).
+// (15-citations@TestFileNames). A spec file is never one, whatever its
+// basename holds: a spec file is cited, and never cites.
 func isTestFileName(name string) bool {
+	if isSpecBasename(name) {
+		return false
+	}
 	for _, part := range testNameParts(name) {
 		switch {
 		case strings.EqualFold(part, "test"), strings.EqualFold(part, "tests"),
@@ -421,7 +425,8 @@ func isTestFileName(name string) bool {
 // testNameParts splits a basename at every `.`, `_`, and `-` and before each
 // capital letter that opens a word: one that follows a lower-case letter or a
 // digit, or that a lower-case letter follows. A run of capitals such as SPEC
-// or HTTP stays one part.
+// or HTTP stays one part, a digit at its end included, so TESTS1.go and
+// tests1.go are read alike.
 func testNameParts(name string) []string {
 	var parts []string
 	start := 0
@@ -431,7 +436,8 @@ func testNameParts(name string) []string {
 		case c == '.' || c == '_' || c == '-':
 			parts = append(parts, name[start:i])
 			start = i + 1
-		case c >= 'A' && c <= 'Z' && i > start && (isLower(name[i-1]) || i+1 < len(name) && isLower(name[i+1])):
+		case c >= 'A' && c <= 'Z' && i > start &&
+			(asciiLower(name[i-1]) || asciiDigit(name[i-1]) || i+1 < len(name) && asciiLower(name[i+1])):
 			parts = append(parts, name[start:i])
 			start = i
 		}
@@ -439,10 +445,9 @@ func testNameParts(name string) []string {
 	return append(parts, name[start:])
 }
 
-// isLower reports whether c is a lower-case ASCII letter or a digit.
-func isLower(c byte) bool {
-	return c >= 'a' && c <= 'z' || c >= '0' && c <= '9'
-}
+func asciiLower(c byte) bool { return c >= 'a' && c <= 'z' }
+
+func asciiDigit(c byte) bool { return c >= '0' && c <= '9' }
 
 // citationSelect yields the predicate that selects the files of the citation
 // scope: the files whose whole project-root-relative path matches the --tests

@@ -105,14 +105,20 @@ design: TestFileNames
 type: constraint
 content: |
   A file is named as a test when its basename, split at every `.`, `_`, and `-` and before
-  a capital letter that follows a lower-case letter or a digit or precedes one, holds
-  `test`, `tests`, `spec`, or `specs` as a whole part, in any casing. A run of capitals
-  such as SPEC or HTTP is one part.
+  a capital letter that follows a lower-case letter or a digit or that a lower-case letter
+  follows, holds `test`, `tests`, `spec`, or `specs` as a whole part, in any casing. A run
+  of capitals such as SPEC or HTTP is one part, a digit at its end included, so `TESTS1.go`
+  and `tests1.go` are read alike.
 
   So `x_test.go`, `test_x.py`, `x.test.ts`, `XTest.java`, `x_spec.rb`, and `tests.bats`
-  are named as tests, and `latest.go`, `contest.tsx`, and `testament.py` are not. A
-  directory's name counts for nothing: `tests/integration.rs` is not named as a test, and
-  `--tests` selects it.
+  are named as tests, and `latest.go`, `contest.tsx`, `testament.py`, and `tests1.go` are
+  not. A directory's name counts for nothing: `tests/integration.rs` is not named as a
+  test, and `--tests` selects it.
+
+  A spec file is never named as a test, whatever its basename holds. A spec file is cited
+  and never cites, and one that documents the citation form holds a marker of its own.
 
   The rule leans toward including. A file it takes by mistake matters only when someone put
-  a citation in it, while a test file it misses is never checked and never counted.
+  a citation in it, while a test file it misses is never checked and never counted. The
+  tree is walked as the spec file set is walked, so nothing is skipped for being hidden,
+  ignored, or vendored: a large tree is narrowed with `--tests` or a PATH.
