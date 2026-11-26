@@ -484,8 +484,21 @@ func TestCitationsReportsAnUnparsedSpecFileAndGoesOn(t *testing.T) {
 	}
 }
 
-// yass: 15-citations@Citations::ERROR[4]#119b21b7
 // yass: 15-citations@Citations::ERROR[5]#953fb2f9
+func TestCitationsReportsAPathThatIsNoFile(t *testing.T) {
+	dir := citedProject(t)
+	// A named pipe is neither a directory nor a regular file, so it is taken
+	// as no file at all, and nothing is written.
+	pipe := filepath.Join("pkg", "pipe")
+	makeFIFO(t, filepath.Join(dir, pipe))
+	got := run(dir, "citations", pipe)
+	wantStatus(t, got, ExitUsage)
+	if got.stdout != "" || !strings.Contains(got.stderr, "yass.io.not_a_spec_file\t"+pipe+"\t") {
+		t.Fatalf("stdout = %q, stderr = %q; want yass.io.not_a_spec_file and no record", got.stdout, got.stderr)
+	}
+}
+
+// yass: 15-citations@Citations::ERROR[4]#119b21b7
 // yass: 15-citations@Citations::ERROR[2]#c6976b8e
 func TestCitationsReportsABadPathBeforeAnythingIsWritten(t *testing.T) {
 	dir := citedProject(t)
@@ -505,19 +518,11 @@ func TestCitationsReportsABadPathBeforeAnythingIsWritten(t *testing.T) {
 			t.Errorf("%q: status = %d, stdout = %q, stderr = %q; want %s and no record", tc.path, got.status, got.stdout, got.stderr, tc.code)
 		}
 	}
-	// A named pipe is neither a directory nor a regular file, so it is taken
-	// as no file at all.
-	makeFIFO(t, filepath.Join(dir, "pkg", "pipe"))
-	got := run(dir, "citations", filepath.Join("pkg", "pipe"))
-	wantStatus(t, got, ExitUsage)
-	if got.stdout != "" || !strings.Contains(got.stderr, "yass.io.not_a_spec_file\t"+filepath.Join("pkg", "pipe")+"\t") {
-		t.Errorf("pipe: status = %d, stdout = %q, stderr = %q; want yass.io.not_a_spec_file and no record", got.status, got.stdout, got.stderr)
-	}
 	// A directory a nearer project root governs is outside the project, and
 	// the first PATH is what anchors discovery.
 	write(t, dir, "pkg/nested/root.yass.yaml", conformanceRoot)
 	write(t, dir, "pkg/nested/n_test.go", citeComment("nowhere@Spec::INPUT[1]#00000000")+"\n")
-	got = run(dir, "citations", filepath.Join("pkg", "a_test.go"), filepath.Join("pkg", "nested"))
+	got := run(dir, "citations", filepath.Join("pkg", "a_test.go"), filepath.Join("pkg", "nested"))
 	wantStatus(t, got, ExitNoRoot)
 	if got.stdout != "" || !strings.Contains(got.stderr, "yass.root.outside") {
 		t.Fatalf("stdout = %q, stderr = %q; want yass.root.outside and no record", got.stdout, got.stderr)
