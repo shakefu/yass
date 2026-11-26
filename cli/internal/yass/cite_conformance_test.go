@@ -176,6 +176,20 @@ func TestCiteNamesNothingOutsideTheProjectFileSet(t *testing.T) {
 	}
 }
 
+// yass: 14-cite@CitationTarget::ERROR[1]#bc14e736
+func TestCiteNamesTheFileForATargetThatFailedToParse(t *testing.T) {
+	dir := citeProject(t)
+	write(t, dir, "bad.yass.yaml", "spec: [ unclosed\n")
+	// The file and the line of its failure are what a reader can jump to. The
+	// target as given names a document the file never yielded.
+	got := run(dir, "cite", "bad@X::INPUT[1]#12345678")
+	wantStatus(t, got, ExitUnresolved)
+	if got.stdout != "" || !strings.HasPrefix(got.stderr, "error\tyass.document.not_yaml\tbad\t") ||
+		!strings.HasSuffix(got.stderr, "\tstream is not well-formed yaml\n") {
+		t.Fatalf("stdout = %q, stderr = %q; want the parse failure naming the file and its line", got.stdout, got.stderr)
+	}
+}
+
 // yass: 14-cite@CitationTarget::INPUT[6]#25d18e24
 // yass: 14-cite@CitationTarget::ERROR[5]#7d9e6be3
 // yass: 14-cite@Cite::RETURN[8]#3a75ca21
@@ -226,7 +240,7 @@ func TestCiteRejectsAMalformedIndexOrStamp(t *testing.T) {
 	}
 }
 
-// yass: 14-cite@CitationTarget::ERROR[1]#06b50ec7
+// yass: 14-cite@CitationTarget::ERROR[1]#bc14e736
 // yass: 14-cite@CitationTarget::ERROR[2]#84be25c2
 // yass: 14-cite@CitationTarget::ERROR[4]#f8d96021
 func TestCiteReportsWhatItCannotResolve(t *testing.T) {

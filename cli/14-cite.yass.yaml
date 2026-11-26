@@ -91,7 +91,7 @@ RETURN:
   CONFORMS: 02-load@TargetResolution::RETURN
 ERROR:
 - WHEN: the ref target does not resolve
-  MUST: "report the code target resolution emits for it, naming the target as it was given"
+  MUST: "report the code target resolution emits for it, naming the target as it was given or, for a file that failed to parse, that file and the line of its failure"
   SEE: 02-load@TargetResolution::ERROR
 - WHEN: "the target carries an index and no stamp, and no entry of the slot holds that number"
   MUST: report code yass.ref.unresolved naming the target
