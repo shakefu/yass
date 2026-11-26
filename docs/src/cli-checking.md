@@ -70,7 +70,9 @@ the citations the project's tests carry, each a `yass cite` line as the
 [CLI guide](cli.md) describes, and checks every one:
 
 - `yass.citation.syntax`: the citation does not fit the form.
-- `yass.citation.unresolved`: its spec, slot, or obligation number does not exist.
+- `yass.citation.unresolved`: its spec, slot, or obligation number does not exist
+  in this project. A citation naming a spec file above the root or in a nested
+  project is unresolved, and that file is never read.
 - `yass.citation.stale`: the obligation at that number carries another stamp, so
   it was moved or reworded after the citation was written.
 
@@ -81,11 +83,15 @@ it: rather than silently pointing a test at a different obligation, the citation
 fails until the test is read again and its line taken again from `yass cite`.
 
 A file is named as a test when its basename holds `test`, `tests`, `spec`, or
-`specs` as a whole part: `x_test.go`, `test_x.py`, `x.test.ts`, `XTest.java`.
-`--tests GLOB` replaces that rule, matching the whole root-relative path. A
-`PATH` narrows the files read, and a file `PATH` is read whatever its name. The
-marker is recognized wherever it stands on a line, in any comment syntax, and
-only the token after it is read.
+`specs` as a whole part, in any casing: `x_test.go`, `test_x.py`, `x.test.ts`,
+`XTest.java`. A spec file is never named as a test. `--tests GLOB` replaces that
+rule, matching the whole root-relative path. A `PATH` narrows the files read, and
+a file `PATH` is read whatever its name. The tree is walked as the spec files are,
+so nothing is skipped for being hidden, ignored, or vendored: narrow a large tree
+with `--tests` or a `PATH`. The marker is recognized wherever it stands on a line,
+in any comment syntax, and only the token after it is read. A token holding
+neither `@` nor `::` is not a citation, so a configuration key spelled `yass:`
+binds nothing.
 
 `--missing` lists, in the form `yass cite` writes, every `MUST` and `SHOULD`
 obligation no citation covers. `--coverage` counts, per spec, the obligations
@@ -98,7 +104,8 @@ root@Greeting	3	2	0	0
 -	3	2	0	0
 ```
 
-A `MAY` is a permission: it can be cited but is never listed or counted. A
+A `MAY` is a permission: it can be cited, but `--missing` never lists it and
+`--coverage` never counts it. A
 malformed, unresolved, or stale citation simply covers no obligation there. Both
 reports check nothing and exit `0`, unless a spec file fails to parse: that is
 reported on standard error and ends with `1`, since an obligation of that file

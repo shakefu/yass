@@ -158,30 +158,37 @@ Citations
   `n` counts the obligations of the slot that carry a keyword, from 1, and the
   stamp is eight characters derived from the obligation's wording. The marker
   is recognized wherever it stands on a line, in any comment syntax, and only
-  the token after it is read.
+  the token after it is read. A token holding neither `@` nor `::` is not a
+  citation, so a key spelled like the marker in a configuration file binds
+  nothing.
 
   `yass cite TARGET` writes the citation line of each obligation a spec, a
-  slot, or a file holds, so one is pasted rather than counted. It also takes
-  TARGET as a citation's token with its stamp, and then resolves the obligation
-  the stamp names wherever it has moved in the slot; a stamp no obligation
-  carries, as after a rewording, exits 3.
+  slot, or a file holds that a citation can name, so one is pasted rather than
+  counted. A slot a spec declares twice and a document outside the project's
+  spec files are passed by. It also takes TARGET as a citation's token with its
+  stamp, and then resolves the obligation the stamp names wherever it has moved
+  in the slot; a stamp no obligation carries, as after a rewording, exits 3.
 
   `yass citations` reads every citation in the project's test files and writes
   one diagnostic per citation that is malformed (yass.citation.syntax), names
   no obligation (yass.citation.unresolved), or carries a stamp the obligation
-  at its number does not (yass.citation.stale, a warning), exiting 1. A file
-  is named as a test when its basename holds `test`, `tests`, `spec`, or
-  `specs` as a whole part: x_test.go, test_x.py, x.test.ts, XTest.java.
-  `--tests GLOB` replaces that rule, matching the whole root-relative path, and
-  a PATH narrows the files read, a file PATH being read whatever its name.
+  at its number does not (yass.citation.stale, a warning), exiting 1. A
+  citation resolves only against this project's spec files: one naming a file
+  above the root or in a nested project is unresolved. A file is named as a
+  test when its basename holds `test`, `tests`, `spec`, or `specs` as a whole
+  part, in any casing: x_test.go, test_x.py, x.test.ts, XTest.java. A spec file
+  is never named as a test. `--tests GLOB` replaces that rule, matching the
+  whole root-relative path, and a PATH narrows the files read, a file PATH
+  being read whatever its name. The tree is walked as the spec files are, so
+  nothing is skipped for being hidden, ignored, or vendored.
 
   `yass citations --missing` lists, in the form `yass cite` writes, every MUST
   and SHOULD obligation no citation covers. `yass citations --coverage` counts
   per spec the obligations that MUST and that SHOULD, with how many of each are
   covered, then the project's totals on a line whose REF is `-`. A MAY is a
-  permission: it can be cited but is never listed or counted. Both reports
-  check nothing and exit 0, unless a spec file fails to parse: that is
-  reported on standard error and ends with 1.
+  permission: it can be cited, but --missing never lists it and --coverage
+  never counts it. Both reports check nothing and exit 0, unless a spec file
+  fails to parse: that is reported on standard error and ends with 1.
 
 Test
 ----
@@ -191,9 +198,10 @@ Test
   It runs the installer tests (script/test-install), then fails on any file
   `gofmt -l` lists, and runs `go vet ./...`, `go test ./...`, and `go build`.
   The built binary then runs the script tests (script/test-check-specs and
-  script/test-pre-commit-hook) and script/check-specs, which validates and lints
-  both of the repository's spec projects and fails on any validation error or
-  on a lint advisory its policy marks as failing.
+  script/test-pre-commit-hook) and script/check-specs, which validates, lints,
+  and checks the citations of both of the repository's spec projects, and fails
+  on any validation error or on a lint advisory or citation finding its policy
+  marks as failing.
   For the Go checks alone, run from this directory:
 
   test -z "$(gofmt -l .)" && go vet ./... && go test ./... && go build -o /dev/null .
