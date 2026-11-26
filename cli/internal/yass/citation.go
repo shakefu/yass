@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"hash"
 	"math"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -124,6 +125,15 @@ func (a *App) resolveCitation(ct citationTarget) ([]cited, error) {
 	if err != nil {
 		return nil, asGiven(err, ct)
 	}
+	// A citation names an obligation of this project alone. A file outside the
+	// project file set addresses no entry, as a design addresses none.
+	member, err := a.inCitationFileSet(b.File.Abs)
+	if err != nil {
+		return nil, err
+	}
+	if !member {
+		return noEntry(ct)
+	}
 
 	var slots []*Slot
 	switch {
@@ -181,6 +191,32 @@ func (a *App) resolveCitation(ct citationTarget) ([]cited, error) {
 	}
 	return nil, fail(ExitUnresolved, "yass.ref.unresolved", ct.Raw, 0,
 		"citation stamp names no obligation of that slot")
+}
+
+// noEntry is the outcome of a citation target that addresses no entry: nothing
+// to list, and an unresolved diagnostic for one that named a number.
+func noEntry(ct citationTarget) ([]cited, error) {
+	if ct.Index == 0 {
+		return nil, nil
+	}
+	return nil, fail(ExitUnresolved, "yass.ref.unresolved", ct.Raw, 0, "reference target does not resolve")
+}
+
+// inCitationFileSet reports whether abs names a file of the project file set,
+// the only spec files a citation may name or be checked against. The set is
+// walked once per invocation and judged on cleaned paths.
+func (a *App) inCitationFileSet(abs string) (bool, error) {
+	if a.citedFiles == nil {
+		files, err := a.projectFileSet()
+		if err != nil {
+			return false, err
+		}
+		a.citedFiles = make(map[string]bool, len(files))
+		for _, f := range files {
+			a.citedFiles[filepath.Clean(f)] = true
+		}
+	}
+	return a.citedFiles[filepath.Clean(abs)], nil
 }
 
 // addressableByTarget reports whether a command-line ref target can name a
@@ -393,11 +429,27 @@ const (
 )
 
 // checkCitation resolves one citation read from a file against the loaded
-// model. Its ref target resolves from the project root. The result is the
-// obligation the citation covers, or nil together with the code naming what is
-// wrong with the citation. An error is a failure to serve the request, such as
-// a cited file that cannot be read.
+// model. Its ref target resolves from the project root, and only a file of the
+// project file set may be read to resolve it. The result is the obligation the
+// citation covers, or nil together with the code naming what is wrong with the
+// citation. An error is a failure to serve the request, such as a cited file
+// that cannot be read.
 func (a *App) checkCitation(ct citationTarget) (*Obligation, string, error) {
+	// The grammar and the slot vocabulary are judged first and read nothing,
+	// so a malformed citation stays malformed whatever file it names.
+	t, ok := parseTarget(ct.Base, true)
+	if !ok || t.HasSlot && !isSlotName(t.Slot) {
+		return nil, citationSyntax, nil
+	}
+	member, err := a.inCitationFileSet(filePathFor(a.Root, a.Root, t.Path))
+	if err != nil {
+		return nil, "", err
+	}
+	if !member {
+		// Another project's spec file: never read, and never an obligation of
+		// this one.
+		return nil, citationUnresolved, nil
+	}
 	b, err := a.resolveTargetFrom(ct.Base, a.Root)
 	if err != nil {
 		if e, ok := err.(*cliError); ok {
