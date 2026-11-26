@@ -396,9 +396,22 @@ func lineCitations(l []byte, file string, line int) []citationFound {
 		for end < len(l) && l[end] != ' ' && l[end] != '\t' && l[end] != '\r' {
 			end++
 		}
-		out = append(out, citationFound{file, line, string(l[i:end])})
+		token := string(l[i:end])
 		i = end
+		if !namesDocument(token) {
+			// A marker followed by text that names no document is no citation.
+			continue
+		}
+		out = append(out, citationFound{file, line, token})
 	}
+}
+
+// namesDocument reports whether the text after a marker can be a citation at
+// all. A citation names a document, and a ref target carries `@`, `::` in
+// every spelling of it that names a slot. A marker followed by any other
+// text, as a key of a configuration file is, binds nothing and is no finding.
+func namesDocument(token string) bool {
+	return strings.Contains(token, "@") || strings.Contains(token, "::")
 }
 
 func isWordByte(c byte) bool {
