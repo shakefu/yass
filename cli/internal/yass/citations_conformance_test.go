@@ -205,6 +205,65 @@ func TestCitationsNeverReadsASpecFileAsATest(t *testing.T) {
 	wantCitations(t, dir, ExitFindings, []string{finding}, "--tests", "*-spec.*")
 }
 
+// yass: 14-cite@CitationTarget::INPUT[5]#9d94c3df
+// yass: 15-citations@Citations::INPUT[11]#fa16bd8d
+// yass: 15-citations@Citations::RETURN[13]#473f5d16
+func TestCitationsFollowsALinkedDirectoryInsideTheProject(t *testing.T) {
+	// The project sits under a path with its own links resolved, so that the
+	// only symbolic links in play are the two the test makes.
+	base, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := filepath.Join(base, "proj")
+	citeProjectAt(t, dir)
+	citedTestsAt(t, dir)
+	write(t, dir, "specs/api.yass.yaml", modeline+"---\ndescription: a\nversion: v1\n---\nspec: Api\nINPUT:\n- MUST: serve the api\n")
+	write(t, base, "elsewhere/x.yass.yaml", modeline+"---\ndescription: x\nversion: v1\n---\nspec: X\nRETURN:\n- MUST: stay outside\n")
+	for link, target := range map[string]string{
+		filepath.Join(dir, "alias"): filepath.Join(dir, "specs"),
+		filepath.Join(dir, "door"):  filepath.Join(base, "elsewhere"),
+	} {
+		if err := os.Symlink(target, link); err != nil {
+			t.Skipf("symbolic links are unavailable: %v", err)
+		}
+	}
+	apiStamp := obligationStamp(&Obligation{Keyword: "MUST", Prose: "serve the api", HasProse: true})
+	inside := "alias/api@Api::INPUT[1]#" + apiStamp
+	outside := "door/x@X::RETURN[1]#" + obligationStamp(&Obligation{Keyword: "MUST", Prose: "stay outside", HasProse: true})
+	// `yass cite` takes the spelling through the link and writes the file's
+	// own name, so the checker takes the same spelling: a file is the one it
+	// leads to, whoever walks the project.
+	wantCite(t, dir, []string{citationMarker + " specs/api@Api::INPUT[1]#" + apiStamp + "\tMUST\tserve the api"}, inside)
+	unresolved := []string{
+		"error\tyass.citation.unresolved\tpkg/z_test.go\t2\tcitation " + outside + " names no obligation",
+	}
+	write(t, dir, "pkg/z_test.go", citeComment(inside)+"\n"+citeComment(outside)+"\n")
+	// The link that leads outside names no member. The file behind it is
+	// never read, so making it unreadable changes nothing.
+	if runtime.GOOS != "windows" && os.Geteuid() != 0 {
+		outsideFile := filepath.Join(base, "elsewhere", "x.yass.yaml")
+		if err := os.Chmod(outsideFile, 0o000); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = os.Chmod(outsideFile, 0o644) })
+	}
+	wantCitations(t, dir, ExitFindings, unresolved)
+	// The obligation behind the inner link is covered, so it is neither
+	// listed as missing nor left out of the count.
+	write(t, dir, "pkg/z_test.go", citeComment(inside)+"\n")
+	wantCitations(t, dir, ExitOK, []string{citedGoods2, citedWrapped, citedSpaced,
+		citationMarker + " root@R::INPUT[1]#4ce36fb4\tMUST\tx"}, "--missing")
+	wantCitations(t, dir, ExitOK, []string{
+		"a@Alpha\t3\t3\t0\t0",
+		"a@Beta\t2\t1\t1\t0",
+		"a@Format\t1\t0\t0\t0",
+		"root@R\t1\t0\t0\t0",
+		"specs/api@Api\t1\t1\t0\t0",
+		"-\t8\t5\t1\t0",
+	}, "--coverage")
+}
+
 // yass: 14-cite@CitationTarget::INPUT[6]#25d18e24
 // yass: 15-citations@Citations::RETURN[4]#d7ba58b7
 // yass: 15-citations@Citations::RETURN[14]#564f5823

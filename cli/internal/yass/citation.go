@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"hash"
 	"math"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -205,8 +204,11 @@ func noEntry(ct citationTarget) ([]cited, error) {
 }
 
 // inCitationFileSet reports whether abs names a file of the project file set,
-// the only spec files a citation may name or be checked against. The set is
-// walked once per invocation and judged on cleaned paths.
+// the only spec files a citation may name or be checked against. Both are
+// compared by the loader's canonical path, the directory's symbolic links
+// resolved and the basename kept, so a citation spelled through a linked
+// directory names the member it leads to when that leads inside the project,
+// and none when it leads outside. The set is walked once per invocation.
 func (a *App) inCitationFileSet(abs string) (bool, error) {
 	if a.citedFiles == nil {
 		files, err := a.projectFileSet()
@@ -215,10 +217,10 @@ func (a *App) inCitationFileSet(abs string) (bool, error) {
 		}
 		a.citedFiles = make(map[string]bool, len(files))
 		for _, f := range files {
-			a.citedFiles[filepath.Clean(f)] = true
+			a.citedFiles[canonicalPath(f)] = true
 		}
 	}
-	return a.citedFiles[filepath.Clean(abs)], nil
+	return a.citedFiles[canonicalPath(abs)], nil
 }
 
 // addressableByTarget reports whether a command-line ref target can name a
