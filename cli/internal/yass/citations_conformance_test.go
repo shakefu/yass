@@ -168,6 +168,22 @@ func TestCitationsHoldsFindingsUntilTheScopeIsRead(t *testing.T) {
 	}
 }
 
+// yass: 15-citations@Citations::INPUT[5]#cf3ef670
+// yass: 15-citations@Citations::INPUT[6]#1c0aa631
+func TestCitationsNeverReadsASpecFileAsATest(t *testing.T) {
+	dir := citedProject(t)
+	// A spec file whose basename holds a test word is not a test file, and a
+	// marker it carries in documentation is no citation. A PATH or --tests
+	// names it expressly, and then it is read like any file.
+	head := modeline + "---\ndescription: a\nversion: v1\n---\nspec: Api\nINPUT:\n- MUST: serve the api\n---\ndesign: Syntax\ntype: schema\ncontent: |\n  "
+	body := head + citationMarker + " path@Name::SLOT[n]#stamp\n"
+	write(t, dir, "api-spec.yass.yaml", body)
+	finding := "error\tyass.citation.syntax\tapi-spec.yass.yaml\t" + strconv.Itoa(1+strings.Count(head, "\n")) + "\tcitation is malformed"
+	wantCitations(t, dir, ExitOK, nil)
+	wantCitations(t, dir, ExitFindings, []string{finding}, filepath.Join("api-spec.yass.yaml"))
+	wantCitations(t, dir, ExitFindings, []string{finding}, "--tests", "*-spec.*")
+}
+
 // yass: 14-cite@CitationTarget::INPUT[6]#25d18e24
 // yass: 15-citations@Citations::RETURN[4]#d7ba58b7
 // yass: 15-citations@Citations::RETURN[14]#564f5823
@@ -588,8 +604,14 @@ func TestTestFileNames(t *testing.T) {
 		"HTTPServerTest.kt": true, "x.SPEC.tsx": true, "Test.swift": true, "x_TESTS.py": true,
 		"FooTest.go": true, "JSONSpec.groovy": true, "xTest2.go": false,
 		"latest.go": false, "contest.tsx": false, "testament.py": false, "specification.md": false,
-		"xtest.go": false, "test2.go": false, "root.yass.yaml": false, "14-cite.yass.yaml": false,
-		"integration.rs": false, "x.go": false, "": false,
+		"xtest.go": false, "test2.go": false, "integration.rs": false, "x.go": false, "": false,
+		// A run of capitals is one part, a digit at its end included, so the
+		// rule reads a name alike in any casing.
+		"tests1.go": false, "TESTS1.go": false, "TESTX1.go": false, "SPECS1.go": false,
+		"HTTP2Test.go": true,
+		// A spec file is never named as a test, whatever its basename holds.
+		"root.yass.yaml": false, "14-cite.yass.yaml": false, "spec.yass.yaml": false,
+		"api-spec.yass.yaml": false, "x.test.yass.yaml": false,
 	} {
 		if got := isTestFileName(name); got != want {
 			t.Errorf("%q = %v, want %v", name, got, want)
