@@ -168,6 +168,38 @@ func TestCitationsHoldsFindingsUntilTheScopeIsRead(t *testing.T) {
 	}
 }
 
+// yass: 14-cite@CitationTarget::INPUT[6]#25d18e24
+// yass: 15-citations@Citations::RETURN[4]#d7ba58b7
+// yass: 15-citations@Citations::RETURN[14]#564f5823
+// yass: 15-citations@Citations::RETURN[15]#42c1d377
+func TestCitationsNamesNoSlotADocumentDeclaresTwice(t *testing.T) {
+	dir := citedProject(t)
+	write(t, dir, "d.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\nspec: D\nRETURN:\n- MUST: first return\nRETURN:\n- MUST: second return\nINPUT:\n- MUST: take input\n")
+	// The number names an entry of neither slot alone, so the citation is
+	// unresolved whichever slot had been read first.
+	token := "d@D::RETURN[1]#" + obligationStamp(&Obligation{Keyword: "MUST", Prose: "first return", HasProse: true})
+	write(t, dir, "pkg/z_test.go", citeComment(token)+"\n")
+	wantCitations(t, dir, ExitFindings, []string{
+		"error\tyass.citation.unresolved\tpkg/z_test.go\t1\tcitation " + token + " names no obligation",
+	})
+	// A report lists nothing under the slot, since its citation would be
+	// ambiguous, and counts its obligations all the same.
+	write(t, dir, "pkg/z_test.go", "package pkg\n")
+	wantCitations(t, dir, ExitOK, []string{
+		citedGoods2, citedWrapped, citedSpaced,
+		citationMarker + " d@D::INPUT[1]#cbf13218\tMUST\ttake input",
+		citationMarker + " root@R::INPUT[1]#4ce36fb4\tMUST\tx",
+	}, "--missing")
+	wantCitations(t, dir, ExitOK, []string{
+		"a@Alpha\t3\t3\t0\t0",
+		"a@Beta\t2\t1\t1\t0",
+		"a@Format\t1\t0\t0\t0",
+		"d@D\t3\t0\t0\t0",
+		"root@R\t1\t0\t0\t0",
+		"-\t10\t4\t1\t0",
+	}, "--coverage")
+}
+
 // yass: 14-cite@CitationTarget::INPUT[5]#9d94c3df
 // yass: 15-citations@Citations::INPUT[11]#fa16bd8d
 // yass: 15-citations@Citations::RETURN[4]#d7ba58b7
