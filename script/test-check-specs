@@ -31,9 +31,9 @@ if [ -z "${YASS:-}" ]; then
 	YASS="$work/yass"
 fi
 
-# stub NAME STATUS STDOUT [STDERR] — write a yass stand-in that answers both
-# validate and lint: validate is clean, lint prints STDOUT and STDERR and exits
-# STATUS.
+# stub NAME STATUS STDOUT [STDERR] — write a yass stand-in that answers lint:
+# every other subcommand, validate included, is clean, and lint prints STDOUT
+# and STDERR and exits STATUS.
 stub() {
 	local bin="$work/stub-$1"
 	printf '%s' "$3" >"$bin.out"
@@ -66,11 +66,12 @@ cstub() {
 	echo "$bin"
 }
 
-# check NAME WANT-STATUS PATTERN YASS PROJECT — run check-specs and assert its
-# exit status and that its output matches PATTERN.
+# check NAME WANT-STATUS PATTERN YASS PROJECT [SCRIPT] — run check-specs, or the
+# SCRIPT named in its place, and assert its exit status and that its output
+# matches PATTERN.
 check() {
-	local name="$1" want="$2" pattern="$3" bin="$4" project="$5" status=0 out
-	out=$(YASS="$bin" GITHUB_ACTIONS="" script/check-specs "$project" 2>&1) || status=$?
+	local name="$1" want="$2" pattern="$3" bin="$4" project="$5" gate="${6:-script/check-specs}" status=0 out
+	out=$(YASS="$bin" GITHUB_ACTIONS="" "$gate" "$project" 2>&1) || status=$?
 	if [ "$status" -ne "$want" ]; then
 		bad "$name: exit $status, want $want"
 		echo "$out" >&2
@@ -121,6 +122,21 @@ check "undispositioned citation code fails" 1 "citation code yass.citation.novel
 check "citation diagnostic on stderr fails" 1 "^error .*/proj/root.yass.yaml:1 yass.document.not_yaml" \
 	"$(cstub cstderr 1 "" "error${tab}yass.document.not_yaml${tab}root${tab}1${tab}stream is not well-formed yaml
 ")" "$proj"
+
+# A request failure on standard error names its path as it was given, so a
+# test file is not given the spec file's suffix.
+check "citation request failure keeps its path" 1 "^error .*/proj/pkg/shut_test.go:- yass.io.unreadable" \
+	"$(cstub cunreadable 5 "" "error${tab}yass.io.unreadable${tab}pkg/shut_test.go${tab}-${tab}path cannot be read
+")" "$proj"
+
+# The policy table decides. With a code dispositioned to advise, the same
+# finding is a warning and the gate passes. The table is edited in a copy of
+# the script, so the repository's own policy is left as it is.
+sed 's/yass\.citation\.stale) echo fail ;;/yass.citation.stale) echo advise ;;/' script/check-specs >"$work/check-specs-advise"
+chmod 0755 "$work/check-specs-advise"
+check "advisory citation passes" 0 "^warn .*/proj/pkg/@scope/x.test.ts:3 yass.citation.stale" \
+	"$(cstub staleadv 1 "warn${tab}yass.citation.stale${tab}pkg/@scope/x.test.ts${tab}3${tab}citation a@B::INPUT[1]#00000000 carries a stamp the obligation at that number does not
+")" "$proj" "$work/check-specs-advise"
 
 check "silent nonzero citations fails" 1 "yass citations exited 5 with no diagnostic" \
 	"$(cstub csilent 5 "")" "$proj"

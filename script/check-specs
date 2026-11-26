@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #
-# script/check-specs — validate and lint the repository's authored spec projects.
+# script/check-specs — validate, lint, and check the citations of the repository's authored
+# spec projects.
 #
 # Usage: script/check-specs [PROJECT...]
 #
@@ -219,7 +220,14 @@ for project in "$@"; do
 	fi
 	if [ -n "$err" ]; then
 		while IFS= read -r diag; do
-			record error "$project" "$diag"
+			# A spec file that failed to parse is named by its REF, which takes
+			# the suffix to name the file. A request failure names its path as
+			# it was given, a test file or a directory, and is kept whole.
+			code=$(cut -f2 <<<"$diag")
+			case "$code" in
+			yass.document.*) record error "$project" "$diag" ;;
+			*) record error "$project" "$diag" "" ;;
+			esac
 			failures=$((failures + 1))
 		done <<<"$err"
 	fi
