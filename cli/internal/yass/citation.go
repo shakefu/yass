@@ -140,19 +140,21 @@ func (a *App) resolveCitation(ct citationTarget) ([]cited, error) {
 	case b.WholeFile:
 		for _, d := range b.File.Docs {
 			if addressableByTarget(d) {
-				slots = append(slots, canonicalSlots(d)...)
+				slots = append(slots, uniqueSlots(d)...)
 			}
 		}
 	case b.Doc.Kind == KindDesign:
 		// A design holds no obligation to cite.
 	case b.Slot != "":
-		for _, s := range b.Doc.Slots {
-			if s.Name == b.Slot {
-				slots = append(slots, s)
-			}
+		if s := singleSlot(b.Doc, b.Slot); s != nil {
+			slots = append(slots, s)
 		}
 	default:
-		slots = canonicalSlots(b.Doc)
+		slots = uniqueSlots(b.Doc)
+	}
+	if len(slots) == 0 {
+		// Nothing a citation can name: a design, or a slot declared twice.
+		return noEntry(ct)
 	}
 
 	if ct.Index == 0 {
@@ -254,7 +256,8 @@ func asGiven(err error, ct citationTarget) error {
 	return e
 }
 
-// canonicalSlots yields a spec's declared slots in canonical order.
+// canonicalSlots yields a spec's declared slots in canonical order, a slot
+// the spec declares twice included twice.
 func canonicalSlots(d *Doc) []*Slot {
 	var out []*Slot
 	for _, name := range SlotNames {
@@ -265,6 +268,36 @@ func canonicalSlots(d *Doc) []*Slot {
 		}
 	}
 	return out
+}
+
+// uniqueSlots yields, in canonical order, the slots of a spec that a citation
+// can name: each declared slot whose name the spec declares once. A spec that
+// fails validation may declare a slot twice, and two slots of one name leave a
+// citation's number ambiguous, so such a slot is left out.
+func uniqueSlots(d *Doc) []*Slot {
+	var out []*Slot
+	for _, name := range SlotNames {
+		if s := singleSlot(d, name); s != nil {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+// singleSlot yields the slot a spec declares under name, and nil when it
+// declares no slot of that name or declares more than one.
+func singleSlot(d *Doc, name string) *Slot {
+	var found *Slot
+	for _, s := range d.Slots {
+		if s.Name != name {
+			continue
+		}
+		if found != nil {
+			return nil
+		}
+		found = s
+	}
+	return found
 }
 
 // cite renders the citation of one numbered entry of a slot.
@@ -464,14 +497,12 @@ func (a *App) checkCitation(ct citationTarget) (*Obligation, string, error) {
 		}
 		return nil, "", err
 	}
-	var slot *Slot
-	for _, s := range b.Doc.Slots {
-		if s.Name == b.Slot {
-			slot = s
-		}
-	}
+	// A spec that fails validation may declare the slot twice. Two slots of
+	// one name leave the number ambiguous, so the citation names no entry,
+	// exactly as `yass cite` writes none for it.
+	slot := singleSlot(b.Doc, b.Slot)
 	if slot == nil {
-		return nil, "", internal("resolved slot is not declared")
+		return nil, citationUnresolved, nil
 	}
 	entries := numbered(slot)
 	if ct.Index > len(entries) {

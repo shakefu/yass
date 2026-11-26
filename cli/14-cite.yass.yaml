@@ -29,9 +29,9 @@ RETURN:
 - MUST: set WHAT to the obligation's normativity keyword
 - MUST: set TEXT to the value of that keyword
 - WHEN: TARGET addresses a whole file
-  MUST: emit the obligations of every spec document of the file that a ref target can address, the slots of each in canonical order
+  MUST: "emit the obligations of every spec document of the file that a ref target can address, the slots of each that a citation can name, in canonical order"
 - WHEN: "TARGET addresses a spec and names no slot"
-  MUST: emit the obligations of every slot the spec declares, in canonical order
+  MUST: "emit the obligations of every slot of the spec that a citation can name, in canonical order"
 - WHEN: a TARGET resolves to no obligation
   MUST: emit no record for it
 - MUST: "preserve the authored order of obligations within a slot"
@@ -69,6 +69,7 @@ INPUT:
   SEE: ../yass@Obligation
 - MUST: "resolve a target only to a document of a file of the project file set, taking a target naming any other file as addressing no entry, because a citation names an obligation of this project and no other spec file may be read to check one"
   SEE: root@YassCli::SIDE-EFFECT
+- MUST: "take a slot as one a citation can name only when its document declares it once, leaving a slot declared more than once out of a listing and out of resolution, because two slots of one name leave a number ambiguous"
 RETURN:
 - MUST: yield the number, the stamp, the normativity keyword, and the prose of each entry a target resolves to
 - MUST: "write a citation token as the normalized target, `[n]`, `#`, and the stamp"
@@ -98,7 +99,7 @@ ERROR:
   MUST: report code yass.ref.unresolved naming the target, because an obligation that was reworded cannot be found by the wording it had
 - MUST: exit with the status the request-failure catalogue gives each code this spec reports to end a request
   USES: root@RequestFailures
-- WHEN: "a target carries an index and addresses no entry, because its file is not one of the project file set"
+- WHEN: "a target carries an index and addresses no entry, because its file is not one of the project file set or its slot is declared more than once"
   MUST: report code yass.ref.unresolved naming the target
 SIDE-EFFECT:
 - MUST: write every diagnostic in this slot to standard error

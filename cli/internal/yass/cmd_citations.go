@@ -111,14 +111,15 @@ func citationFinding(severity, code string, c citationFound, message string) Dia
 
 // reportMissing lists every obligation of the project that no citation covers,
 // one record in the form `yass cite` writes. Only a document a ref target can
-// address is listed, since a citation written for any other would not resolve.
+// address, and only a slot its spec declares once, is listed, since a citation
+// written for any other would not resolve.
 func (a *App) reportMissing(files []*File, covered map[*Obligation]bool) {
 	for _, f := range files {
 		for _, d := range f.Docs {
 			if !addressableByTarget(d) {
 				continue
 			}
-			for _, s := range canonicalSlots(d) {
+			for _, s := range uniqueSlots(d) {
 				for i, o := range numbered(s) {
 					if isObligation(o) && !covered[o] {
 						c := cite(s, i+1, o)

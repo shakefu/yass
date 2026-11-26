@@ -105,7 +105,7 @@ func wantCite(t *testing.T, dir string, want []string, args ...string) {
 	}
 }
 
-// yass: 14-cite@Cite::RETURN[8]#200675e0
+// yass: 14-cite@Cite::RETURN[8]#3a75ca21
 // yass: 14-cite@Cite::RETURN[10]#84184996
 // yass: 14-cite@CitationTarget::INPUT[4]#ac38398e
 // yass: 14-cite@CitationTarget::INVARIANT[1]#3f9826cb
@@ -130,7 +130,7 @@ func TestCiteYieldsTheEntryHoldingANumber(t *testing.T) {
 		"a@Beta::RETURN[1]", "a@Alpha::RETURN[2]", "a@Alpha::RETURN[1]")
 }
 
-// yass: 14-cite@Cite::RETURN[7]#b572dd89
+// yass: 14-cite@Cite::RETURN[7]#f76f2187
 // yass: 14-cite@Cite::RETURN[9]#3e4bdce5
 func TestCiteListsAWholeFile(t *testing.T) {
 	// Every spec the file holds is listed in stream order, slots of each in
@@ -140,7 +140,7 @@ func TestCiteListsAWholeFile(t *testing.T) {
 }
 
 // yass: 14-cite@CitationTarget::RETURN[10]#52cd00aa
-// yass: 14-cite@Cite::RETURN[7]#b572dd89
+// yass: 14-cite@Cite::RETURN[7]#f76f2187
 func TestCiteListsNoDocumentATargetCannotAddress(t *testing.T) {
 	dir := citeProject(t)
 	// Two documents of one file carry a name, so no target resolves to either,
@@ -155,7 +155,7 @@ func TestCiteListsNoDocumentATargetCannotAddress(t *testing.T) {
 }
 
 // yass: 14-cite@CitationTarget::INPUT[5]#9d94c3df
-// yass: 14-cite@CitationTarget::ERROR[5]#954d0b67
+// yass: 14-cite@CitationTarget::ERROR[5]#7d9e6be3
 // yass: 14-cite@Cite::RETURN[9]#3e4bdce5
 func TestCiteNamesNothingOutsideTheProjectFileSet(t *testing.T) {
 	// A file above the project root and a file of a nested project are read
@@ -173,6 +173,24 @@ func TestCiteNamesNothingOutsideTheProjectFileSet(t *testing.T) {
 		if got.stdout != "" || !strings.Contains(got.stderr, "yass.ref.unresolved\t"+target+"\t") {
 			t.Errorf("%q: status = %d, stdout = %q, stderr = %q; want yass.ref.unresolved naming the target", target, got.status, got.stdout, got.stderr)
 		}
+	}
+}
+
+// yass: 14-cite@CitationTarget::INPUT[6]#25d18e24
+// yass: 14-cite@CitationTarget::ERROR[5]#7d9e6be3
+// yass: 14-cite@Cite::RETURN[8]#3a75ca21
+func TestCiteNamesNoSlotADocumentDeclaresTwice(t *testing.T) {
+	dir := citeProject(t)
+	// A spec that would not validate still loads, with two slots of one name.
+	// Each numbers its entries from 1, so a citation of either is ambiguous:
+	// a listing passes the slot by, and a number into it names none.
+	write(t, dir, "d.yass.yaml", modeline+"---\ndescription: d\nversion: v1\n---\nspec: D\nRETURN:\n- MUST: first return\nRETURN:\n- MUST: second return\nINPUT:\n- MUST: take input\n")
+	wantCite(t, dir, []string{citationMarker + " d@D::INPUT[1]#cbf13218\tMUST\ttake input"}, "d@D")
+	wantCite(t, dir, nil, "d@D::RETURN")
+	got := run(dir, "cite", "d@D::RETURN[1]")
+	wantStatus(t, got, ExitUnresolved)
+	if got.stdout != "" || !strings.Contains(got.stderr, "yass.ref.unresolved\td@D::RETURN[1]\t") {
+		t.Fatalf("stdout = %q, stderr = %q; want yass.ref.unresolved naming the target", got.stdout, got.stderr)
 	}
 }
 
