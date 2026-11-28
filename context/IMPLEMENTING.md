@@ -76,20 +76,23 @@ when its guard has several cases.
 
 Cite each obligation a test covers, so a tool can check the link. Run `yass cite path@Name`
 for the spec: it prints one line per obligation, carrying the slot, the obligation's number
-in it, and a stamp of its wording. Paste the lines a test covers into a comment above the
+in it, and a stamp of its own text. Paste the lines a test covers into a comment above the
 test, in whatever comment syntax your language uses:
 
     // yass: path@Name::SLOT[n]#stamp
 
 `yass citations` checks every citation in the project's test files and fails on one that
 no longer names its obligation, which a renamed spec, a reordered slot, or a reworded
-obligation produces. A test file is known by its basename alone, holding `test`, `tests`,
-`spec`, or `specs` as a whole part in any casing, so `tests/integration.rs` is not one;
-`--tests GLOB` reads instead every file whose root-relative path matches GLOB. To refresh a
-citation it reports, give the token of the old citation, the text after the marker, to
-`yass cite`: an obligation that moved is found by its stamp, and one that was reworded is
-reported, so you read it again before citing it. `yass citations --missing` lists the
-obligations no test cites; `--coverage` counts the cited share of each spec.
+obligation produces. A test file is known by its basename alone, split at `.`, `_`, `-`,
+and camel-case boundaries into parts, one of them `test`, `tests`, `spec`, or `specs` in
+any casing, so `FooTest.java` is one and `contest.go` and `tests/integration.rs` are not; a
+spec file is never named as one. `--tests GLOB` reads instead every file whose path from
+the project root matches GLOB. To refresh a citation it reports, give the token of the old
+citation, the text after the marker, to `yass cite`: an obligation that moved is found by
+its stamp, and one that was reworded is reported, so you read it again before citing it.
+`yass citations --missing` lists every `MUST`, `MUST-NOT`, `SHOULD`, and `SHOULD-NOT`
+obligation no test cites, and never a `MAY`; `--coverage` counts their cited share per
+spec, then for the project.
 
 - **Start with `ERROR`.** Write the foreseeable failures first: each guarded `ERROR`
   obligation names an input and the outcome it must produce (a code, a message, an exit
@@ -144,9 +147,9 @@ will not show this; running the code against the real dependency will.
   contradict. Report the affected obligations and stop that part of the work.
 
 A spec change that rewords without changing behavior needs no new test, only a citation
-taken again from `yass cite` for each reworded obligation, since the stamp is of the
-wording. A change to what an obligation requires needs the test that shows the code now
-meets it.
+taken again from `yass cite`, since the stamp covers the obligation's keyword, prose,
+guard, and references, so an edit to any of them changes it. A change to what an
+obligation requires needs the test that shows the code now meets it.
 
 ---
 
