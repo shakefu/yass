@@ -2,6 +2,32 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.16.0 - 2026-11-28
+#### Features
+- (**cli**) add yass citations to check the citations tests carry - (810e1bf) - Jacob Alheid
+- (**cli**) add yass cite for obligation citations - (4c44370) - Jacob Alheid
+#### Bug Fixes
+- (**cli**) judge a cited file by the path the loader gives it - (cfaad64) - Jacob Alheid
+- (**cli**) take a marker for a citation only when its token names a document - (67c8bc6) - Jacob Alheid
+- (**cli**) read a test file's name alike in any casing, and never take a spec file for one - (0bb7bb4) - Jacob Alheid
+- (**cli**) name no slot a document declares twice - (5e5e3e1) - Jacob Alheid
+- (**cli**) resolve a citation only within the project file set - (41a2fe3) - Jacob Alheid
+- (**cli**) count an obligation no target can address in the coverage total - (c095c28) - Jacob Alheid
+- (**cli**) hold citation findings until every file of the scope is read - (e3eb372) - Jacob Alheid
+- (**cli**) write a citation only for a document a ref target can address - (54bdd98) - Jacob Alheid
+- (**script**) keep a request failure's path whole in the citations gate - (e3e3647) - Jacob Alheid
+- (**script**) keep a citation's file path whole in the gate report - (312e855) - Jacob Alheid
+#### Documentation
+- (**cli**) state the citation scope and complete the catalogue entries for citations - (67395c3) - Jacob Alheid
+- (**cli**) say that a parse failure names the file, not the target - (85760ab) - Jacob Alheid
+- (**cli**) say what cite takes to refresh a citation, and when a report exits 1 - (d3c54b0) - Jacob Alheid
+#### Tests
+- (**cli**) give the named pipe a test of its own - (5309e52) - Jacob Alheid
+- (**cli**) tighten the citation test helper and cite only what each test exercises - (63e68ac) - Jacob Alheid
+- (**cli**) cite the scope obligation from the file-name test - (0ae98f2) - Jacob Alheid
+
+- - -
+
 ## v0.15.0 - 2026-11-25
 #### Features
 - ship the shakefu/yass/setup GitHub Action - (2e258c2) - Jacob Alheid
