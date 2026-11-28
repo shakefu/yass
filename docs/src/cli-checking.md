@@ -209,4 +209,5 @@ their commands' requested answers, so they go to standard output.
 | `5` | Environment failure, such as a file or directory that cannot be read, or a failed update |
 
 For scripts and CI, check the exit status as well as capturing output. `validate`
-and `lint` complement each other, so run both when checking a spec change.
+and `lint` complement each other, and a spec change also reaches the tests that
+cite it, so run `citations` with both.

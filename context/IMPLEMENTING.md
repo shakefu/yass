@@ -83,10 +83,13 @@ test, in whatever comment syntax your language uses:
 
 `yass citations` checks every citation in the project's test files and fails on one that
 no longer names its obligation, which a renamed spec, a reordered slot, or a reworded
-obligation produces. To refresh a citation it reports, give the token of the old citation,
-the text after the marker, to `yass cite`: an obligation that moved is found by its stamp,
-and one that was reworded is reported, so you read it again before citing it.
-`yass citations --missing` lists the obligations no test cites.
+obligation produces. A test file is known by its basename alone, holding `test`, `tests`,
+`spec`, or `specs` as a whole part in any casing, so `tests/integration.rs` is not one;
+`--tests GLOB` reads instead every file whose root-relative path matches GLOB. To refresh a
+citation it reports, give the token of the old citation, the text after the marker, to
+`yass cite`: an obligation that moved is found by its stamp, and one that was reworded is
+reported, so you read it again before citing it. `yass citations --missing` lists the
+obligations no test cites; `--coverage` counts the cited share of each spec.
 
 - **Start with `ERROR`.** Write the foreseeable failures first: each guarded `ERROR`
   obligation names an input and the outcome it must produce (a code, a message, an exit
@@ -140,8 +143,10 @@ will not show this; running the code against the real dependency will.
   policy named but never stated, a guard with two readings, two obligations that
   contradict. Report the affected obligations and stop that part of the work.
 
-A spec change that rewords without changing behavior needs no new test. A change to what
-an obligation requires needs the test that shows the code now meets it.
+A spec change that rewords without changing behavior needs no new test, only a citation
+taken again from `yass cite` for each reworded obligation, since the stamp is of the
+wording. A change to what an obligation requires needs the test that shows the code now
+meets it.
 
 ---
 
