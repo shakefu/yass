@@ -122,7 +122,8 @@ works with any agent that can run a shell command.
      what it says, following `yass docs implementing`.
    - **Changing a spec** — the agent reads the documents carried inside the
      binary (`yass docs`), edits the spec files, and checks them with
-     `yass validate` and `yass lint`.
+     `yass validate` and `yass lint`, then `yass citations` once tests cite
+     the spec, to find the citations a change made stale.
 
 3. **Review the spec first.** It is the contract the code is built against, so
    when something comes out wrong, the fix is usually a line in the spec — and
