@@ -90,9 +90,10 @@ spec file is never named as one. `--tests GLOB` reads instead every file whose p
 the project root matches GLOB. To refresh a citation it reports, give the token of the old
 citation, the text after the marker, to `yass cite`: an obligation that moved is found by
 its stamp, and one that was reworded is reported, so you read it again before citing it.
-`yass citations --missing` lists every `MUST`, `MUST-NOT`, `SHOULD`, and `SHOULD-NOT`
-obligation no test cites, and never a `MAY`; `--coverage` counts their cited share per
-spec, then for the project.
+`yass citations --missing` lists each `MUST`, `MUST-NOT`, `SHOULD`, and `SHOULD-NOT`
+obligation no test cites that a citation can resolve to, and never a `MAY`; `--coverage`
+counts their cited share per spec, then the project's, which counts an obligation no
+citation can resolve to as well.
 
 - **Start with `ERROR`.** Write the foreseeable failures first: each guarded `ERROR`
   obligation names an input and the outcome it must produce (a code, a message, an exit
@@ -148,8 +149,9 @@ will not show this; running the code against the real dependency will.
 
 A spec change that rewords without changing behavior needs no new test, only a citation
 taken again from `yass cite`, since the stamp covers the obligation's keyword, prose,
-guard, and references, so an edit to any of them changes it. A change to what an
-obligation requires needs the test that shows the code now meets it.
+guard, and references: a change to what any of them says changes it, and a change only to
+quoting or layout does not. A change to what an obligation requires needs the test that
+shows the code now meets it.
 
 ---
 
